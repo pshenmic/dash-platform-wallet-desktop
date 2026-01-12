@@ -1,0 +1,23 @@
+{
+  "name": "electron-desktop-wallet",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron main/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pshenmic/electron-desktop-wallet.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pshenmic/electron-desktop-wallet/issues"
+  },
+  "homepage": "https://github.com/pshenmic/electron-desktop-wallet#readme",
+  "devDependencies": {
+    "electron": "39.2.7"
+  }
+}
