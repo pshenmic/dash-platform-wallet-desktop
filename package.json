@@ -1,23 +1,57 @@
 {
-  "name": "electron-desktop-wallet",
+  "name": "dash-desktop-wallet",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "./out/main/index.js",
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://github.com/pshenmic/electron-desktop-wallet#readme",
   "scripts": {
-    "start": "electron main/index.ts",
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "build": "npm run typecheck && electron-vite build",
+    "typecheck": "tsc --noEmit",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pshenmic/electron-desktop-wallet.git"
   },
-  "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/pshenmic/electron-desktop-wallet/issues"
   },
-  "homepage": "https://github.com/pshenmic/electron-desktop-wallet#readme",
+  "dependencies": {
+    "@electron-toolkit/preload": "3.0.2",
+    "@electron-toolkit/utils": "4.0.0",
+    "class-variance-authority": "0.7.1",
+    "dash-ui-kit": "1.0.94",
+    "react-router-dom": "7.12.0"
+  },
   "devDependencies": {
-    "electron": "39.2.7"
+    "@electron-toolkit/eslint-config-ts": "3.1.0",
+    "@electron-toolkit/tsconfig": "2.0.0",
+    "@tailwindcss/postcss": "4.1.18",
+    "@types/node": "22.19.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "autoprefixer": "10.4.23",
+    "electron": "39.2.7",
+    "electron-builder": "26.0.12",
+    "electron-vite": "5.0.0",
+    "eslint": "9.39.1",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.4.24",
+    "postcss": "8.5.6",
+    "postcss-import": "16.1.1",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "tailwindcss": "4.1.18",
+    "typescript": "5.9.3",
+    "vite": "7.2.6"
   }
 }
