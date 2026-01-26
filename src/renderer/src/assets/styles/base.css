@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "dash-ui-kit/theme";
+@import "dash-ui-kit/styles";
+@import '@fontsource/manrope/index.css';
+
+@theme {
+  /* Colors */
+  --color-white: #fff;
+  --color-black: #0c1c33;
+  --color-gray: rgba(12, 28, 51, 0.03);
+  --color-blue: #4c7eff;
+
+  /* Spacing */
+  --spacing-2.5: 10px;
+  --spacing-3.75: 15px;
+  --spacing-8.75: 35px;
+
+  /* BorderRadius */
+  --radius-5: 5px;
+  --radius-14: 14px;
+  --radius-15: 15px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-32: 32px;
+
+  /* BoxShadow */
+  --shadow-sidebar: 8px 0 64px 0 rgba(12, 28, 51, 0.08);
+}
+
+@layer base {
+  :root {
+    --font-dash-grotesque: 'Manrope', sans-serif;
+    --color-gray-900: #0c1c33;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--color-white);
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}

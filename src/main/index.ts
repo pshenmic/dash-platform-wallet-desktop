@@ -29,6 +29,10 @@ const createWindow = () => {
     return { action: 'deny' }
   })
 
+  if (is.dev) {
+    mainWindow.webContents.openDevTools({ mode: 'right' })
+  }
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
@@ -46,7 +50,7 @@ app.whenReady().then(() => {
   createWindow()
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
+    if (mainWindow === null) {
       createWindow()
     }
   })
@@ -57,13 +61,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-app
-  .whenReady()
-  .then(() => {
-    createWindow();
-    app.on('activate', () => {
-      if (mainWindow === null) createWindow();
-    });
-  })
-  .catch(console.log);
