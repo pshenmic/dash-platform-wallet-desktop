@@ -1,9 +1,8 @@
 import { navGroups } from "@renderer/constants";
-import { NamesIcon, SendIcon, SettingsIcon, SupportIcon, TokensIcon, TransactionsIcon, WithdrawIcon } from "../icons";
-import { IconProps } from "../icons";
+import { FaceIcon, SendIcon, SettingsIcon, ShieldSmallIcon, TokensIcon, TransactionsIcon, WithdrawIcon, ChevronIcon } from "../dash-ui-kit-enxtended/icons";
 import { useState } from "react";
 import { cva } from "class-variance-authority";
-import { ChevronIcon } from "dash-ui-kit/react";
+import { IconProps } from "../dash-ui-kit-enxtended/icons";
 import SidebarHeader from "./SidebarHeader";
 import SidebarNavGroup from "./SidebarNavGroup";
 
@@ -12,8 +11,8 @@ const iconMap: Record<string, React.FC<IconProps>> = {
   'send': SendIcon,
   'withdraw': WithdrawIcon,
   'tokens': TokensIcon,
-  'names': NamesIcon,
-  'support': SupportIcon,
+  'names': FaceIcon,
+  'support': ShieldSmallIcon,
   'settings': SettingsIcon
 }
 
@@ -24,12 +23,13 @@ const asideStyles = cva(
     flex
     flex-col
     w-64
-    bg-white
-    rounded-r-32
-    shadow-sidebar
+    bg-white dark:bg-transparent
+    dark:border-r-1 dark:border-white/32
+    rounded-r-[2rem]
     shrink-0
+    shadow-[8px_0_64px_0_rgba(12,28,51,0.08)]
     transition-[margin-left]
-    duration-500
+    duration-300
     ease
   `,
   {
@@ -45,17 +45,18 @@ const asideStyles = cva(
 const openSidebarButtonStyles = cva(
   `
     fixed
-    top-10
+    top-12
     h-12
     w-12
     flex
+    z-100
     items-center
     justify-center
-    rounded-r-15
+    rounded-r-[.9375rem]
     cursor-pointer
-    bg-blue
+    bg-dash-brand dark:bg-dash-mint
     hover:shadow-lg
-    hover:[transform:translateX(0.5rem)]
+    hover:[transform:translateX(0.2rem)]
     [transition:left_500ms_ease-out,opacity_300ms_ease-out,transform_300ms_ease-out,box-shadow_300ms_ease-out]
   `,
   {
@@ -77,7 +78,7 @@ const openSidebarButtonStyles = cva(
 )
 
 export default function Sidebar(): React.JSX.Element {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(true)
 
   return (
     <>
@@ -98,7 +99,13 @@ export default function Sidebar(): React.JSX.Element {
         </div>
       </aside>
       <button aria-label={"Open sidebar"} className={openSidebarButtonStyles({ isOpen })} onClick={() => setIsOpen(true)}>
-        <ChevronIcon size={17} color={"var(--color-white)"} className={"-rotate-90"}/>
+        <ChevronIcon
+        size={17}
+        className={`
+         -rotate-90
+        text-white
+        dark:text-dash-primary-dark-blue
+        `}/>
       </button>
     </>
   )

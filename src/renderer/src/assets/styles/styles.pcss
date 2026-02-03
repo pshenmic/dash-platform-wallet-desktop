@@ -1,0 +1,44 @@
+@layer components {
+  .dash-btn-base {
+    @apply inline-flex items-center justify-center rounded-md;
+    @apply text-sm font-medium transition-colors;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply border border-transparent min-h-11 px-4 py-2;
+    @apply cursor-pointer font-dash-main;
+  }
+
+  .dash-btn-outline {
+    @apply bg-transparent border-current;
+  }
+
+  .dash-btn-sm {
+    @apply px-3 py-1 text-xs min-h-9;
+  }
+
+  /* Unified Dash Block System */
+  .dash-block-sm {
+    @apply px-4 py-[.9375rem] rounded-[.9375rem];
+  }
+
+  .dash-block-base {
+    @apply px-3.75 py-2.5 text-sm rounded-[.9375rem];
+  }
+
+  .dash-block-md {
+    @apply px-[1.125rem] py-3 text-base rounded-[0.875rem];
+  }
+
+  .dash-block-xl {
+    @apply px-[1.5625rem] py-[1.25rem] rounded-[1rem];
+  }
+
+  /* Font utilities */
+  .font-dash-main {
+    font-family: var(--font-dash-main);
+  }
+
+  .font-dash-grotesque {
+    font-family: var(--font-dash-grotesque);
+  }
+}

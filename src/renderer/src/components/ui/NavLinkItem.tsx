@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { cva } from "class-variance-authority";
 import { SidebarNavGroupProps } from "../sidebar/SidebarNavGroup";
-import { Typography } from "./Typography";
+import { Text } from "../dash-ui-kit-enxtended";
 
 const navLinkStyles = cva(
   `
@@ -11,8 +11,8 @@ const navLinkStyles = cva(
     px-3.75
     py-2.5
     border-b-1
-    border-white
-    transition-all
+    border-white dark:border-white/12
+    transition-[bg,scale,translate,shadow]
     duration-300
     ease-out
     group
@@ -21,8 +21,8 @@ const navLinkStyles = cva(
   {
     variants: {
       isActive: {
-        true: 'bg-blue',
-        false: 'bg-gray'
+        true: 'bg-dash-brand dark:bg-dash-brand',
+        false: 'bg-dash-primary-dark-blue/3 dark:bg-white/4'
       }
     }
   }
@@ -36,19 +36,19 @@ const iconStyles = cva(
     items-center
     justify-center
     rounded-full
-    transition-all
+    transition-[bg,scale,translate,shadow]
     duration-300
-    ease-out
+    ease
   `,
   {
     variants: {
       isActive: {
         true: 'bg-white/12 text-white',
         false: `
-        bg-white
-        text-black
-        group-hover:bg-blue/20
-        group-hover:text-blue
+        bg-white dark:bg-white/5
+        text-dash-primary-dark-blue dark:text-white
+        group-hover:bg-dash-brand/20 dark:group-hover:bg-dash-mint/15
+        group-hover:text-dash-brand dark:group-hover:text-dash-mint
         group-hover:scale-110
         group-hover:shadow-md
         group-hover:-translate-y-0.5
@@ -60,17 +60,16 @@ const iconStyles = cva(
 
 const textStyles = cva(
   `
-    transition-all
+    transition-[text,translate]
     duration-300
-    ease-out
+    ease
   `,
   {
     variants: {
       isActive: {
-        true: 'text-white',
+        true: 'text-white !font-extrabold',
         false: `
-        text-black
-        group-hover:text-blue
+        group-hover:text-dash-brand dark:group-hover:text-dash-mint
         group-hover:translate-x-1
         `
       }
@@ -91,12 +90,12 @@ export default function NavLinkItem({item}: {item: SidebarNavGroupProps}): React
         <>
           {Icon && (
             <div className={iconStyles({ isActive })}>
-              <Icon className={"group-hover:scale-105 transition-transform duration-200"} />
+              <Icon color={"inherit"} className={`transition-transform duration-200 ${!isActive ? 'group-hover:scale-105' : ''}`} />
             </div>
           )}
-          <Typography className={textStyles({ isActive })}>
+          <Text size={14} color={"brand"} className={textStyles({ isActive })}>
             {item?.items.label}
-          </Typography>
+          </Text>
         </>
       )}
     </NavLink>
