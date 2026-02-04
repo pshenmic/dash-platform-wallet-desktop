@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/logo.png?asset'
@@ -39,6 +39,20 @@ const createWindow = () => {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+ipcMain.handle('dark-mode:get', () => {
+  return nativeTheme.shouldUseDarkColors
+})
+
+ipcMain.handle('dark-mode:system', () => {
+  nativeTheme.themeSource = 'system'
+})
+
+nativeTheme.on('updated', () => {
+  if (mainWindow) {
+    mainWindow.webContents.send('theme-changed', nativeTheme.shouldUseDarkColors)
+  }
+})
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.dash.desktopwallet')

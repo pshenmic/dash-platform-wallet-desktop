@@ -10,10 +10,12 @@ import SettingsPage from "./pages/Settings"
 import Sidebar from "./components/sidebar"
 import LoginPage from "./pages/Authorization"
 import Layout from "./components/Layout"
+import { useSystemTheme } from "./hooks/useSystemTheme"
 
 function App(): React.JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [hasWallet, setHasWallet] = useState<boolean>(false)
+  // useSystemTheme()
 
   const handleLogin = useCallback(() => {
     setIsAuthenticated(true)
