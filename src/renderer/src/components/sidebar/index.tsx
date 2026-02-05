@@ -54,7 +54,7 @@ const openSidebarButtonStyles = cva(
     justify-center
     rounded-r-[.9375rem]
     cursor-pointer
-    bg-dash-brand dark:bg-dash-mint
+    dash-block-accent
     hover:shadow-lg
     hover:[transform:translateX(0.2rem)]
     [transition:left_500ms_ease-out,opacity_300ms_ease-out,transform_300ms_ease-out,box-shadow_300ms_ease-out]
@@ -103,8 +103,7 @@ export default function Sidebar(): React.JSX.Element {
         size={17}
         className={`
          -rotate-90
-        text-white
-        dark:text-dash-primary-dark-blue
+        dash-text-inverse
         `}/>
       </button>
     </>

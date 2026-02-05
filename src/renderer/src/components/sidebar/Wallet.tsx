@@ -18,11 +18,9 @@ export default function Wallet(): React.JSX.Element {
           pr-6.25
           pb-2.5
           pl-3.75
-          bg-dash-primary-dark-blue/3
-          dark:bg-white/4
+          dash-block
           rounded-[.875rem]
-          dark:border
-          dark:border-white/12
+          dash-black-border
           transition-[bg,scale,translate,shadow]
           duration-300
           ease-out
@@ -37,11 +35,9 @@ export default function Wallet(): React.JSX.Element {
         <div
           className={`
             size-12.5
-            bg-white
-            dark:bg-white/5
+            dash-subtle
             rounded-full
-            dark:border
-            dark:border-white/12
+            dash-black-border
             flex
             items-center
             justify-center
@@ -59,13 +55,13 @@ export default function Wallet(): React.JSX.Element {
           <PlusIcon
             size={14}
             color={'currentColor'}
-            className='text-dash-primary-dark-blue dark:text-white'
+            className={"dash-text-default"}
           />
         </div>
         <Text
           size={16}
-          weight="medium"
-          color="brand"
+          weight={"medium"}
+          color={"brand"}
           className={`
             transition-[text,translate]
             duration-300
@@ -91,21 +87,17 @@ export default function Wallet(): React.JSX.Element {
         pr-6.25
         pb-2.5
         pl-3.75
-        bg-dash-primary-dark-blue/3
-        dark:bg-white/4
+        dash-block
         rounded-[.875rem]
-        dark:border
-        dark:border-white/12
+        dash-black-border
       `}
     >
       <div
         className={`
           size-12.5
-          bg-white
-          dark:bg-white/5
+          dash-subtle
           rounded-full
-          dark:border
-          dark:border-white/12
+          dash-black-border
           flex
           items-center
           justify-center
@@ -124,7 +116,7 @@ export default function Wallet(): React.JSX.Element {
           username={"santa"}
           middleEllipsis={true}
           edgeChars={4}
-          className={"text-dash-primary-dark-blue dark:text-white !text-base !font-medium"}
+          className={"dash-text-default !text-base !font-medium"}
         >
           abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567
         </Identifier>

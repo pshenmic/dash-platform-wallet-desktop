@@ -23,7 +23,7 @@ export default function Balance(): React.JSX.Element {
             username={"account"}
             middleEllipsis={true}
             edgeChars={4}
-            className={"text-dash-primary-dark-blue dark:text-white !text-[.875rem] !font-medium"}
+            className={"dash-text-default !text-[.875rem] !font-medium"}
           >
             6Eb4a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p24c
           </Identifier>
@@ -45,7 +45,7 @@ export default function Balance(): React.JSX.Element {
             border={false}
             className={"flex-1 !bg-transparent h-fit"}
           />
-          <div className={"w-px h-5 bg-dash-primary-dark-blue/[0.25] dark:bg-white/[0.25]"} />
+          <div className={"w-px h-5 bg-dash-primary-dark-blue/25 dark:bg-white/25"} />
           <button
             className={"flex items-center gap-[.3125rem] cursor-pointer"}
             onClick={() => setIsEditing(!isEditing)}
@@ -53,7 +53,7 @@ export default function Balance(): React.JSX.Element {
             <Text size={14} weight={"medium"} color={"brand"} opacity={50}>
               Main_account
             </Text>
-            <PencilIcon size={12} className={"opacity-50 text-dash-primary-dark-blue dark:text-white"} />
+            <PencilIcon size={12} className={"opacity-50 dash-text-default"} />
           </button>
         </div>
         <div className={"flex flex-col"}>
@@ -65,21 +65,19 @@ export default function Balance(): React.JSX.Element {
               onClick={() => setIsBalanceVisible(!isBalanceVisible)}
               className={`
                 size-6
-                bg-dash-primary-dark-blue/5
-                dark:bg-white/4
+                dash-block
                 rounded-[.25rem]
                 p-[.25rem]
                 flex
                 items-center
                 justify-center
-                transition-colors
                 cursor-pointer
               `}
             >
               {isBalanceVisible ? (
-                <EyeOpenIcon size={16} className={"text-dash-primary-dark-blue dark:text-white"} />
+                <EyeOpenIcon size={16} className={"dash-text-default"} />
               ) : (
-                <EyeClosedIcon size={16} className={"text-dash-primary-dark-blue dark:text-white"} />
+                <EyeClosedIcon size={16} className={"dash-text-default"} />
               )}
             </button>
           </div>
@@ -94,8 +92,7 @@ export default function Balance(): React.JSX.Element {
               flex-wrap
               mt-[.625rem]
               rounded-[.3125rem]
-              bg-dash-brand/10
-              dark:bg-dash-mint/10
+              dash-block-accent-10
               p-[.3125rem]
               w-fit
             `}
@@ -103,7 +100,7 @@ export default function Balance(): React.JSX.Element {
             <Text size={14} weight={"normal"} color={"blue"}>
               ~ {isBalanceVisible ? '6222.00' : '•••••••••'} USD
             </Text>
-            <div className={"w-px h-4 bg-dash-brand/25 dark:bg-dash-mint/25"} />
+            <div className={"w-px h-4 dash-block-accent-25"} />
             <Text size={14} weight={"normal"} color={"blue"}>
               {isBalanceVisible ? '320' : '•••••••••'}Dash
             </Text>
@@ -111,7 +108,7 @@ export default function Balance(): React.JSX.Element {
         </div>
       </div>
 
-      <div className={"p-6 rounded-3xl shadow-[0_0_32px_0_rgba(12,28,51,0.08)] bg-white dark:bg-white/4 dark:border dark:border-white/12"}>
+      <div className={"p-6 rounded-3xl shadow-[0_0_32px_0_rgba(12,28,51,0.08)] dash-card-base"}>
         <Text size={16} weight={"medium"} color={"brand"} className={"mb-2"}>
         USD price
         </Text>
@@ -124,7 +121,7 @@ export default function Balance(): React.JSX.Element {
               .550
             </Text>
           </div>
-          <div className={"flex items-center justify-center py-1 px-2 rounded-3xl bg-dash-brand/12 dark:bg-dash-mint/12"}>
+          <div className={"flex items-center justify-center py-1 px-2 rounded-3xl dash-block-accent-12"}>
             <Text size={12} weight={"extrabold"} color={"blue"}>
             ↑3.6%
             </Text>

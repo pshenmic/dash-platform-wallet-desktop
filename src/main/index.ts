@@ -40,6 +40,7 @@ const createWindow = () => {
   }
 }
 
+// Dark mode
 ipcMain.handle('dark-mode:get', () => {
   return nativeTheme.shouldUseDarkColors
 })

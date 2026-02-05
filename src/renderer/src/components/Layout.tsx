@@ -42,7 +42,7 @@ const mapNetworkToOption = (network: NetworkData): SelectOption => ({
       <WebIcon
         size={16}
         color={"currentColor"}
-        className={"text-dash-primary-dark-blue dark:text-white"}
+        className={"dash-text-default"}
       />
       <Text size={14} color={"brand"}>{network.label}</Text>
     </div>
@@ -57,7 +57,7 @@ const mapWalletToOption = (wallet: WalletData): SelectOption => ({
       <WalletIcon
         size={16}
         color={"currentColor"}
-        className={"text-dash-primary-dark-blue dark:text-white"}
+        className={"dash-text-default"}
       />
       <div className={"flex flex-col gap-[.125rem]"}>
         <Text
@@ -115,8 +115,8 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
             duration-300
             ease
             rounded-[.9375rem]
-            bg-dash-primary-dark-blue/3 dark:bg-white/4
-            dark:border dark:border-white/12
+            dash-block
+            dash-black-border
             hover:bg-dash-brand/20 dark:hover:bg-dash-mint/15
             hover:scale-102
             hover:shadow-md
@@ -126,9 +126,8 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
           <NotificationIcon
             size={17}
             className={`
-            text-dash-primary-dark-blue
+            dash-text-default
             group-hover:text-dash-brand
-            dark:text-white
             group-hover:dark:text-dash-mint
             `}/>
         </button>
@@ -142,7 +141,7 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
             </div>
 
             <Text as={"h2"} size={36} weight={"medium"} color={"brand"} className={"text-center mb-4 mt-8"}>
-              You <span className={"text-dash-brand dark:text-dash-mint font-extrabold"}>Don't Have any <br/>Identities</span> imported yet
+              You <span className={"dash-text-primary font-extrabold"}>Don't Have any <br/>Identities</span> imported yet
             </Text>
 
             <Button

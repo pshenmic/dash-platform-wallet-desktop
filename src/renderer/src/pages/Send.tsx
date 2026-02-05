@@ -1,7 +1,9 @@
+import Header from "@renderer/components/pages/transfer/Heade";
+
 export default function SendPage(): React.JSX.Element {
     return (
         <div>
-            <h1>Send</h1>
+            <Header persistKey={"send-asset"} />
         </div>
     )
 }

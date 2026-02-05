@@ -76,11 +76,11 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
             <WalletIcon
               size={16}
               className={`
-              text-dash-primary-dark-blue
-              dark:text-white opacity-35
-                group-hover:opacity-100
-              group-hover:text-dash-brand
-              dark:group-hover:text-dash-mint
+              dash-text-default
+              opacity-35
+              group-hover:opacity-100
+            group-hover:text-dash-brand
+            dark:group-hover:text-dash-mint
               transition-[opacity,color]
               `}
             />
@@ -97,7 +97,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
               {links.register.label}
             </Text>
           </Link>
-          <span className={"h-4 w-px bg-dash-primary-dark-blue dark:bg-white opacity-35"} />
+          <span className={"h-4 w-px dash-block-solid opacity-35"} />
           <Link
             to={links.forgotPassword.to}
             className={"group"}

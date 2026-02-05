@@ -124,10 +124,8 @@ export default function TransactionsList(): React.JSX.Element {
                       px-[.9375rem]
                       py-[.625rem]
                       rounded-[.875rem]
-                      bg-dash-primary-dark-blue/4
-                      dark:bg-white/4
-                      dark:border
-                      dark:border-white/12
+                      dash-block
+                      dash-black-border
                     `}
                   >
                     <CheckIcon
@@ -135,8 +133,7 @@ export default function TransactionsList(): React.JSX.Element {
                       color={"currentColor"}
                       className={`
                         shrink-0
-                        text-dash-primary-dark-blue
-                        dark:text-white
+                        dash-text-default
                         [&_circle]:fill-dash-primary-dark-blue/5
                         dark:[&_circle]:fill-white/4
                       `}
@@ -155,7 +152,7 @@ export default function TransactionsList(): React.JSX.Element {
                         weight={"extrabold"}
                         className={transaction.type === 'Receive' ? '!text-dash-brand' : '!text-dash-primary-dark-blue dark:!text-white'}
                       >
-                        {transaction.amount} <span className={"font-medium text-dash-primary-dark-blue dark:text-white"}>Credits</span>
+                        {transaction.amount} <span className={"font-medium dash-text-default"}>Credits</span>
                       </Text>
                       <div className={"flex items-baseline"}>
                         <Text size={10} weight={"medium"} color={"brand"} opacity={35}>
@@ -183,10 +180,8 @@ export default function TransactionsList(): React.JSX.Element {
           gap-6
           p-[.9375rem]
           rounded-3xl
-          bg-white shadow-[0_0_32px_0_rgba(12,28,51,0.08)]
-          dark:border
-          dark:border-white/12
-          dark:bg-white/4
+          dash-card-base
+          shadow-[0_0_32px_0_rgba(12,28,51,0.08)]
         `}
       >
         <Button
@@ -205,7 +200,7 @@ export default function TransactionsList(): React.JSX.Element {
             rounded-[.3125rem]
           `}
         >
-          <FilterIcon size={12} color={"currentColor"} className={"text-dash-primary-dark-blue dark:text-white"} />
+          <FilterIcon size={12} color={"currentColor"} className={"dash-text-default"} />
           <Text size={14} weight={"medium"} color={"brand"}>
             Filter
           </Text>

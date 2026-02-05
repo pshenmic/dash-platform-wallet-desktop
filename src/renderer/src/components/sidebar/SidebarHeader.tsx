@@ -17,9 +17,9 @@ const toggleButtonStyles = cva(
     transition-[bg,scale,translate]
     duration-300
     ease
-    bg-dash-primary-dark-blue/3 dark:bg-white/4
+    dash-block
     hover:bg-dash-brand/20 dark:hover:bg-dash-mint/15
-    dark:border-1 dark:border-white/12
+    dash-black-border
     hover:scale-102
     hover:shadow-md
     hover:-translate-y-0.5
@@ -36,10 +36,9 @@ export default function SidebarHeader({ onToggle }: SidebarHeaderProps): React.J
           <ChevronIcon
             size={17}
             className={`
-          text-dash-primary-dark-blue
+            dash-text-default
             rotate-90
           group-hover:text-dash-brand
-          dark:text-white
           group-hover:dark:text-dash-mint
           `}/>
         </button>

@@ -21,8 +21,8 @@ const navLinkStyles = cva(
   {
     variants: {
       isActive: {
-        true: 'bg-dash-brand dark:bg-dash-brand',
-        false: 'bg-dash-primary-dark-blue/3 dark:bg-white/4'
+        true: 'bg-dash-brand',
+        false: 'dash-block'
       }
     }
   }
@@ -45,8 +45,8 @@ const iconStyles = cva(
       isActive: {
         true: 'bg-white/12 text-white',
         false: `
-        bg-white dark:bg-white/5
-        text-dash-primary-dark-blue dark:text-white
+        dash-subtle
+        dash-text-default
         group-hover:bg-dash-brand/20 dark:group-hover:bg-dash-mint/15
         group-hover:text-dash-brand dark:group-hover:text-dash-mint
         group-hover:scale-110
