@@ -33,6 +33,10 @@
     @apply px-[1.5625rem] py-[1.25rem] rounded-[1rem];
   }
 
+  .dash-block-2xl {
+    @apply py-[.25rem] pl-[12px] pr-13 rounded-[.75rem];
+  }
+
   /* Font utilities */
   .font-dash-main {
     font-family: var(--font-dash-main);
@@ -47,12 +51,24 @@
     @apply bg-white dark:bg-white/4 dark:border dark:border-white/12;
   }
 
+  .dash-input-search {
+    @apply bg-white dark:bg-dash-light-gray border border-dash-primary-dark-blue/35 dark:border-white/15;
+  }
+
   .dash-subtle {
     @apply bg-white dark:bg-white/5;
   }
 
   .dash-block {
     @apply bg-dash-primary-dark-blue/4 dark:bg-white/4;
+  }
+
+  .dash-block-5 {
+    @apply bg-dash-primary-dark-blue/5 dark:bg-white/5;
+  }
+
+  .dash-block-3 {
+    @apply bg-dash-primary-dark-blue/3 dark:bg-white/3;
   }
 
   .dash-block-solid {
@@ -95,7 +111,26 @@
     @apply text-white dark:text-dash-primary-dark-blue;
   }
 
+  .dash-bg-inverse {
+    @apply bg-white dark:bg-dash-primary-dark-blue;
+  }
+
   .dash-text-primary {
     @apply text-dash-brand dark:text-dash-mint;
+  }
+
+  .dark .dash-bg-gradient {
+    background: linear-gradient(180deg, var(--color-dash-primary-dark-blue) 0%, var(--color-dash-blue-800) 100%);
+  }
+
+  @keyframes ripple-expand {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
   }
 }
