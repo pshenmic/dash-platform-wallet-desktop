@@ -10,7 +10,7 @@ export interface Asset {
   currency: string
 }
 
-const MOCK_ASSETS: Asset[] = [
+export const MOCK_ASSETS: Asset[] = [
   {
     id: 'credits',
     name: 'Credits',
@@ -41,12 +41,12 @@ const MOCK_ASSETS: Asset[] = [
   }
 ]
 
-export type AssetSelectorPersistKey = 'send-asset' | 'withdraw-asset'
+export type AssetSelectorPersistKey = 'send' | 'withdraw'
 
 export function useAssetSelector({persistKey}: {persistKey: AssetSelectorPersistKey}) {
   const location = useLocation()
   const [selectedAssetId, setSelectedAssetId] = useState<string>(() => {
-    const saved = localStorage.getItem(persistKey)
+    const saved = localStorage.getItem(`asset-${persistKey}`)
     return saved || MOCK_ASSETS[0].id
   })
   const [showModal, setShowModal] = useState(false)
@@ -55,7 +55,7 @@ export function useAssetSelector({persistKey}: {persistKey: AssetSelectorPersist
   const closeModal = () => setShowModal(false)
 
   useEffect(() => {
-    localStorage.setItem(persistKey, selectedAssetId)
+    localStorage.setItem(`asset-${persistKey}`, selectedAssetId)
   }, [persistKey, selectedAssetId])
 
   useEffect(() => {
