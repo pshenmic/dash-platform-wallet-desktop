@@ -141,6 +141,10 @@ export interface SelectProps extends Omit<SelectVariants, 'theme' | 'disabled'> 
   openAnimation?: string
   closeAnimation?: string
   animationDuration?: number
+
+  onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onMouseMove?: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onMouseLeave?: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
   // Arrow icon
@@ -200,6 +204,9 @@ export const Select: React.FC<SelectProps> = ({
   openAnimation = 'opacity-100 scale-100',
   closeAnimation = 'opacity-0 scale-95',
   animationDuration = 200,
+  onMouseEnter,
+  onMouseMove,
+  onMouseLeave,
   ...props
 }) => {
   const { theme } = useTheme()
@@ -264,7 +271,11 @@ export const Select: React.FC<SelectProps> = ({
       name={name}
       {...rootProps}
     >
-      <RadixSelect.Trigger className={triggerClasses}>
+      <RadixSelect.Trigger
+        onMouseEnter={onMouseEnter}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+      className={triggerClasses}>
         <div className='w-full flex-1 text-left'>
           <RadixSelect.Value placeholder={placeholder} />
         </div>

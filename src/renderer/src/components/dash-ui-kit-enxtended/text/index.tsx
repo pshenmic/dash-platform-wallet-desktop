@@ -15,7 +15,6 @@ const textStyles = cva(
         red: 'text-red-700',
         brand: 'text-dash-primary-dark-blue dark:text-white',
         'only-brand': 'text-dash-brand',
-        'brand-mint': 'text-dash-brand dark:text-dash-mint',
       },
       size: {
         10: 'text-[0.625rem]',
@@ -59,6 +58,7 @@ const textStyles = cva(
         10: 'opacity-10',
         20: 'opacity-20',
         30: 'opacity-30',
+        32: 'opacity-32',
         35: 'opacity-35',
         40: 'opacity-40',
         50: 'opacity-50',

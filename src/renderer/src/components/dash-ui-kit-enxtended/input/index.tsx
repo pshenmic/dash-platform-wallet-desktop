@@ -17,16 +17,21 @@ const input = cva(
         error: 'focus:ring-red-500/20',
         success: 'focus:ring-green-500/20',
         'light-gray': 'focus:ring-[#6B7280]/20',
+        light: '',
+        transparent: '',
       },
       size: {
         sm: 'dash-block-sm font-light',
         md: 'dash-block-md font-light',
-        xl: 'dash-block-xl font-light'
+        xl: 'dash-block-xl font-light',
+        '2xl': 'dash-block-2xl',
+        custom: '',
       },
       variant: {
         outlined: 'outline outline-1 outline-offset-[-1px]',
         filled: 'border-none',
         border: 'border border-1 outline-none',
+        'border-bottom': 'border-b outline-none',
       },
       disabled: {
         false: '',
@@ -61,6 +66,37 @@ const input = cva(
         class: 'outline-[#6B7280]/50 focus:outline-[#6B7280]'
       },
       // =====NEW====
+      {
+        variant: 'border-bottom',
+        theme: 'light',
+        class: 'border-dash-primary-dark-blue/15'
+      },
+      {
+        variant: 'border-bottom',
+        theme: 'dark',
+        class: 'border-white/15'
+      },
+      {
+        colorScheme: 'transparent',
+        class: 'bg-transparent rounded-[.75rem]'
+      },
+      {
+        variant: 'filled',
+        colorScheme: 'light',
+        theme: 'light',
+        class: 'bg-dash-primary-dark-blue/3 '
+      },
+      {
+        variant: 'filled',
+        colorScheme: 'light',
+        theme: 'dark',
+        class: 'bg-white/3 '
+      },
+      {
+        variant: 'filled',
+        colorScheme: 'light',
+        class: 'focus:!ring-0 focus:!outline-none'
+      },
       {
         variant: 'border',
         theme: 'light',
@@ -137,12 +173,13 @@ const input = cva(
 
 type InputVariants = VariantProps<typeof input>
 
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix'>, Omit<InputVariants, 'theme' | 'disabled'> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'prefix' >, Omit<InputVariants, 'theme' | 'disabled'> {
   className?: string
   error?: boolean
   success?: boolean
   prefix?: string | React.ReactNode
   prefixClassName?: string
+  inputSize?: number
   /**
    * Controls visibility toggle for password inputs. When false, the eye icon is hidden and no extra right padding is applied.
    * Defaults to true.
@@ -166,7 +203,8 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
  *   prefix="https://"
  * />
  */
-export const Input: React.FC<InputProps> = ({
+
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   className = '',
   colorScheme,
   size,
@@ -179,8 +217,9 @@ export const Input: React.FC<InputProps> = ({
   prefixClassName = '',
   showPasswordToggle = true,
   colorIcon = '#0C1C33',
+  inputSize,
   ...props
-}) => {
+}, ref) => {
   const { theme } = useTheme()
   const [showPassword, setShowPassword] = useState(false)
   const [prefixWidth, setPrefixWidth] = useState(0)
@@ -227,10 +266,12 @@ export const Input: React.FC<InputProps> = ({
           {prefix}
         </div>
         <input
+          ref={ref}
           className={`${classes}${isPassword && showPasswordToggle ? ' pr-12' : ''}`}
           style={{ paddingLeft: prefixWidth ? `${prefixWidth}rem` : '1rem' }}
           disabled={disabled}
           type={inputType}
+          size={inputSize}
           {...props}
         />
         {isPassword && showPasswordToggle && (
@@ -254,9 +295,11 @@ export const Input: React.FC<InputProps> = ({
     return (
       <div className='relative'>
         <input
+          ref={ref}
           className={classes + (showPasswordToggle ? ' pr-12' : '')}
           disabled={disabled}
           type={inputType}
+          size={inputSize}
           {...props}
         />
         {showPasswordToggle && (
@@ -278,12 +321,16 @@ export const Input: React.FC<InputProps> = ({
   // Regular input without prefix
   return (
     <input
+      ref={ref}
       className={classes}
       disabled={disabled}
       type={inputType}
+      size={inputSize}
       {...props}
     />
   )
-}
+})
+
+Input.displayName = 'Input'
 
 export default Input

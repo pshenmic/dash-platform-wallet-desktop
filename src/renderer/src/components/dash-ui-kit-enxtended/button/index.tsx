@@ -138,13 +138,13 @@ const styles = cva(
         variant: 'outline',
         colorScheme: 'brand-mint',
         theme: 'light',
-        class: '!bg-transparent !text-dash-brand hover:!bg-dash-brand/20'
+        class: '!bg-transparent !text-dash-brand'
       },
       {
         variant: 'outline',
         colorScheme: 'brand-mint',
         theme: 'dark',
-        class: '!bg-transparent !text-dash-mint hover:!bg-dash-mint/15'
+        class: '!bg-transparent !text-dash-mint'
       },
       {
         variant: 'solid',

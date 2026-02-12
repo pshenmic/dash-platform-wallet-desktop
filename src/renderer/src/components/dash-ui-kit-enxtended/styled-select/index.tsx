@@ -1,6 +1,7 @@
 import React from 'react';
 import Select, { SelectProps } from '../select';
 import { SelectOption } from 'dash-ui-kit/react';
+import { useRipple } from '@renderer/hooks/useRipple';
 
 export interface StyledSelectProps extends SelectProps {
   options: SelectOption[]
@@ -14,8 +15,11 @@ export const StyledSelect = ({
   onChange,
   ...props
 }: StyledSelectProps): React.JSX.Element => {
+  const hover = useRipple()
+
   return (
     <Select
+      {...hover}
       animated={true}
       openAnimation={"opacity-100 scale-100"}
       closeAnimation={"opacity-0 scale-95"}
@@ -26,6 +30,8 @@ export const StyledSelect = ({
         size-5
       `}
       defaultClassName={`
+        relative
+        overflow-hidden
         focus:!outline-none
         focus:!ring-0
         bg-dash-primary-dark-blue/3
@@ -34,19 +40,11 @@ export const StyledSelect = ({
         dark:text-white
         px-4 py-[.9375rem]
         rounded-[.9375rem]
-        hover:bg-dash-brand/20
-        dark:hover:bg-dash-mint/15
-        hover:scale-102
-        hover:shadow-md
-        hover:-translate-y-0.5
         data-[state=open]:bg-dash-brand/20
         dark:data-[state=open]:bg-dash-mint/15
-        data-[state=open]:scale-102
-        data-[state=open]:shadow-md
-        data-[state=open]:-translate-y-0.5
+        transition-bg duration-200
         cursor-pointer
         flex items-center gap-[.625rem]
-        transition-[bg,scale,translate,shadow] duration-300 ease-out
         group
       `}
       defaultContentClassName={`
