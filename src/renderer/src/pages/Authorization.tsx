@@ -53,7 +53,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
               value={password}
               variant={"border"}
               onChange={(e) => setPassword(e.target.value)}
-              className={'h-full rounded-[1.25rem] wallet-input'}
+              className={'h-full rounded-[1.25rem]'}
               colorIcon={colorIcon}
             />
           </div>
@@ -61,7 +61,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
             type={"submit"}
             colorScheme={"primary"}
             size={"xl"}
-            className={"h-fit rounded-[1.25rem] self-end"}
+            className={"h-fit rounded-[1.25rem] self-end relative overflow-hidden"}
             disabled={!password}
           >
             {form.submitButton}

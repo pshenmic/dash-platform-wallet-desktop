@@ -1,5 +1,6 @@
 import { cva } from "class-variance-authority"
 import { DashLogo, ChevronIcon } from "dash-ui-kit/react"
+import { useRipple } from "@renderer/hooks/useRipple";
 import Wallet from "./Wallet";
 
 interface SidebarHeaderProps {
@@ -8,38 +9,32 @@ interface SidebarHeaderProps {
 
 const toggleButtonStyles = cva(
   `
+    relative
+    overflow-hidden
     size-12
     flex
     items-center
     justify-center
-    rounded-[15px]
+    rounded-[.9375rem]
     cursor-pointer
-    transition-[bg,scale,translate]
-    duration-300
-    ease
     dash-block
-    hover:bg-dash-brand/20 dark:hover:bg-dash-mint/15
     dash-black-border
-    hover:scale-102
-    hover:shadow-md
-    hover:-translate-y-0.5
-    group
   `
 )
 
 export default function SidebarHeader({ onToggle }: SidebarHeaderProps): React.JSX.Element {
+  const hover = useRipple()
+
   return (
     <div className={"flex flex-col gap-8 justify-between w-full"}>
       <div className={"flex items-center justify-between w-full pl-3.75 relative [&>div.relative]:!static"}>
         <DashLogo width={30} height={35} containerSize={48}/>
-        <button className={toggleButtonStyles()} onClick={onToggle}>
+        <button {...hover} className={toggleButtonStyles()} onClick={onToggle}>
           <ChevronIcon
             size={17}
             className={`
             dash-text-default
             rotate-90
-          group-hover:text-dash-brand
-          group-hover:dark:text-dash-mint
           `}/>
         </button>
       </div>

@@ -3,11 +3,11 @@ import TransactionsList from "@renderer/components/pages/transactions/Transactio
 
 export default function TransactionsPage(): React.JSX.Element {
     return (
-        <div className="flex flex-col">
-            <div className="flex items-end justify-between px-12">
-              <Balance />
-            </div>
-            <TransactionsList />
+      <div className={"flex flex-col"}>
+        <div className={"flex items-end justify-between px-12"}>
+          <Balance />
         </div>
+        <TransactionsList />
+      </div>
     )
 }

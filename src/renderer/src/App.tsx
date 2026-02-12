@@ -32,7 +32,7 @@ function App(): React.JSX.Element {
   return (
     <div className={"flex"}>
       <Sidebar />
-       <Layout hasWallet={hasWallet} onAddWallet={handleAddWallet}>
+      <Layout hasWallet={hasWallet} onAddWallet={handleAddWallet}>
         <Routes>
           <Route path={"/"} element={<TransactionsPage />} />
           <Route path={"/send"} element={<SendPage />} />
@@ -42,7 +42,7 @@ function App(): React.JSX.Element {
           <Route path={"/support"} element={<SupportPage />} />
           <Route path={"/settings"} element={<SettingsPage />} />
         </Routes>
-        </Layout>
+      </Layout>
     </div>
   )
 }

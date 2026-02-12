@@ -3,6 +3,7 @@ import { Button } from '@renderer/components/dash-ui-kit-enxtended';
 import { PlusIcon, WebIcon, WalletIcon, NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
 import { Text } from '@renderer/components/dash-ui-kit-enxtended';
 import { SelectOption } from 'dash-ui-kit/react';
+import { useRipple } from '@renderer/hooks/useRipple';
 import noAccountsImage from '@renderer/assets/images/noAccounts.png';
 import StyledSelect from './dash-ui-kit-enxtended/styled-select';
 
@@ -88,9 +89,11 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
 
   const networkOptions = MOCK_NETWORKS.map(network => mapNetworkToOption(network))
   const walletOptions = MOCK_WALLETS.map(wallet => mapWalletToOption(wallet))
+  const hoverNotification = useRipple()
+  const hoverAddButton = useRipple()
 
   return (
-    <div className={"relative w-full h-screen flex flex-col overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
+    <div id={"layout-root"} className={"relative w-full h-screen flex flex-col overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
       <header className={"flex items-center justify-between mt-12 px-12"}>
         <div className={"flex items-stretch gap-[.625rem] pointer-events-auto h-12"}>
           <StyledSelect
@@ -105,31 +108,23 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
           />
         </div>
         <button
+          {...hoverNotification}
           className={`
             size-12
+            overflow-hidden
+            relative
             flex
             items-center
             justify-center
             cursor-pointer
-            transition-[bg,scale,translate]
-            duration-300
-            ease
             rounded-[.9375rem]
             dash-block
             dash-black-border
-            hover:bg-dash-brand/20 dark:hover:bg-dash-mint/15
-            hover:scale-102
-            hover:shadow-md
-            hover:-translate-y-0.5
             group
         `}>
           <NotificationIcon
             size={17}
-            className={`
-            dash-text-default
-            group-hover:text-dash-brand
-            group-hover:dark:text-dash-mint
-            `}/>
+            className={"dash-text-default"}/>
         </button>
       </header>
 
@@ -152,16 +147,14 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
                 gap-[.9375rem]
                 w-97.5
                 rounded-[.75rem]
-                hover:shadow-md
-                hover:scale-102
-                hover:-translate-y-0.5
-                !transition-[shadow,scale,translate,background]
-                duration-300 ease-out
+                overflow-hidden
+                relative
               `}
+              {...hoverAddButton}
               onClick={onAddWallet}
             >
               <PlusIcon size={16} color={"inherit"}/>
-              <Text color={"brand-mint"} weight={"medium"} size={14}>Add an identity</Text>
+              <Text color={"blue"} weight={"medium"} size={14}>Add an identity</Text>
             </Button>
           </div>
         ) : (

@@ -31,6 +31,7 @@ const asideStyles = cva(
     transition-[margin-left]
     duration-300
     ease
+    z-20
   `,
   {
     variants: {

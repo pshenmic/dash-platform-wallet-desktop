@@ -2,15 +2,20 @@ import { Avatar, Identifier } from "dash-ui-kit/react";
 import { Text } from "../dash-ui-kit-enxtended";
 import { PlusIcon } from "../dash-ui-kit-enxtended/icons";
 import { useState } from "react";
+import { useRipple } from "@renderer/hooks/useRipple";
 
 export default function Wallet(): React.JSX.Element {
   const [hasWallet, setHasWallet] = useState(false)
+  const hover = useRipple()
 
   if (!hasWallet) {
     return (
       <button
         onClick={() => setHasWallet(true)}
+        {...hover}
         className={`
+          overflow-hidden
+          relative
           flex
           items-center
           gap-4
@@ -21,15 +26,8 @@ export default function Wallet(): React.JSX.Element {
           dash-block
           rounded-[.875rem]
           dash-black-border
-          transition-[bg,scale,translate,shadow]
-          duration-300
-          ease-out
           group
           cursor-pointer
-          dark:hover:bg-dash-mint/15
-          hover:scale-102
-          hover:shadow-md
-          hover:-translate-y-0.5
         `}
       >
         <div
@@ -42,14 +40,7 @@ export default function Wallet(): React.JSX.Element {
             items-center
             justify-center
             shrink-0
-            transition-[bg,scale,translate,shadow]
-            duration-300
-            ease
-            group-hover:bg-dash-brand/20
-            dark:group-hover:bg-dash-mint/15
-            group-hover:scale-105
-            group-hover:shadow-md
-            group-hover:-translate-y-0.5
+            z-1
           `}
         >
           <PlusIcon
@@ -62,14 +53,6 @@ export default function Wallet(): React.JSX.Element {
           size={16}
           weight={"medium"}
           color={"brand"}
-          className={`
-            transition-[text,translate]
-            duration-300
-            ease
-            group-hover:text-dash-brand
-            dark:group-hover:text-dash-mint
-            group-hover:translate-x-1
-          `}
         >
           Add Identity
         </Text>

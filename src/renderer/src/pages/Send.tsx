@@ -1,9 +1,10 @@
-import Header from "@renderer/components/pages/transfer/Heade";
+import TransferPage from "@renderer/components/pages/transfer/Page";
+import { sendPageData } from "@renderer/constants";
 
 export default function SendPage(): React.JSX.Element {
-    return (
-        <div>
-            <Header persistKey={"send-asset"} />
-        </div>
-    )
+  const data = sendPageData
+
+  return (
+    <TransferPage persistKey={"send"} pageData={data} />
+  )
 }
