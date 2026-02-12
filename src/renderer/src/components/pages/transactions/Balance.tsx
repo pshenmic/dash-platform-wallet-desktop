@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { Identifier, Avatar, Select } from 'dash-ui-kit/react';
 import { PencilIcon, EyeOpenIcon, EyeClosedIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
 import { Text } from '@renderer/components/dash-ui-kit-enxtended';
+import { transactionsPage } from '@renderer/constants';
+import BalanceInfo from '@renderer/components/ui/BalanceInfo';
 
 export default function Balance(): React.JSX.Element {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const { balance: { balance, usdPrice, comparedToYesterday } } = transactionsPage
+
+  const comparedToYesterdayWords = comparedToYesterday.trim().split(' ')
+  const lastWord = comparedToYesterdayWords.pop() ?? ''
+  const firstPart = comparedToYesterdayWords.join(' ')
 
   const accountOptions = [
     {
@@ -59,7 +66,7 @@ export default function Balance(): React.JSX.Element {
         <div className={"flex flex-col"}>
           <div className={"flex items-center gap-2"}>
             <Text size={36} weight={"normal"} color={"brand"} className={"leading-[100%] tracking-[-0.03em]"}>
-              Balance:
+              {balance}:
             </Text>
             <button
               onClick={() => setIsBalanceVisible(!isBalanceVisible)}
@@ -81,36 +88,16 @@ export default function Balance(): React.JSX.Element {
               )}
             </button>
           </div>
-          <Text size={36} weight={"extrabold"} color={"only-brand"} className={"leading-[100%] tracking-[-0.03em]"}>
+          <Text size={36} weight={"extrabold"} color={"only-brand"} className={"leading-[100%] tracking-[-0.03em] my-[.625rem]"}>
           {isBalanceVisible  ? '32 000 000 000 000' : '••••••••••••••'}
           </Text>
-          <div
-            className={`
-              flex
-              items-center
-              gap-[.625rem]
-              flex-wrap
-              mt-[.625rem]
-              rounded-[.3125rem]
-              dash-block-accent-10
-              p-[.3125rem]
-              w-fit
-            `}
-          >
-            <Text size={14} weight={"normal"} color={"blue"}>
-              ~ {isBalanceVisible ? '6222.00' : '•••••••••'} USD
-            </Text>
-            <div className={"w-px h-4 dash-block-accent-25"} />
-            <Text size={14} weight={"normal"} color={"blue"}>
-              {isBalanceVisible ? '320' : '•••••••••'}Dash
-            </Text>
-          </div>
+          <BalanceInfo isBalanceVisible={isBalanceVisible} />
         </div>
       </div>
 
       <div className={"p-6 rounded-3xl shadow-[0_0_32px_0_rgba(12,28,51,0.08)] dash-card-base"}>
         <Text size={16} weight={"medium"} color={"brand"} className={"mb-2"}>
-        USD price
+         {usdPrice}
         </Text>
         <div className={"flex items-center gap-4 mb-2"}>
           <div className={"flex items-end"}>
@@ -128,7 +115,7 @@ export default function Balance(): React.JSX.Element {
           </div>
         </div>
         <Text size={14} weight={"normal"} color={"brand"} opacity={35} className={"leading-[114%]"}>
-        Compared to <span className={"font-extrabold"}>yesterday</span>
+          {firstPart} <span className={"font-extrabold"}>{lastWord}</span>
         </Text>
       </div>
     </div>
