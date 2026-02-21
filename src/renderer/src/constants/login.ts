@@ -1,4 +1,4 @@
-export interface AuthorizationTexts {
+export interface LoginTexts {
   title: string
   description: string
   form: {
@@ -18,7 +18,7 @@ export interface AuthorizationTexts {
   }
 }
 
-export const authorizationTexts: AuthorizationTexts = {
+export const loginTexts: LoginTexts = {
   title: 'Welcome Back',
   description: 'Use the password to unlock your wallet.',
   form: {
@@ -29,7 +29,7 @@ export const authorizationTexts: AuthorizationTexts = {
   links: {
     register: {
       label: 'Register wallet',
-      to: '/'
+      to: '/create-wallet'
     },
     forgotPassword: {
       label: 'Forgot password?',

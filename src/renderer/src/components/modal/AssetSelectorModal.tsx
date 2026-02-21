@@ -59,11 +59,11 @@ export default function AssetSelectorModal({
                   className={`
                     flex items-center justify-between
                     px-[.9375rem] py-[.625rem] rounded-[.9375rem]
-                    transition-colors
                     cursor-pointer
+                    transition-colors duration-200
                     ${isSelected
                       ? 'dash-block-accent-10'
-                      : 'dash-block-3 hover:dash-block-accent-5'
+                      : 'dash-block-3 hover:bg-dash-primary-dark-blue/10 dark:hover:bg-white/10'
                     }
                   `}
                 >
@@ -121,7 +121,7 @@ export default function AssetSelectorModal({
   ]
 
   return createPortal (
-    <div className={"absolute inset-0 z-10 flex flex-col bg-white dash-bg-gradient p-12 h-screen w-full overflow-auto scrollbar-hide"}>
+    <div className={"absolute inset-0 z-10 flex flex-col bg-white dash-bg-gradient p-12 min-h-screen w-full overflow-auto scrollbar-hide"}>
       <div className={"flex items-center justify-between w-full mb-6"}>
         <Text size={40} weight={"medium"} color={"brand"} className={"leading-[125%] tracking-[-0.03em]"}>{data.title}</Text>
         <button onClick={onClose} className={"rounded-[.9375rem] relative dash-block-3 cursor-pointer size-12 overflow-hidden"} {...hover}>

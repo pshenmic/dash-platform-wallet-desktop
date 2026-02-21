@@ -12,6 +12,11 @@
 
 @variant dark (.dark &);
 
+html {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE и Edge */
+}
+
 @layer base {
   :root {
     --color-background: var(--color-dash-white);
@@ -27,4 +32,13 @@
     font-family: var(--font-dash-main);
     -webkit-font-smoothing: antialiased;
   }
+
+  input:focus {
+    outline: none !important;
+  }
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
 }

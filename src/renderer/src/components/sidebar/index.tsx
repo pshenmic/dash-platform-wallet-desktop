@@ -84,7 +84,7 @@ export default function Sidebar(): React.JSX.Element {
   return (
     <>
       <aside className={asideStyles({ isOpen })}>
-        <div className={"flex flex-col h-full w-full justify-between gap-12 overflow-auto py-12 px-6 items-end [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
+        <div className={"flex flex-col h-full w-full justify-between gap-12 overflow-auto py-12 px-6 items-end scrollbar-hide"}>
           <SidebarHeader onToggle={() => setIsOpen(!isOpen)}/>
           <div className={"flex flex-col h-full w-full justify-between gap-12"}>
             {navGroups.map((group) => (

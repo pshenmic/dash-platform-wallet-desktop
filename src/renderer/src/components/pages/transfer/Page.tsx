@@ -22,7 +22,8 @@ export default function TransferPage({persistKey, pageData}: {persistKey: AssetS
   }
 
   return (
-    <div className={"relative flex flex-col pb-12"}>
+    <>
+    <div className={`relative flex flex-col pb-12 ${showModal ? 'hidden' : ''}`}>
       <div>
         <Header selectedAsset={selectedAsset} openModal={openModal} data={pageData.header}/>
         <div className={"flex w-full justify-center flex-1"} >
@@ -44,7 +45,8 @@ export default function TransferPage({persistKey, pageData}: {persistKey: AssetS
         </div>
       </div>
       <AmountSummary data={pageData.amountSummary} />
-      <AssetSelectorModal
+    </div>
+    <AssetSelectorModal
         isOpen={showModal}
         onClose={closeModal}
         assets={assets}
@@ -52,6 +54,6 @@ export default function TransferPage({persistKey, pageData}: {persistKey: AssetS
         onSelectAsset={selectAsset}
         data={assetSelector}
       />
-    </div>
+    </>
   )
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DashLogo, useTheme } from 'dash-ui-kit/react';
 import { Text, Button, Input, WalletIcon } from '@renderer/components/dash-ui-kit-enxtended';
 import { Link } from 'react-router-dom';
-import { authorizationTexts } from '@renderer/constants';
+import { loginTexts } from '@renderer/constants';
 import bgLight from '@renderer/assets/images/pageAuthorization/bg-light.svg';
 import bgDark from '@renderer/assets/images/pageAuthorization/bg-dark.svg';
 import wave from '@renderer/assets/images/pageAuthorization/wave.png';
@@ -12,7 +12,7 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Element {
-  const { title, description, form, links } = authorizationTexts
+  const { title, description, form, links } = loginTexts
   const [password, setPassword] = useState('')
   const { theme } = useTheme()
   const backgroundImage = theme === 'dark' ? bgDark : bgLight
@@ -24,18 +24,18 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
   }
 
   return (
-    <div className={"h-screen flex items-end overflow-hidden p-12"}>
+    <div className={"flex items-end p-12 h-screen"}>
       <img
         src={backgroundImage}
         alt={"background gradient"}
-        className={"absolute inset-0 w-full h-full object-cover pointer-events-none"}
+        className={"absolute bottom-0 left-0 w-full h-full min-h-192 object-cover pointer-events-none"}
       />
       <img
         src={wave}
         alt={"wave"}
-        className={"absolute bottom-0 left-0 w-full h-full object-cover pointer-events-none"}
+        className={"absolute bottom-0 left-0 w-full h-full object-cover min-h-192 pointer-events-none"}
       />
-      <div className={"flex flex-col w-full"}>
+      <div className={"flex flex-col w-full pt-61"}>
         <DashLogo  containerSize={50}/>
         <Text as={"h1"} className={"mt-6 leading-[78%] tracking-[-0.03em]"} color={"brand"} size={64} weight={"extrabold"}>{title}</Text>
         <Text as={"p"} className={"mt-6"} color={"brand"}size={18} weight={"medium"} opacity={50}>{description}</Text>
@@ -51,10 +51,11 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
               type={"password"}
               placeholder={form.passwordPlaceholder}
               value={password}
-              variant={"border"}
+              variant={"outlined"}
               onChange={(e) => setPassword(e.target.value)}
               className={'h-full rounded-[1.25rem]'}
               colorIcon={colorIcon}
+              colorScheme={'primary'}
             />
           </div>
           <Button

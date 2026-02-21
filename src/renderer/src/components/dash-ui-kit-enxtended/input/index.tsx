@@ -4,7 +4,7 @@ import { useTheme } from 'dash-ui-kit/react'
 import { EyeOpenIcon, EyeClosedIcon } from '../icons'
 
 const input = cva(
-  'w-full transition-all font-inter placeholder:text-opacity-60 text-[0.875rem] leading-[1.0625rem]',
+  'w-full transition-[outline-color,ring-color,ring-width] duration-200 font-inter placeholder:text-opacity-60 text-[0.875rem] leading-[1.0625rem]',
   {
     variants: {
       theme: {
@@ -17,6 +17,7 @@ const input = cva(
         error: 'focus:ring-red-500/20',
         success: 'focus:ring-green-500/20',
         'light-gray': 'focus:ring-[#6B7280]/20',
+        primary: 'focus:ring-dash-primary-dark-blue dark:focus:ring-white bg-transparent',
         light: '',
         transparent: '',
       },
@@ -30,7 +31,6 @@ const input = cva(
       variant: {
         outlined: 'outline outline-1 outline-offset-[-1px]',
         filled: 'border-none',
-        border: 'border border-1 outline-none',
         'border-bottom': 'border-b outline-none',
       },
       disabled: {
@@ -67,6 +67,18 @@ const input = cva(
       },
       // =====NEW====
       {
+        variant: 'outlined',
+        colorScheme: 'primary',
+        theme: 'light',
+        class: 'outline-dash-primary-dark-blue/35'
+      },
+      {
+        variant: 'outlined',
+        colorScheme: 'primary',
+        theme: 'dark',
+        class: 'outline-white/32'
+      },
+      {
         variant: 'border-bottom',
         theme: 'light',
         class: 'border-dash-primary-dark-blue/15'
@@ -96,20 +108,6 @@ const input = cva(
         variant: 'filled',
         colorScheme: 'light',
         class: 'focus:!ring-0 focus:!outline-none'
-      },
-      {
-        variant: 'border',
-        theme: 'light',
-        class: 'border-dash-primary-dark-blue/32 focus:border-dash-primary-dark-blue bg-transparent'
-      },
-      {
-        variant: 'border',
-        theme: 'dark',
-        class: 'border-white/32 focus:border-white bg-transparent'
-      },
-      {
-        variant: 'border',
-        class: 'focus:ring-0'
       },
       // =====NEW==== END
 
