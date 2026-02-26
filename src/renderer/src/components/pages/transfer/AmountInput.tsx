@@ -54,7 +54,7 @@ export default function AmountInput({
             onClick={onMax}
             className={"absolute right-[.75rem] top-1/2 -translate-y-1/2 px-[.5rem] py-[.25rem] rounded-[.25rem] dash-block-accent-5 flex"}
           >
-            <Text size={12} weight={"medium"} color={"blue"} className={"leading-[120%]"}>
+            <Text size={12} weight={"medium"} color={"blue-mint"} className={"leading-[120%]"}>
               Max
             </Text>
           </button>
@@ -74,9 +74,8 @@ export default function AmountInput({
           }}
           variant={"border-bottom"}
           colorScheme={"transparent"}
-          className={"!text-[1rem] !w-fit font-medium leading-[120%] pl-[.5rem] pr-13 py-[.4063rem] !text-dash-primary-dark-blue/35 dark:!text-white/35"}
+          className={"!text-[1rem] !w-fit font-medium leading-[120%] !pl-[.5rem] !pr-13 !py-[.4063rem] !text-dash-primary-dark-blue/35 dark:!text-white/35"}
           placeholder="0"
-          size={"custom"}
           inputSize={5}
         />
         <div className={"absolute right-[.25rem] top-1/2 -translate-y-1/2"}>

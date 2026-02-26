@@ -13,8 +13,8 @@
 @variant dark (.dark &);
 
 html {
-  scrollbar-width: none !important; /* Firefox */
-  -ms-overflow-style: none !important; /* IE и Edge */
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 @layer base {

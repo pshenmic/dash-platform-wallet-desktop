@@ -85,7 +85,7 @@ export default function AssetSelectorModal({
                       {asset.name}
                     </Text>
                     <div className={"px-[.3125rem] py-[.1875rem] dash-block-accent-10 h-fit rounded-[.25rem] flex"}>
-                      <Text size={10} weight={"medium"} color={"blue"} className={"leading-none"}>
+                      <Text size={10} weight={"medium"} color={"blue-mint"} className={"leading-none"}>
                         {asset.symbol}
                       </Text>
                     </div>

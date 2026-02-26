@@ -15,7 +15,7 @@ export default function AmountSummary({data}: {data: TransferPageType['amountSum
           <Text size={14} weight={"extrabold"} color={"default"}>7823000000 Credits</Text>
         </div>
       </div>
-      <Button className={"w-full rounded-[.9375rem]"} size={"xl"}>
+      <Button className={"w-full rounded-[.9375rem]"} size={"md"}>
         {data.button}
       </Button>
     </div>

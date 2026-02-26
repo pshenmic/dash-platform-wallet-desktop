@@ -16,7 +16,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
   const [password, setPassword] = useState('')
   const { theme } = useTheme()
   const backgroundImage = theme === 'dark' ? bgDark : bgLight
-  const colorIcon = theme === 'dark' ? '#ffffff' : ''
+  const iconColor = theme === 'dark' ? '#ffffff' : ''
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,14 +54,14 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
               variant={"outlined"}
               onChange={(e) => setPassword(e.target.value)}
               className={'h-full rounded-[1.25rem]'}
-              colorIcon={colorIcon}
+              iconColor={iconColor}
               colorScheme={'primary'}
             />
           </div>
           <Button
             type={"submit"}
             colorScheme={"primary"}
-            size={"xl"}
+            size={"md"}
             className={"h-fit rounded-[1.25rem] self-end relative overflow-hidden"}
             disabled={!password}
           >
@@ -88,7 +88,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
             <Text
               size={16}
               color={"brand"}
-              opacity={35}
+              opacity={30}
               className={`
                 group-hover:opacity-100
               group-hover:text-dash-brand
@@ -107,7 +107,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
             <Text
             size={16}
             color={"brand"}
-            opacity={35}
+            opacity={30}
             className={`
               group-hover:opacity-100
             group-hover:text-dash-brand

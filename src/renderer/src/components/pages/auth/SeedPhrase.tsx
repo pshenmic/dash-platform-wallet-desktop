@@ -45,7 +45,7 @@ export default function SeedPhrase({ seedPhrase, wordCount, setWordCount, verify
               border border-dash-primary-dark-blue/35 dark:border-white/35
             `}
           >
-            <Text size={14} weight={"medium"} color={"default"} opacity={35} className={"leading-[164%]"}>
+            <Text size={14} weight={"medium"} color={"default"} opacity={30} className={"leading-[164%]"}>
               {index + 1}.
             </Text>
             <Text size={14} weight={"medium"} color={"default"} className={"leading-[164%]"}>

@@ -30,9 +30,9 @@ const styles = cva(
         mint: '',
         gray: '',
         red: '',
+        lightGray: '',
         lightBlue: '',
         'lightBlue-mint': '',
-        lightGray: '',
         primary: '',
         'brand-mint': '',
         'primary-light': '',
@@ -44,7 +44,6 @@ const styles = cva(
       size: {
         sm: 'dash-block-sm',
         md: 'dash-block-md',
-        xl: 'dash-block-xl',
       },
     },
     compoundVariants: [
@@ -364,7 +363,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   /** Color scheme for the button */
   colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray' | 'primary' | 'brand-mint' | 'primary-light' | 'lightBlue-mint'
   /** Size of the button */
-  size?: 'sm' | 'md' | 'xl'
+  size?: 'sm' | 'md'
 }
 
 /**

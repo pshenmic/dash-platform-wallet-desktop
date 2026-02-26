@@ -21,7 +21,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const { theme } = useTheme();
-  const colorIcon = theme === 'dark' ? '#ffffff' : '';
+  const iconColor = theme === 'dark' ? '#ffffff' : '';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +55,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
               setError('');
             }}
             className={'h-full rounded-[1.25rem]'}
-            colorIcon={colorIcon}
+            iconColor={iconColor}
             colorScheme={error ? 'error' : 'primary'}
           />
         </div>
@@ -76,7 +76,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
               setError('');
             }}
             className={'h-full rounded-[1.25rem]'}
-            colorIcon={colorIcon}
+            iconColor={iconColor}
             colorScheme={error ? 'error' : 'primary'}
           />
         </div>
@@ -84,7 +84,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
       <Button
         type={"submit"}
         colorScheme={"primary"}
-        size={"xl"}
+        size={"md"}
         className={"h-fit rounded-[1.25rem] self-end relative overflow-hidden w-full"}
         disabled={!password || !confirmPassword}
       >

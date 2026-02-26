@@ -142,7 +142,7 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
             <Button
               variant={"outline"}
               colorScheme={"brand-mint"}
-              size={"xl"}
+              size={"md"}
               className={`
                 gap-[.9375rem]
                 w-97.5
@@ -154,7 +154,7 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
               onClick={onAddWallet}
             >
               <PlusIcon size={16} color={"inherit"}/>
-              <Text color={"blue"} weight={"medium"} size={14}>Add an identity</Text>
+              <Text color={"blue-mint"} weight={"medium"} size={14}>Add an identity</Text>
             </Button>
           </div>
         ) : (

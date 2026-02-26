@@ -14,11 +14,11 @@ export default function BalanceInfo({isBalanceVisible}: {isBalanceVisible: boole
         w-fit
       `}
     >
-      <Text size={14} weight={"normal"} color={"blue"}>
+      <Text size={14} weight={"normal"} color={"blue-mint"}>
         ~ {isBalanceVisible ? '6222.00' : '•••••••••'} USD
       </Text>
       <div className={"w-px h-4 dash-block-accent-25"} />
-      <Text size={14} weight={"normal"} color={"blue"}>
+      <Text size={14} weight={"normal"} color={"blue-mint"}>
         {isBalanceVisible ? '320' : '•••••••••'}Dash
       </Text>
     </div>

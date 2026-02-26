@@ -25,8 +25,7 @@ const input = cva(
         sm: 'dash-block-sm font-light',
         md: 'dash-block-md font-light',
         xl: 'dash-block-xl font-light',
-        '2xl': 'dash-block-2xl',
-        custom: '',
+        '2xl': 'dash-block-2xl'
       },
       variant: {
         outlined: 'outline outline-1 outline-offset-[-1px]',
@@ -183,7 +182,7 @@ export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
    * Defaults to true.
    */
   showPasswordToggle?: boolean
-  colorIcon?: string
+  iconColor?: string
 }
 
 /**
@@ -214,7 +213,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   prefix,
   prefixClassName = '',
   showPasswordToggle = true,
-  colorIcon = '#0C1C33',
+  iconColor = '#0C1C33',
   inputSize,
   ...props
 }, ref) => {
@@ -308,8 +307,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
             tabIndex={-1}
           >
             {showPassword
-              ? <EyeClosedIcon color={colorIcon} size={16} />
-              : <EyeOpenIcon color={colorIcon} size={16} />}
+              ? <EyeClosedIcon color={iconColor} size={16} />
+              : <EyeOpenIcon color={iconColor} size={16} />}
           </button>
         )}
       </div>

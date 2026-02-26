@@ -15,17 +15,17 @@ export default function Header({selectedAsset,  openModal, data}: {selectedAsset
               {selectedAsset?.icon ?
                 <img src={selectedAsset.icon} alt={selectedAsset.name} className={"size-4.5"} />
               :
-                <Text size={20} weight={"medium"} color={"blue"}>{selectedAsset?.initials}</Text>
+                <Text size={20} weight={"medium"} color={"blue-mint"}>{selectedAsset?.initials}</Text>
               }
             </div>
-            <Text size={24} weight={"medium"} color={"blue"} className={"leading-[120%]"}>{selectedAsset?.name}</Text>
+            <Text size={24} weight={"medium"} color={"blue-mint"} className={"leading-[120%]"}>{selectedAsset?.name}</Text>
             <ChevronIcon size={12} className={"text-dash-brand dark:text-dash-mint"} />
           </button>
         </div>
         <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"leading-[120%] max-w-112.5"}>{data.description}</Text>
       </div>
       <div className={"flex flex-col gap-[.5rem] px-6 py-4.25 dash-card-base rounded-3xl shadow-[0_0_32px_0_rgba(12,28,51,0.08)]"}>
-        <Text size={14} weight={"medium"} color={"brand"} opacity={32} className={"leading-[100%] tracking-[-0.01em]"}>{data.balance}</Text>
+        <Text size={14} weight={"medium"} color={"brand"} opacity={30} className={"leading-[100%] tracking-[-0.01em]"}>{data.balance}</Text>
         <Text size={20} weight={"extrabold"} color={"brand"} className={"leading-[100%]"}>
           <BigNumber>32 000 000 000 000</BigNumber>
         </Text>

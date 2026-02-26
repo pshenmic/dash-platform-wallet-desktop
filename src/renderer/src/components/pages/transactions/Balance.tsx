@@ -88,7 +88,7 @@ export default function Balance(): React.JSX.Element {
               )}
             </button>
           </div>
-          <Text size={36} weight={"extrabold"} color={"only-brand"} className={"leading-[100%] tracking-[-0.03em] my-[.625rem]"}>
+          <Text size={36} weight={"extrabold"} color={"blue"} className={"leading-[100%] tracking-[-0.03em] my-[.625rem]"}>
           {isBalanceVisible  ? '32 000 000 000 000' : '••••••••••••••'}
           </Text>
           <BalanceInfo isBalanceVisible={isBalanceVisible} />
@@ -109,12 +109,12 @@ export default function Balance(): React.JSX.Element {
             </Text>
           </div>
           <div className={"flex items-center justify-center py-1 px-2 rounded-3xl dash-block-accent-12"}>
-            <Text size={12} weight={"extrabold"} color={"blue"}>
+            <Text size={12} weight={"extrabold"} color={"blue-mint"}>
             ↑3.6%
             </Text>
           </div>
         </div>
-        <Text size={14} weight={"normal"} color={"brand"} opacity={35} className={"leading-[114%]"}>
+        <Text size={14} weight={"normal"} color={"brand"} opacity={30} className={"leading-[114%]"}>
           {firstPart} <span className={"font-extrabold"}>{lastWord}</span>
         </Text>
       </div>

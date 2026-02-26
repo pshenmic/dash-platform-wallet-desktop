@@ -155,7 +155,7 @@ export default function TransactionsList(): React.JSX.Element {
                         {transaction.amount} <span className={"font-medium dash-text-default"}>Credits</span>
                       </Text>
                       <div className={"flex items-baseline"}>
-                        <Text size={10} weight={"medium"} color={"brand"} opacity={35}>
+                        <Text size={10} weight={"medium"} color={"brand"} opacity={30}>
                         ~ ${transaction.usdAmount}
                         </Text>
                       </div>

@@ -143,7 +143,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
             <Text
               size={16}
               color={"brand"}
-              opacity={35}
+              opacity={30}
               className={`
                 group-hover:opacity-100
               group-hover:text-dash-brand
