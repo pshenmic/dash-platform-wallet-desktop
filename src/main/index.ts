@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/logo.png?asset'
+import backend from './src/backend'
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -56,13 +57,15 @@ nativeTheme.on('updated', () => {
 })
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.dash.desktopwallet')
+  electronApp.setAppUserModelId('com.pshenmic.dashplatformwallet')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
   createWindow()
+
+  backend.start().catch(console.error)
 
   app.on('activate', () => {
     if (mainWindow === null) {

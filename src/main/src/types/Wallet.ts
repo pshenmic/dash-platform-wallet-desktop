@@ -6,7 +6,7 @@ export class Wallet {
   label: string
   encryptedMnemonic: string
 
-  constructor (walletId, network, label, encryptedMnemonic) {
+  constructor (walletId: string, network: Network, label: string, encryptedMnemonic: string) {
     this.walletId = walletId
     this.network = network
     this.label = label
