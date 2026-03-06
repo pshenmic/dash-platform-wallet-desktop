@@ -4,11 +4,11 @@ import path from 'path'
 import { HomeFolderName } from './constants'
 import knex from 'knex'
 
-export function getKnex (path) {
+export function getKnex (path?: string) {
   return knex({
     client: 'sqlite3',
     connection: {
-      filename: path
+      filename: path ?? ':memory:'
     },
     useNullAsDefault: true
   })
@@ -20,7 +20,7 @@ export async function migrateKnex (knex, migrationsPath) {
   })
 }
 
-export function createHomeFolder () {
+export function ensureHomeFolder () {
   if (!fs.existsSync(path.join(os.homedir(), HomeFolderName))) {
     fs.mkdirSync(path.join(os.homedir(), HomeFolderName))
   }
