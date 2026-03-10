@@ -10,7 +10,6 @@ import SettingsPage from "./pages/Settings"
 import Sidebar from "./components/sidebar"
 import LoginPage from "./pages/auth/Login"
 import Layout from "./components/Layout"
-import { useSystemTheme } from "./hooks/useSystemTheme"
 import CreateWalletWrapper from "./pages/auth/CreateWalletWrapper"
 
 function App(): React.JSX.Element {

@@ -32,7 +32,7 @@ export class InsightWalletProvider implements WalletProvider {
       throw new Error(`Insight API error: ${response.status}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as { txs: { rawtx: string }[] }
 
     return data.txs.map((tx: { rawtx: string }) => Transaction.fromHex(tx.rawtx))
   }
@@ -44,7 +44,7 @@ export class InsightWalletProvider implements WalletProvider {
       throw new Error(`Insight API error: ${response.status}`)
     }
 
-    const data: InsightUTXO[] = await response.json()
+    const data = await response.json() as InsightUTXO[]
 
     return data.map((utxo) => ({
       txId: utxo.txid,
@@ -65,7 +65,7 @@ export class InsightWalletProvider implements WalletProvider {
       throw new Error(`Insight API error: ${response.status}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as { txid: string }
 
     return data.txid
   }
@@ -77,6 +77,6 @@ export class InsightWalletProvider implements WalletProvider {
       throw new Error(`Insight API error: ${response.status}`)
     }
 
-    return response.json()
+    return response.json() as Promise<number>
   }
 }

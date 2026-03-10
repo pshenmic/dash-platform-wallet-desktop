@@ -53,12 +53,14 @@ export class WalletService {
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/0/${i}`)
+      if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
       addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/0/${i}`, index: i, isChange: false })
     }
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/1/${i}`)
+      if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
       addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/1/${i}`, index: i, isChange: true })
     }

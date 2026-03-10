@@ -2,7 +2,9 @@ import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/logo.png?asset'
-import backend from './src/backend'
+import { WalletBackend } from './src/WalletBackend'
+
+const backend = new WalletBackend()
 
 let mainWindow: BrowserWindow | null = null;
 

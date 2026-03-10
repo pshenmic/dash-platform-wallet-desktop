@@ -1,7 +1,7 @@
 {
   "name": "dash-desktop-wallet",
   "version": "1.0.0",
-  "description": "",
+  "description": "dash-platform-wallet-desktop",
   "main": "./out/main/index.js",
   "author": "",
   "license": "ISC",
@@ -10,7 +10,7 @@
     "start": "electron-vite preview",
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",

@@ -15,11 +15,15 @@ import { GetStatusHandler } from './api/GetStatus'
 import { GetAllWalletsHandler } from './api/wallet/GetAllWallets'
 
 export class WalletBackend {
-  private walletService: WalletService
-  private addressesService: AddressesService
-  private applicationService: ApplicationService
+  private walletService?: WalletService
+  private addressesService?: AddressesService
+  private applicationService?: ApplicationService
 
   private initHandlers() {
+    if (!this.walletService || !this.addressesService || !this.applicationService) {
+      throw new Error('Services not initialized. Call start() first.')
+    }
+
     ipcMain.handle('createWallet', new CreateWalletHandler(this.walletService).handle)
     ipcMain.handle('getWalletAddresses', new GetWalletAddressesHandler(this.walletService, this.addressesService).handle)
     ipcMain.handle('getStatus', new GetStatusHandler(this.walletService, this.applicationService).handle)

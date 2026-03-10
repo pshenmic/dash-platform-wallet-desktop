@@ -1,4 +1,4 @@
-import {WalletDAO} from '../dao/WalletDAO'
+import {WalletDAO} from '../database/WalletDAO'
 import {DashPlatformSDK} from "dash-platform-sdk";
 import type { Knex } from 'knex';
 
