@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import "dash-ui-kit/theme";
+@import "dash-ui-kit/styles";
+@import '@fontsource/manrope/300.css';
+@import '@fontsource/manrope/400.css';
+@import '@fontsource/manrope/500.css';
+@import '@fontsource/manrope/600.css';
+@import '@fontsource/manrope/700.css';
+@import '@fontsource/manrope/800.css';
+@import './theme.pcss';
+@import './styles.pcss';
+
+@variant dark (.dark &);
+
+html {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+@layer base {
+  :root {
+    --color-background: var(--color-dash-white);
+  }
+
+  .dark {
+    --color-background: linear-gradient(180deg, var(--color-dash-primary-dark-blue) 0%, var(--color-dash-blue-800) 100%);
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--color-background);
+    font-family: var(--font-dash-main);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input:focus {
+    outline: none !important;
+  }
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
+}
