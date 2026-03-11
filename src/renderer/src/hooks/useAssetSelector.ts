@@ -41,7 +41,7 @@ export const MOCK_ASSETS: Asset[] = [
   }
 ]
 
-export type AssetSelectorPersistKey = 'send' | 'withdraw'
+export type AssetSelectorPersistKey = 'send' | 'receive'
 
 export function useAssetSelector({persistKey}: {persistKey: AssetSelectorPersistKey}) {
   const location = useLocation()

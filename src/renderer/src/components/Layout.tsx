@@ -1,16 +1,12 @@
 import { ReactNode, useState } from 'react';
-import { Button } from '@renderer/components/dash-ui-kit-enxtended';
-import { PlusIcon, WebIcon, WalletIcon, NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
+import { WebIcon, WalletIcon, NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
 import { Text } from '@renderer/components/dash-ui-kit-enxtended';
 import { SelectOption } from 'dash-ui-kit/react';
 import { useRipple } from '@renderer/hooks/useRipple';
-import noAccountsImage from '@renderer/assets/images/noAccounts.png';
 import StyledSelect from './dash-ui-kit-enxtended/styled-select';
 
 interface LayoutProps {
   children: ReactNode
-  hasWallet?: boolean
-  onAddWallet: () => void
 }
 
 interface NetworkData {
@@ -83,14 +79,13 @@ const mapWalletToOption = (wallet: WalletData): SelectOption => ({
   )
 })
 
-export default function Layout({ children, hasWallet = false, onAddWallet }: LayoutProps): React.JSX.Element {
+export default function Layout({ children }: LayoutProps): React.JSX.Element {
   const [selectedNetwork, setSelectedNetwork] = useState('mainnet')
   const [selectedWallet, setSelectedWallet] = useState('wallet1')
 
   const networkOptions = MOCK_NETWORKS.map(network => mapNetworkToOption(network))
   const walletOptions = MOCK_WALLETS.map(wallet => mapWalletToOption(wallet))
   const hoverNotification = useRipple()
-  const hoverAddButton = useRipple()
 
   return (
     <div id={"layout-root"} className={"relative w-full h-screen flex flex-col overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
@@ -129,39 +124,7 @@ export default function Layout({ children, hasWallet = false, onAddWallet }: Lay
       </header>
 
       <main className={"flex-1 mt-12"}>
-        {!hasWallet ? (
-          <div className={"flex flex-col items-center justify-center h-full"}>
-            <div className={"w-46.5 h-47"}>
-              <img src={noAccountsImage} alt={"Empty State"} className={"w-full h-full object-contain"} />
-            </div>
-
-            <Text as={"h2"} size={36} weight={"medium"} color={"brand"} className={"text-center mb-4 mt-8"}>
-              You <span className={"dash-text-primary font-extrabold"}>Don't Have any <br/>Identities</span> imported yet
-            </Text>
-
-            <Button
-              variant={"outline"}
-              colorScheme={"brand-mint"}
-              size={"md"}
-              className={`
-                gap-[.9375rem]
-                w-97.5
-                rounded-[.75rem]
-                overflow-hidden
-                relative
-              `}
-              {...hoverAddButton}
-              onClick={onAddWallet}
-            >
-              <PlusIcon size={16} color={"inherit"}/>
-              <Text color={"blue-mint"} weight={"medium"} size={14}>Add an identity</Text>
-            </Button>
-          </div>
-        ) : (
-          <>
-            {children}
-          </>
-        )}
+        {children}
       </main>
     </div>
   )

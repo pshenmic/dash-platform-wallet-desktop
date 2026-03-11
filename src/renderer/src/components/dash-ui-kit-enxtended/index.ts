@@ -47,6 +47,7 @@ export {
   InfoCircleIcon,
   TransactionsIcon,
   SendIcon,
-  WithdrawIcon,
-  NotificationIcon
+  ReceiveIcon,
+  NotificationIcon,
+  DashIcon
 } from './icons'

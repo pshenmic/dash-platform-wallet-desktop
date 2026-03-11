@@ -35,9 +35,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
         alt={"wave"}
         className={"absolute bottom-0 left-0 w-full h-full object-cover min-h-192 pointer-events-none"}
       />
-      <div className={"flex flex-col w-full pt-61"} onClick={() => {
-        window.electronAPI.foobar('test').then(console.log).catch(console.error)
-      }}>
+      <div className={"flex flex-col w-full pt-61"}>
         <DashLogo  containerSize={50}/>
         <Text as={"h1"} className={"mt-6 leading-[78%] tracking-[-0.03em]"} color={"brand"} size={64} weight={"extrabold"}>{title}</Text>
         <Text as={"p"} className={"mt-6"} color={"brand"}size={18} weight={"medium"} opacity={50}>{description}</Text>

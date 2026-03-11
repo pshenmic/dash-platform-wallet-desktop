@@ -1191,7 +1191,7 @@ export const SendIcon: React.FC<IconProps> = ({
   </svg>
 )
 
-export const WithdrawIcon: React.FC<IconProps> = ({
+export const ReceiveIcon: React.FC<IconProps> = ({
   color = 'var(--color-text)',
   size = 11,
   className = '',
@@ -1329,3 +1329,30 @@ export const ExclamationIcon: React.FC<IconProps> = ({
     <path d="M0 11.4494V9.54114H2.16266V11.4494H0ZM0 8.58703V0H2.16266V8.58703H0Z" fill="currentColor" />
   </svg>
 )
+
+export const AddressesIcon: React.FC<IconProps> = ({
+  color = 'var(--color-text)',
+  size = 15,
+  className = '',
+  onClick
+}) => (
+  <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8.79449 4.86478H4.82227" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="round" />
+    <path d="M11.1731 8.00143H4.82227" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="round" />
+    <path d="M7.2395 11.1352H4.82227" stroke="currentColor" stroke-miterlimit="10" stroke-linecap="round" />
+    <path d="M12.0421 0.5H3.95787C2.04814 0.5 0.5 2.04814 0.5 3.95787V12.0421C0.5 13.9518 2.04814 15.4999 3.95787 15.4999H12.0421C13.9518 15.4999 15.4999 13.9518 15.4999 12.0421V3.95787C15.4999 2.04814 13.9518 0.5 12.0421 0.5Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+)
+
+export const DashIcon: React.FC<IconProps> = ({
+  color = 'var(--color-text)',
+  size = 12,
+  className = '',
+  onClick
+}) => (
+  <svg width={size} height={(size * 10) / 12} className={className} onClick={onClick} color={color} viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M7.85952 0H3.49013L3.12704 2.02469L7.07179 2.03084C9.01648 2.03084 9.58881 2.73856 9.57035 3.90783C9.56419 4.50478 9.29957 5.5202 9.18879 5.84636C8.88724 6.72024 8.27799 7.72335 5.97022 7.7172H2.13623L1.7793 9.74189H6.13638C7.67489 9.74189 8.32722 9.56342 9.02263 9.24341C10.555 8.53569 11.472 7.02179 11.835 5.04018C12.3828 2.09854 11.6997 0 7.85952 0Z" fill="#0C1C33" />
+    <path d="M1.60621 3.85229C0.461555 3.85229 0.295395 4.59694 0.190776 5.04618C0.0492326 5.63697 0 5.87698 0 5.87698H4.47401C5.61866 5.87698 5.78482 5.13234 5.88944 4.68309C6.03099 4.0923 6.08022 3.85229 6.08022 3.85229H1.60621Z" fill="#0C1C33" />
+  </svg>
+)
+

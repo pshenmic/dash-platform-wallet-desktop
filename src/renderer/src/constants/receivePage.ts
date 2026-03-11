@@ -1,6 +1,6 @@
 import { TransferPageType } from "./sendPages";
 
-export const withdrawPage: TransferPageType = {
+export const receivePage: TransferPageType = {
   header: {
     title: 'Withdraw',
     description: 'You are going to transfer Dash from you account with this transaction. Carefully check the transaction details before proceeding to the next step.',

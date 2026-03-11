@@ -171,7 +171,7 @@ export default function TransactionsList(): React.JSX.Element {
   ]
 
   return (
-    <div className={"px-12 py-8"}>
+    <div className={"px-12 pb-8"}>
       <div
         className={`
           relative

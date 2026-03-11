@@ -1,7 +1,10 @@
-export default function SettingsPage(): React.JSX.Element {
+import { settingsPages } from "@renderer/constants"
+import SettingsMainPage from "../components/pages/settings/MainPage";
+
+export default function Settings(): React.JSX.Element {
+  const data = settingsPages
+
   return (
-    <div>
-      <h1>Settings</h1>
-    </div>
+    <SettingsMainPage data={data} />
   )
 }
