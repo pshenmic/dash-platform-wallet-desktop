@@ -1,6 +1,4 @@
 import { randomBytes, scryptSync, createCipheriv } from 'crypto'
-import { sha256 } from '@noble/hashes/sha2.js'
-import { ripemd160 } from '@noble/hashes/legacy.js'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { TransactionJSON } from 'dash-core-sdk/src/types.js'
 import { WalletDAO } from '../database/WalletDAO'
@@ -11,14 +9,13 @@ import { Network } from '../types'
 import { Address } from '../types/Address'
 import { Identity, IdentityInfo } from '../types/Identity'
 import { Wallet } from '../types/Wallet'
+import {PrivateKeyWASM} from 'pshenmic-dpp'
+import {TransactionWalletProviderJSON} from "../providers/types";
+import {BlockJSON} from "dash-core-sdk/src/types";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = { mainnet: 5, testnet: 1 }
-
-function hash160(pubkey: Uint8Array): string {
-  return Buffer.from(ripemd160(sha256(pubkey))).toString('hex')
-}
 
 function encryptMnemonic(mnemonic: string, password: string): string {
   const salt = randomBytes(32)
@@ -52,7 +49,7 @@ export class WalletService {
       throw new Error('Invalid network ("mainnet", "testnet")')
     }
 
-    const walletId = randomBytes(16).toString('hex')
+    const walletId = randomBytes(4).toString('hex')
     const encryptedMnemonic = encryptMnemonic(seedphrase, password)
 
     await this.walletDAO.saveWallet(encryptedMnemonic, walletId, network, null)
@@ -85,8 +82,34 @@ export class WalletService {
     for (let i = 0; i < IDENTITY_LOOKAHEAD; i++) {
       const key = this.sdk.keyPair.deriveIdentityPrivateKey(hdKey, i, 0, network)
       if (!key.publicKey) throw new Error(`Failed to derive identity public key at index ${i}`)
-      const publicKeyHash = hash160(key.publicKey)
-      identities.push({ walletId, identityIndex: i, publicKeyHash, derivationPath: `m/9'/${coinType}'/0'/0/${i}` })
+
+      const pkh = PrivateKeyWASM.fromBytes(key.privateKey as Uint8Array, network).getPublicKeyHash()
+
+      let uniqueIdentity
+
+      try {
+        uniqueIdentity = await this.sdk.identities.getIdentityByPublicKeyHash(pkh)
+      } catch {
+        console.log(`Failed to fetch unique identity for publicKeyHash ${pkh}`)
+      }
+
+      let nonUniqueIdentity
+
+      try {
+        nonUniqueIdentity = await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
+      } catch {
+        console.log(`Failed to fetch non unique identity for publicKeyHash ${pkh}`)
+      }
+
+      if(nonUniqueIdentity != null || uniqueIdentity != null) {
+        const identifier: string = (uniqueIdentity??nonUniqueIdentity).id.base58()
+
+        identities.push({
+          walletId,
+          identityIndex: i,
+          derivationPath: `m/9'/${coinType}'/0'/0/${i}`,
+          identifier})
+      }
     }
 
     await this.identityDAO.insertIdentities(identities)
@@ -106,7 +129,7 @@ export class WalletService {
     return this.walletDAO.getSelectedWallet()
   }
 
-  async getTransactions(walletId: string): Promise<TransactionJSON[]> {
+  async getTransactions(walletId: string): Promise<TransactionWalletProviderJSON[]> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
     if (!wallet) {
@@ -117,7 +140,31 @@ export class WalletService {
     const provider = new InsightWalletProvider(wallet.network)
     const txArrays = await Promise.all(addresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat().map(tx => tx.toJSON())
+    return txArrays.flat()
+  }
+
+  async getTransactionByHash(hash: string, network: Network): Promise<TransactionJSON> {
+    if (network !== 'mainnet' && network !== 'testnet') {
+      throw new Error('Invalid network ("mainnet", "testnet")')
+    }
+
+    const provider = new InsightWalletProvider(network)
+
+    const transaction = await provider.getTransactionByHash(hash)
+
+    return transaction.toJSON()
+  }
+
+  async getBlockByHash(hash: string, network: Network): Promise<BlockJSON> {
+    if (network !== 'mainnet' && network !== 'testnet') {
+      throw new Error('Invalid network ("mainnet", "testnet")')
+    }
+
+    const provider = new InsightWalletProvider(network)
+
+    const block = await provider.getBlockByHash(hash)
+
+    return block.toJSON()
   }
 
   async getIdentities(walletId: string): Promise<IdentityInfo[]> {
@@ -134,7 +181,7 @@ export class WalletService {
 
     for (const entry of stored) {
       try {
-        const identity = await this.sdk.identities.getIdentityByPublicKeyHash(entry.publicKeyHash)
+        const identity = await this.sdk.identities.getIdentityByIdentifier(entry.identifier)
         results.push({
           identityIndex: entry.identityIndex,
           identifier: identity.id.base58(),
@@ -147,5 +194,13 @@ export class WalletService {
     }
 
     return results
+  }
+
+  async getIdentityBalance(identifier: string): Promise<bigint> {
+    return this.sdk.identities.getIdentityBalance(identifier)
+  }
+
+  async getIdentityNonce(identifier: string): Promise<bigint> {
+    return this.sdk.identities.getIdentityNonce(identifier)
   }
 }

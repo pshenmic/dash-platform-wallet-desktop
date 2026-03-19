@@ -1,11 +1,12 @@
-import { Transaction, Script } from 'dash-core-sdk'
+import {Transaction, Script, Block} from 'dash-core-sdk'
 import { UTXO } from '../types/UTXO'
 import { WalletProvider } from './WalletProvider'
 import { Network } from '../types'
+import {TransactionWalletProviderJSON} from "./types";
 
 const BASE_URLS: Record<Network, string> = {
-  mainnet: 'https://insight.dash.org/api',
-  testnet: 'https://testnet-insight.dashevo.org/api'
+  mainnet: 'https://insight.dash.org/insight-api',
+  testnet: 'https://insight.testnet.networks.dash.org/insight-api'
 }
 
 export interface InsightUTXO {
@@ -25,24 +26,42 @@ export class InsightWalletProvider implements WalletProvider {
     this.baseUrl = BASE_URLS[network]
   }
 
-  async getTransactions(address: string): Promise<Transaction[]> {
-    const response = await fetch(`${this.baseUrl}/txs/?address=${address}`)
+  async sendRequest(url: string, params?: RequestInit): Promise<Response> {
+    const response = await fetch(url, params)
 
     if (!response.ok) {
       throw new Error(`Insight API error: ${response.status}`)
     }
 
-    const data = await response.json() as { txs: { rawtx: string }[] }
+    return response
+  }
 
-    return data.txs.map((tx: { rawtx: string }) => Transaction.fromHex(tx.rawtx))
+  async getTransactions(address: string): Promise<TransactionWalletProviderJSON[]> {
+    const response = await this.sendRequest(`${this.baseUrl}/txs/?address=${address}`)
+
+    const data = await response.json() as { txs: TransactionWalletProviderJSON [] }
+
+    return data.txs.map((tx: TransactionWalletProviderJSON) => tx)
+  }
+
+  async getTransactionByHash(txId: string): Promise<Transaction> {
+    const response = await this.sendRequest(`${this.baseUrl}/rawtx/${txId}`)
+
+    const data = await response.json() as {rawtx: string }
+
+    return Transaction.fromHex(data.rawtx)
+  }
+
+  async getBlockByHash(hash: string): Promise<Block> {
+    const response = await this.sendRequest(`${this.baseUrl}/rawblock/${hash}`)
+
+    const data = await response.json() as {rawblock: string }
+
+    return Block.fromHex(data.rawblock)
   }
 
   async getUTXOs(address: string): Promise<UTXO[]> {
-    const response = await fetch(`${this.baseUrl}/addr/${address}/utxo`)
-
-    if (!response.ok) {
-      throw new Error(`Insight API error: ${response.status}`)
-    }
+    const response = await this.sendRequest(`${this.baseUrl}/addr/${address}/utxo`)
 
     const data = await response.json() as InsightUTXO[]
 
@@ -55,15 +74,11 @@ export class InsightWalletProvider implements WalletProvider {
   }
 
   async broadcastTx(tx: Transaction): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/tx/send`, {
+    const response = await this.sendRequest(`${this.baseUrl}/tx/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rawtx: tx.hex() })
     })
-
-    if (!response.ok) {
-      throw new Error(`Insight API error: ${response.status}`)
-    }
 
     const data = await response.json() as { txid: string }
 
@@ -71,11 +86,7 @@ export class InsightWalletProvider implements WalletProvider {
   }
 
   async getBalance(address: string): Promise<number> {
-    const response = await fetch(`${this.baseUrl}/addr/${address}/balance`)
-
-    if (!response.ok) {
-      throw new Error(`Insight API error: ${response.status}`)
-    }
+    const response = await this.sendRequest(`${this.baseUrl}/addr/${address}/balance`)
 
     return response.json() as Promise<number>
   }
