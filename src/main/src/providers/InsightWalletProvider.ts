@@ -44,6 +44,17 @@ export class InsightWalletProvider implements WalletProvider {
     return data.txs.map((tx: TransactionWalletProviderJSON) => tx)
   }
 
+  async getBalance(address:string | string[]): Promise<bigint> {
+    const endpoint = Array.isArray(address) ? 'addrs' : 'addr'
+    const parameter = Array.isArray(address) ? address.join(','): address
+
+    const response = await this.sendRequest(`${this.baseUrl}/${endpoint}/${parameter}/balance`)
+
+    const data = await response.text()
+
+    return BigInt(data)
+  }
+
   async getTransactionByHash(txId: string): Promise<Transaction> {
     const response = await this.sendRequest(`${this.baseUrl}/rawtx/${txId}`)
 
@@ -83,11 +94,5 @@ export class InsightWalletProvider implements WalletProvider {
     const data = await response.json() as { txid: string }
 
     return data.txid
-  }
-
-  async getBalance(address: string): Promise<number> {
-    const response = await this.sendRequest(`${this.baseUrl}/addr/${address}/balance`)
-
-    return response.json() as Promise<number>
   }
 }

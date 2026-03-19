@@ -1,14 +1,14 @@
-import { randomBytes, scryptSync, createCipheriv } from 'crypto'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import { TransactionJSON } from 'dash-core-sdk/src/types.js'
-import { WalletDAO } from '../database/WalletDAO'
-import { AddressDAO } from '../database/AddressDAO'
-import { IdentityDAO } from '../database/IdentityDAO'
-import { InsightWalletProvider } from '../providers/InsightWalletProvider'
-import { Network } from '../types'
-import { Address } from '../types/Address'
-import { Identity, IdentityInfo } from '../types/Identity'
-import { Wallet } from '../types/Wallet'
+import {createCipheriv, randomBytes, scryptSync} from 'crypto'
+import {DashPlatformSDK} from 'dash-platform-sdk'
+import {TransactionJSON} from 'dash-core-sdk/src/types.js'
+import {WalletDAO} from '../database/WalletDAO'
+import {AddressDAO} from '../database/AddressDAO'
+import {IdentityDAO} from '../database/IdentityDAO'
+import {InsightWalletProvider} from '../providers/InsightWalletProvider'
+import {Network} from '../types'
+import {Address} from '../types/Address'
+import {Identity, IdentityInfo} from '../types/Identity'
+import {Wallet} from '../types/Wallet'
 import {PrivateKeyWASM} from 'pshenmic-dpp'
 import {TransactionWalletProviderJSON} from "../providers/types";
 import {BlockJSON} from "dash-core-sdk/src/types";
@@ -165,6 +165,16 @@ export class WalletService {
     const block = await provider.getBlockByHash(hash)
 
     return block.toJSON()
+  }
+
+  async getBalance(address: string | string[], network: Network): Promise<bigint> {
+    if (network !== 'mainnet' && network !== 'testnet') {
+      throw new Error('Invalid network ("mainnet", "testnet")')
+    }
+
+    const provider = new InsightWalletProvider(network)
+
+    return await provider.getBalance(address)
   }
 
   async getIdentities(walletId: string): Promise<IdentityInfo[]> {

@@ -6,6 +6,7 @@ export const apiDefinitions = (ipcRenderer) => ({
   getTransactions: (walletId: string) => ipcRenderer.invoke('getTransactions', walletId),
   getTransactionByHash: (hash: string, network: string) => ipcRenderer.invoke('getTransactionByHash', hash, network),
   getBlockByHash: (hash: string, network: string) => ipcRenderer.invoke('getBlockByHash', hash, network),
+  getBalance: (address: string | string[], network: string) => ipcRenderer.invoke('getBalance', address, network),
   getIdentities: (walletId: string) => ipcRenderer.invoke('getIdentities', walletId),
   getIdentityBalance: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityBalance', identifier),
   getIdentityNonce: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityNonce', identifier),
