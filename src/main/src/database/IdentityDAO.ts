@@ -1,8 +1,8 @@
 import type { Knex } from 'knex'
 import { Identity } from '../types/Identity'
 
-function fromRow ({ wallet_id, identity_index, public_key_hash, derivation_path }): Identity {
-  return { walletId: wallet_id, identityIndex: identity_index, publicKeyHash: public_key_hash, derivationPath: derivation_path }
+function identityFromRow ({ wallet_id, identity_index, identifier, derivation_path }): Identity {
+  return { walletId: wallet_id, identityIndex: identity_index, identifier, derivationPath: derivation_path }
 }
 
 export class IdentityDAO {
@@ -12,23 +12,23 @@ export class IdentityDAO {
     this.knex = knex
   }
 
-  insertIdentities = async (identities: Identity[]) => {
+  insertIdentities = async (identities: Identity[]): Promise<void> => {
     await this.knex('identities').insert(
       identities.map(e => ({
         wallet_id: e.walletId,
         identity_index: e.identityIndex,
-        public_key_hash: e.publicKeyHash,
-        derivation_path: e.derivationPath
+        derivation_path: e.derivationPath,
+        identifier: e.identifier,
       }))
     )
   }
 
   getIdentitiesByWalletId = async (walletId: string): Promise<Identity[]> => {
     const rows = await this.knex('identities')
-      .select('wallet_id', 'identity_index', 'public_key_hash', 'derivation_path')
+      .select('wallet_id', 'identity_index', 'identifier', 'derivation_path')
       .where('wallet_id', walletId)
       .orderBy('identity_index', 'asc')
 
-    return rows.map(fromRow)
+    return rows.map(identityFromRow)
   }
 }

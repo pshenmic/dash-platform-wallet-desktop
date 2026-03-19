@@ -1,8 +1,8 @@
 export interface Identity {
   walletId: string
   identityIndex: number
-  publicKeyHash: string
   derivationPath: string
+  identifier: string
 }
 
 export interface IdentityInfo {
