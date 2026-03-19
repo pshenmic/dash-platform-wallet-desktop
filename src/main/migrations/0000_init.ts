@@ -1,4 +1,4 @@
-export async function up (knex) {
+export async function up (knex): Promise<void> {
   await knex.schema.createTable('wallet', table => {
     table.text('wallet_id').primary()
     table.text('network').notNullable().checkIn(['testnet', 'mainnet'])
@@ -31,6 +31,6 @@ export async function up (knex) {
   })
 };
 
-export async function down (knex) {
+export async function down (knex): Promise<void> {
   await knex.schema.dropTableIfExists('wallet')
 };
