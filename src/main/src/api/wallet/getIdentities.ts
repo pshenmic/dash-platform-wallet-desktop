@@ -1,15 +1,15 @@
 import { IpcMainInvokeEvent } from 'electron/utility'
-import { Wallet } from '../../types/Wallet'
 import { WalletService } from '../../services/WalletService'
+import { IdentityInfo } from '../../types/Identity'
 
-export class GetAllWalletsHandler {
+export class GetIdentitiesHandler {
   private walletService: WalletService
 
   constructor(walletService: WalletService) {
     this.walletService = walletService
   }
 
-  handle = async (_event: IpcMainInvokeEvent): Promise<Wallet[]> => {
-    return this.walletService.getAllWallets()
+  handle = async (_event: IpcMainInvokeEvent, walletId: string): Promise<IdentityInfo[]> => {
+    return this.walletService.getIdentities(walletId)
   }
 }

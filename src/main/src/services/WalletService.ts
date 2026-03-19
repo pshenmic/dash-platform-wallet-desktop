@@ -1,13 +1,24 @@
 import { randomBytes, scryptSync, createCipheriv } from 'crypto'
+import { sha256 } from '@noble/hashes/sha2.js'
+import { ripemd160 } from '@noble/hashes/legacy.js'
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { TransactionJSON } from 'dash-core-sdk/src/types.js'
 import { WalletDAO } from '../database/WalletDAO'
 import { AddressDAO } from '../database/AddressDAO'
+import { IdentityDAO } from '../database/IdentityDAO'
+import { InsightWalletProvider } from '../providers/InsightWalletProvider'
 import { Network } from '../types'
 import { Address } from '../types/Address'
+import { Identity, IdentityInfo } from '../types/Identity'
 import { Wallet } from '../types/Wallet'
 
 const ADDRESS_LOOKAHEAD = 20
+const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = { mainnet: 5, testnet: 1 }
+
+function hash160(pubkey: Uint8Array): string {
+  return Buffer.from(ripemd160(sha256(pubkey))).toString('hex')
+}
 
 function encryptMnemonic(mnemonic: string, password: string): string {
   const salt = randomBytes(32)
@@ -22,11 +33,13 @@ function encryptMnemonic(mnemonic: string, password: string): string {
 export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
+  private identityDAO: IdentityDAO
   private sdk: DashPlatformSDK
 
-  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, sdk: DashPlatformSDK) {
+  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK) {
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
+    this.identityDAO = identityDAO
     this.sdk = sdk
   }
 
@@ -67,6 +80,17 @@ export class WalletService {
 
     await this.addressDAO.insertAddresses(addresses)
 
+    const identities: Identity[] = []
+
+    for (let i = 0; i < IDENTITY_LOOKAHEAD; i++) {
+      const key = this.sdk.keyPair.deriveIdentityPrivateKey(hdKey, i, 0, network)
+      if (!key.publicKey) throw new Error(`Failed to derive identity public key at index ${i}`)
+      const publicKeyHash = hash160(key.publicKey)
+      identities.push({ walletId, identityIndex: i, publicKeyHash, derivationPath: `m/9'/${coinType}'/0'/0/${i}` })
+    }
+
+    await this.identityDAO.insertIdentities(identities)
+
     return walletId
   }
 
@@ -80,5 +104,48 @@ export class WalletService {
 
   async getSelectedWallet(): Promise<Wallet | null> {
     return this.walletDAO.getSelectedWallet()
+  }
+
+  async getTransactions(walletId: string): Promise<TransactionJSON[]> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+
+    if (!wallet) {
+      throw new Error('Wallet not found')
+    }
+
+    const addresses = await this.addressDAO.getAddressesByWalletId(walletId)
+    const provider = new InsightWalletProvider(wallet.network)
+    const txArrays = await Promise.all(addresses.map(a => provider.getTransactions(a.address)))
+
+    return txArrays.flat().map(tx => tx.toJSON())
+  }
+
+  async getIdentities(walletId: string): Promise<IdentityInfo[]> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+
+    if (!wallet) {
+      throw new Error('Wallet not found')
+    }
+
+    this.sdk.setNetwork(wallet.network)
+
+    const stored = await this.identityDAO.getIdentitiesByWalletId(walletId)
+    const results: IdentityInfo[] = []
+
+    for (const entry of stored) {
+      try {
+        const identity = await this.sdk.identities.getIdentityByPublicKeyHash(entry.publicKeyHash)
+        results.push({
+          identityIndex: entry.identityIndex,
+          identifier: identity.id.base58(),
+          balance: identity.balance.toString(),
+          derivationPath: entry.derivationPath
+        })
+      } catch {
+        // identity not registered on platform yet, skip
+      }
+    }
+
+    return results
   }
 }

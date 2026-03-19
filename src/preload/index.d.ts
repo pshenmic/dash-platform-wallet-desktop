@@ -6,7 +6,7 @@ declare global {
     api: unknown
     electronAPI: {
       createWallet: (seedphrase: string, network: string, password: string) => Promise<unknown>
-      getWalletAddresses: (walletId: string) => Promise<unknown>
+      getAddresses: (walletId: string) => Promise<unknown>
       getStatus: () => Promise<unknown>
       getAllWallets: () => Promise<unknown>
       foobar: (arg: string) => Promise<unknown>
