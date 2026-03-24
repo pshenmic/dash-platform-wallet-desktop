@@ -12,6 +12,8 @@ import {Wallet} from '../types/Wallet'
 import {PrivateKeyWASM} from 'pshenmic-dpp'
 import {TransactionWalletProviderJSON} from "../providers/types";
 import {BlockJSON} from "dash-core-sdk/src/types";
+import {QueryStatus} from "../types/QueryStatus";
+import {WalletBalance} from "../types/WalletBalance";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -112,9 +114,15 @@ export class WalletService {
       }
     }
 
-    await this.identityDAO.insertIdentities(identities)
+    if(identities.length > 0) {
+      await this.identityDAO.insertIdentities(identities)
+    }
 
     return walletId
+  }
+
+  async deleteWallet(walletId: string): Promise<QueryStatus> {
+    return this.walletDAO.deleteWallet(walletId)
   }
 
   async getAllWallets(): Promise<Wallet[]> {
@@ -132,13 +140,14 @@ export class WalletService {
   async getTransactions(walletId: string): Promise<TransactionWalletProviderJSON[]> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
-    if (!wallet) {
+    if (wallet==null) {
       throw new Error('Wallet not found')
     }
 
     const addresses = await this.addressDAO.getAddressesByWalletId(walletId)
+    const allAddresses = [...addresses.change, ...addresses.receiving]
     const provider = new InsightWalletProvider(wallet.network)
-    const txArrays = await Promise.all(addresses.map(a => provider.getTransactions(a.address)))
+    const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
     return txArrays.flat()
   }
@@ -165,6 +174,37 @@ export class WalletService {
     const block = await provider.getBlockByHash(hash)
 
     return block.toJSON()
+  }
+
+  async getWalletBalance(walletId: string): Promise<WalletBalance> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+
+    if (wallet==null) {
+      throw new Error('Wallet not found')
+    }
+
+    const walletAddresses = await this.addressDAO.getAddressesByWalletId(walletId)
+    const addresses = [...walletAddresses.change, ...walletAddresses.receiving]
+
+    const identities = await this.identityDAO.getIdentitiesByWalletId(walletId)
+
+    const provider = new InsightWalletProvider(wallet.network)
+
+    const addressesBalance = await provider.getBalance(addresses.map(addr=>addr.address))
+
+    const identitiesBalances = await Promise.all(identities.map(async identity => this.getIdentityBalance(identity.identifier)))
+    const identitiesBalance = identitiesBalances.reduce((acc, curr) => acc+curr, BigInt(0))
+
+    return {
+      dash: {
+        amount: addressesBalance,
+        usdAmount: '0.0'
+      },
+      credits: {
+        amount: identitiesBalance,
+        usdAmount: '0.0'
+      }
+    }
   }
 
   async getBalance(address: string | string[], network: Network): Promise<bigint> {

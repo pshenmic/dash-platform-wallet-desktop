@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron/utility'
-import { Address } from '../../types/Address'
 import { WalletService } from '../../services/WalletService'
 import { AddressesService } from '../../services/AddressesService'
+import {GroupedAddresses} from "../../types/GroupedAddresses";
 
 export class GetWalletAddressesHandler {
   private walletService: WalletService
@@ -12,7 +12,7 @@ export class GetWalletAddressesHandler {
     this.addressesService = addressesService
   }
 
-  handle = async (_event: IpcMainInvokeEvent, walletId: string): Promise<Address[]> => {
+  handle = async (_event: IpcMainInvokeEvent, walletId: string): Promise<GroupedAddresses> => {
     const wallet = await this.walletService.getWalletById(walletId)
 
     if (!wallet) {

@@ -39,6 +39,7 @@ export class InsightWalletProvider implements WalletProvider {
   async getTransactions(address: string): Promise<TransactionWalletProviderJSON[]> {
     const response = await this.sendRequest(`${this.baseUrl}/txs/?address=${address}`)
 
+
     const data = await response.json() as { txs: TransactionWalletProviderJSON [] }
 
     return data.txs.map((tx: TransactionWalletProviderJSON) => tx)

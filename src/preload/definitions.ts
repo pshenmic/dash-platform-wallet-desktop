@@ -1,5 +1,6 @@
 export const apiDefinitions = (ipcRenderer) => ({
   createWallet: (seedphrase: string, network: string, password: string) => ipcRenderer.invoke('createWallet', seedphrase, network, password),
+  deleteWallet: (walletId: string) => ipcRenderer.invoke('deleteWallet', walletId),
   getAddresses: (walletId: string) => ipcRenderer.invoke('getAddresses', walletId),
   getStatus: () => ipcRenderer.invoke('getStatus'),
   getAllWallets: () => ipcRenderer.invoke('getAllWallets'),
@@ -7,6 +8,7 @@ export const apiDefinitions = (ipcRenderer) => ({
   getTransactionByHash: (hash: string, network: string) => ipcRenderer.invoke('getTransactionByHash', hash, network),
   getBlockByHash: (hash: string, network: string) => ipcRenderer.invoke('getBlockByHash', hash, network),
   getBalance: (address: string | string[], network: string) => ipcRenderer.invoke('getBalance', address, network),
+  getWalletBalance: (walletId: string) => ipcRenderer.invoke('getWalletBalance', walletId),
   getIdentities: (walletId: string) => ipcRenderer.invoke('getIdentities', walletId),
   getIdentityBalance: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityBalance', identifier),
   getIdentityNonce: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityNonce', identifier),

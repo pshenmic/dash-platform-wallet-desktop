@@ -5,4 +5,5 @@ export interface Address {
   derivationPath: string
   index: number
   isChange: boolean
+  balance?: bigint | null
 }
