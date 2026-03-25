@@ -1,10 +1,12 @@
 import { IpcMainInvokeEvent } from 'electron/utility'
 import { WalletService } from '../services/WalletService'
 import { ApplicationService } from '../services/ApplicationService'
+import {Network} from "../types";
 
 export interface AppStatus {
   ready: boolean
   selectedWalletId: string | null
+  network: Network | null
 }
 
 export class GetStatusHandler {
@@ -21,7 +23,8 @@ export class GetStatusHandler {
 
     return {
       ready: this.applicationService.isReady(),
-      selectedWalletId: selected?.walletId ?? null
+      selectedWalletId: selected?.walletId ?? null,
+      network: selected?.network ?? null,
     }
   }
 }
