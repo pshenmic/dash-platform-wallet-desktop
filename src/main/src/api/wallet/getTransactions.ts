@@ -1,6 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron/utility'
-import { TransactionJSON } from 'dash-core-sdk/src/types.js'
 import { WalletService } from '../../services/WalletService'
+import {TransactionWalletProviderJSON} from "../../providers/types";
 
 export class GetTransactionsHandler {
   private walletService: WalletService
@@ -9,7 +9,7 @@ export class GetTransactionsHandler {
     this.walletService = walletService
   }
 
-  handle = async (_event: IpcMainInvokeEvent, walletId: string): Promise<TransactionJSON[]> => {
+  handle = async (_event: IpcMainInvokeEvent, walletId: string): Promise<TransactionWalletProviderJSON[]> => {
     return this.walletService.getTransactions(walletId)
   }
 }

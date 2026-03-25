@@ -14,6 +14,7 @@ import {TransactionWalletProviderJSON} from "../providers/types";
 import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
+import {PlatformExplorerProvider} from "../providers/PlatformExplorerProvider";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -238,13 +239,22 @@ export class WalletService {
     const stored = await this.identityDAO.getIdentitiesByWalletId(walletId)
     const results: IdentityInfo[] = []
 
+    const provider = new PlatformExplorerProvider(wallet.network)
+
     for (const entry of stored) {
       try {
-        const identity = await this.sdk.identities.getIdentityByIdentifier(entry.identifier)
+        const identity = await provider.getIdentity(entry.identifier)
+
+        // TODO: Implement read usd amount
         results.push({
           identityIndex: entry.identityIndex,
-          identifier: identity.id.base58(),
-          balance: identity.balance.toString(),
+          identifier: identity.identifier,
+          alias: identity.aliases[0]?.alias??null,
+          balance: {
+            amount: BigInt(identity.balance),
+            usdAmount: '0.0'
+          },
+          creationDate: identity.timestamp,
           derivationPath: entry.derivationPath
         })
       } catch {

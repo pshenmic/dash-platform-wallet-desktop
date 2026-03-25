@@ -1,3 +1,5 @@
+import {AmountWithUsd} from "./WalletBalance";
+
 export interface Identity {
   walletId: string
   identityIndex: number
@@ -8,6 +10,8 @@ export interface Identity {
 export interface IdentityInfo {
   identityIndex: number
   identifier: string
-  balance: string
+  alias: string | null
+  creationDate: string | null
+  balance: AmountWithUsd
   derivationPath: string
 }
