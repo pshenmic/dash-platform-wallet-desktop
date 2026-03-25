@@ -67,14 +67,14 @@ export class WalletService {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/0/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
-      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/0/${i}`, index: i, isChange: false })
+      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/0/${i}`, index: i, isChange: false, label: null })
     }
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/1/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
-      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/1/${i}`, index: i, isChange: true })
+      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/1/${i}`, index: i, isChange: true, label: null })
     }
 
     await this.addressDAO.insertAddresses(addresses)
@@ -91,7 +91,8 @@ export class WalletService {
 
       try {
         uniqueIdentity = await this.sdk.identities.getIdentityByPublicKeyHash(pkh)
-      } catch {
+      } catch (e) {
+        console.log(e)
         console.log(`Failed to fetch unique identity for publicKeyHash ${pkh}`)
       }
 
@@ -135,6 +136,10 @@ export class WalletService {
 
   async getSelectedWallet(): Promise<Wallet | null> {
     return this.walletDAO.getSelectedWallet()
+  }
+
+  async setAddressLabel(walletId: string, address: string, label: string): Promise<QueryStatus> {
+    return this.addressDAO.setAddressLabel(walletId, address, label)
   }
 
   async getTransactions(walletId: string): Promise<TransactionWalletProviderJSON[]> {

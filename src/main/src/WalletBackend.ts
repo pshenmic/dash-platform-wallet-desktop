@@ -23,6 +23,7 @@ import {GetBlockByHash} from "./api/wallet/getBlockByHash";
 import {GetBalance} from "./api/wallet/getBalance";
 import {DeleteWalletHandler} from "./api/wallet/deleteWallet";
 import {GetWalletBalance} from "./api/wallet/getWalletBalance";
+import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -47,6 +48,7 @@ export class WalletBackend {
     ipcMain.handle('getIdentityBalance', new GetIdentityBalance(this.walletService).handle)
     ipcMain.handle('getIdentityNonce', new GetIdentityNonce(this.walletService).handle)
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
+    ipcMain.handle('setAddressLabel', new SetAddressLabel(this.walletService).handle)
   }
 
   async start(): Promise<void> {
@@ -59,10 +61,7 @@ export class WalletBackend {
     const walletDAO = new WalletDAO(knex)
     const addressDAO = new AddressDAO(knex)
     const identityDAO = new IdentityDAO(knex)
-    const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet', grpc: {
-        dapiUrl: 'http://127.0.0.1:1443',
-        poolLimit: 5
-      } })
+    const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
     this.applicationService = new ApplicationService()
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK)

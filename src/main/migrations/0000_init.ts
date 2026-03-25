@@ -22,6 +22,7 @@ export async function up (knex): Promise<void> {
     table.text('wallet_id').notNullable().references('wallet_id').inTable('wallet')
     table.text('address').notNullable()
     table.text('derivation_path').notNullable()
+    table.text('label')
     table.integer('account_id').notNullable()
     table.integer('index').notNullable()
     table.boolean('is_change').notNullable().defaultTo(false)

@@ -12,4 +12,5 @@ export const apiDefinitions = (ipcRenderer) => ({
   getIdentities: (walletId: string) => ipcRenderer.invoke('getIdentities', walletId),
   getIdentityBalance: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityBalance', identifier),
   getIdentityNonce: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityNonce', identifier),
+  setAddressLabel: (walletId: string, address: string, label: string) => ipcRenderer.invoke('setAddressLabel', walletId, address, label),
 })
