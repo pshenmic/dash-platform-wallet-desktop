@@ -11,7 +11,6 @@ export interface IdentityInfo {
   identityIndex: number
   identifier: string
   alias: string | null
-  creationDate: string | null
   balance: AmountWithUsd
   derivationPath: string
 }
