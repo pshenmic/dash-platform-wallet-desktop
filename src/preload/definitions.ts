@@ -3,6 +3,7 @@ export const apiDefinitions = (ipcRenderer) => ({
   deleteWallet: (walletId: string) => ipcRenderer.invoke('deleteWallet', walletId),
   getAddresses: (walletId: string) => ipcRenderer.invoke('getAddresses', walletId),
   getStatus: () => ipcRenderer.invoke('getStatus'),
+  selectWallet: (walletId: string) => ipcRenderer.invoke('selectWallet', walletId),
   getAllWallets: () => ipcRenderer.invoke('getAllWallets'),
   getTransactions: (walletId: string) => ipcRenderer.invoke('getTransactions', walletId),
   getTransactionByHash: (hash: string, network: string) => ipcRenderer.invoke('getTransactionByHash', hash, network),

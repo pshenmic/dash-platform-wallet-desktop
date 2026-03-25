@@ -77,6 +77,28 @@ export class WalletDAO {
     return fromRow(rows[0])
   }
 
+  setSelectedWallet = async (walletId: string): Promise<QueryStatus> => {
+    await this.knex('wallet')
+      .where('selected', true)
+      .update({selected: false})
+
+    const result = await this.knex('wallet')
+      .update({selected: true})
+      .where('wallet_id', walletId)
+
+    if (result > 0) {
+      return {
+        success: true,
+        errorMessage: null,
+      }
+    } else {
+      return {
+        success: false,
+        errorMessage: "Wallet for select not found. No selected wallet at this moment",
+      }
+    }
+  }
+
   getWalletsByNetwork = async (network): Promise<Wallet[]> => {
     const rows = await this.knex('wallet')
       .select('encrypted_mnemonic', 'network', 'wallet_id', 'label', 'selected')

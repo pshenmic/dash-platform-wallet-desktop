@@ -138,6 +138,10 @@ export class WalletService {
     return this.walletDAO.getSelectedWallet()
   }
 
+  async setSelectedWallet(walletId: string): Promise<QueryStatus> {
+    return this.walletDAO.setSelectedWallet(walletId)
+  }
+
   async setAddressLabel(walletId: string, address: string, label: string): Promise<QueryStatus> {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }

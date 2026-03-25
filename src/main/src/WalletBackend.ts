@@ -24,6 +24,7 @@ import {GetBalance} from "./api/wallet/getBalance";
 import {DeleteWalletHandler} from "./api/wallet/deleteWallet";
 import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
+import {SelectWallet} from "./api/wallet/selectWallet";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -39,6 +40,7 @@ export class WalletBackend {
     ipcMain.handle('deleteWallet', new DeleteWalletHandler(this.walletService).handle)
     ipcMain.handle('getAddresses', new GetWalletAddressesHandler(this.walletService, this.addressesService).handle)
     ipcMain.handle('getStatus', new GetStatusHandler(this.walletService, this.applicationService).handle)
+    ipcMain.handle('selectWallet', new SelectWallet(this.walletService).handle)
     ipcMain.handle('getAllWallets', new GetAllWalletsHandler(this.walletService).handle)
     ipcMain.handle('getTransactions', new GetTransactionsHandler(this.walletService).handle)
     ipcMain.handle('getBalance', new GetBalance(this.walletService).handle)
