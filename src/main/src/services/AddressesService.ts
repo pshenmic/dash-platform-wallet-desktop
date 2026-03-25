@@ -23,15 +23,18 @@ export class AddressesService {
 
     const provider = new InsightWalletProvider(wallet.network)
 
+    // TODO: add real usd balance
     const receivingAddressesWithBalance = await Promise.all(addresses.receiving.map(async (address) => ({
         ...address,
-        balance: await provider.getBalance(address.address)
+        balance: await provider.getBalance(address.address),
+        usdBalance: '0.0'
       })
     ))
 
     const changeAddressesWithBalance = await Promise.all(addresses.change.map(async (address) => ({
         ...address,
-        balance: await provider.getBalance(address.address)
+        balance: await provider.getBalance(address.address),
+        usdBalance: '0.0'
       })
     ))
 

@@ -7,4 +7,5 @@ export interface Address {
   isChange: boolean
   label: string | null
   balance?: bigint | null
+  usdBalance?: string | null
 }
