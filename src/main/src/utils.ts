@@ -3,6 +3,13 @@ import os from 'os'
 import path from 'path'
 import { HomeFolderName } from './constants'
 import knex from 'knex'
+import {TransactionWalletProviderJSON} from "./providers/types";
+import {Address} from "./types/Address";
+import {TransactionStatus} from "./enums/TransactionStatus";
+import {Transaction} from "./types/Transaction";
+import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
+import {DashPlatformSDK} from "dash-platform-sdk";
+import {Network} from "./types";
 
 export function getKnex (path?: string) {
   return knex({
@@ -14,13 +21,13 @@ export function getKnex (path?: string) {
   })
 }
 
-export async function migrateKnex (knex, migrationsPath) {
+export async function migrateKnex (knex, migrationsPath): Promise<void> {
   await knex.migrate.latest({
     directory: migrationsPath.toString()
   })
 }
 
-export function ensureHomeFolder () {
+export function ensureHomeFolder (): void {
   if (!fs.existsSync(path.join(os.homedir(), HomeFolderName))) {
     fs.mkdirSync(path.join(os.homedir(), HomeFolderName))
   }
@@ -48,15 +55,13 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
 
     try {
       uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkh)
-    } catch (e) {
-    }
+    } catch { /* empty */ }
 
     let nonUniqueIdentity
 
     try {
       nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
-    } catch (e) {
-    }
+    } catch { /* empty */ }
 
     [identity] = [uniqueIdentity, nonUniqueIdentity].filter(e => e != null)
 
@@ -68,4 +73,79 @@ export const fetchIdentitiesBySeed = async (seed: Uint8Array, sdk: DashPlatformS
   } while (identity != null)
 
   return identities
+}
+
+export const processProviderTransactions = (txs: TransactionWalletProviderJSON[], walletId: string, addresses: Address[]): Transaction[] => {
+  const addressesBase58Check = addresses.map(({address}) => address)
+
+  return  txs.map(tx => {
+    const walletVins = tx.vin.filter(input =>
+      addressesBase58Check.includes(input.addr)
+    );
+
+    const walletVouts = tx.vout
+      .filter(output => {
+        if (output.scriptPubKey.addresses != null) {
+          return output.scriptPubKey.addresses.some(address =>
+            addressesBase58Check.includes(address)
+          );
+        }
+        return false;
+      })
+      .map(vout => {
+        const addresses = vout.scriptPubKey.addresses;
+
+        const address = addresses?.find(addr =>
+          addressesBase58Check.includes(addr)
+        );
+
+        return {
+          value: vout.value,
+          addresses,
+          address
+        };
+      });
+
+    const inAmount = walletVins.reduce((acc, curr) => acc + BigInt(curr.valueSat), BigInt(0))
+    const outAmount = walletVouts.reduce((acc, curr) => acc + BigInt(Math.round(Number(curr.value) * 100_000_000)), BigInt(0))
+
+    // outgoing = -1, incoming = 1
+    const direction = inAmount > outAmount ? -1 : 1
+    // reverse direction because in outgoing txs direction == -1
+    const transferAmount = (inAmount - outAmount) * BigInt(direction * -1)
+
+    let address: string
+
+    if (direction===-1) {
+      address = walletVins[0].addr
+    } else {
+      const [voutWithAddress] = walletVouts.filter(({address}) => address!=null)
+      // TODO: There can't be undefined in production (????)
+      address = voutWithAddress.address ?? ''
+    }
+
+    let status: keyof typeof TransactionStatus = 'Pending'
+
+    if (tx.txlock == true) {
+      status = 'Locked'
+    }
+
+    // TODO: Implement usd amount
+    return {
+      address,
+      direction,
+      inAmount,
+      outAmount,
+      transferAmount,
+      walletId,
+      status,
+      usdAmount: '0.0',
+      // time in seconds
+      date: new Date(tx.time * 1000),
+      confirmations: tx.confirmations,
+      txid: tx.txid,
+      vin: tx.vin,
+      vout: tx.vout
+    }
+  })
 }

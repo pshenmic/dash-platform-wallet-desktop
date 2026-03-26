@@ -1,6 +1,5 @@
 import {createCipheriv, randomBytes, scryptSync} from 'crypto'
 import {DashPlatformSDK} from 'dash-platform-sdk'
-import {TransactionJSON} from 'dash-core-sdk/src/types.js'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {IdentityDAO} from '../database/IdentityDAO'
@@ -10,19 +9,20 @@ import {Address} from '../types/Address'
 import {Identity, IdentityInfo} from '../types/Identity'
 import {Wallet} from '../types/Wallet'
 import {PrivateKeyWASM} from 'pshenmic-dpp'
-import {TransactionWalletProviderJSON} from "../providers/types";
 import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
+import {Transaction} from "../types/Transaction";
+import {processProviderTransactions} from "../utils";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
-const COIN_TYPE: Record<Network, number> = { mainnet: 5, testnet: 1 }
+const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
 
 function encryptMnemonic(mnemonic: string, password: string): string {
   const salt = randomBytes(32)
   const iv = randomBytes(12)
-  const key = scryptSync(password, salt, 32, { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 })
+  const key = scryptSync(password, salt, 32, {N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024})
   const cipher = createCipheriv('aes-256-gcm', key, iv)
   const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
   const tag = cipher.getAuthTag()
@@ -67,14 +67,30 @@ export class WalletService {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/0/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
-      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/0/${i}`, index: i, isChange: false, label: null })
+      addresses.push({
+        walletId,
+        accountId,
+        address,
+        derivationPath: `m/44'/${coinType}'/${accountId}'/0/${i}`,
+        index: i,
+        isChange: false,
+        label: null
+      })
     }
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
       const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/1/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
       const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
-      addresses.push({ walletId, accountId, address, derivationPath: `m/44'/${coinType}'/${accountId}'/1/${i}`, index: i, isChange: true, label: null })
+      addresses.push({
+        walletId,
+        accountId,
+        address,
+        derivationPath: `m/44'/${coinType}'/${accountId}'/1/${i}`,
+        index: i,
+        isChange: true,
+        label: null
+      })
     }
 
     await this.addressDAO.insertAddresses(addresses)
@@ -91,8 +107,7 @@ export class WalletService {
 
       try {
         uniqueIdentity = await this.sdk.identities.getIdentityByPublicKeyHash(pkh)
-      } catch (e) {
-        console.log(e)
+      } catch {
         console.log(`Failed to fetch unique identity for publicKeyHash ${pkh}`)
       }
 
@@ -104,18 +119,19 @@ export class WalletService {
         console.log(`Failed to fetch non unique identity for publicKeyHash ${pkh}`)
       }
 
-      if(nonUniqueIdentity != null || uniqueIdentity != null) {
-        const identifier: string = (uniqueIdentity??nonUniqueIdentity).id.base58()
+      if (nonUniqueIdentity != null || uniqueIdentity != null) {
+        const identifier: string = (uniqueIdentity ?? nonUniqueIdentity).id.base58()
 
         identities.push({
           walletId,
           identityIndex: i,
           derivationPath: `m/9'/${coinType}'/0'/0/${i}`,
-          identifier})
+          identifier
+        })
       }
     }
 
-    if(identities.length > 0) {
+    if (identities.length > 0) {
       await this.identityDAO.insertIdentities(identities)
     }
 
@@ -146,10 +162,10 @@ export class WalletService {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }
 
-  async getTransactions(walletId: string): Promise<TransactionWalletProviderJSON[]> {
+  async getTransactions(walletId: string): Promise<Transaction[]> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
-    if (wallet==null) {
+    if (wallet == null) {
       throw new Error('Wallet not found')
     }
 
@@ -157,20 +173,33 @@ export class WalletService {
     const allAddresses = [...addresses.change, ...addresses.receiving]
     const provider = new InsightWalletProvider(wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
+    const txFlat = txArrays.flat()
 
-    return txArrays.flat()
+    return processProviderTransactions(txFlat, wallet.walletId, allAddresses)
   }
 
-  async getTransactionByHash(hash: string, network: Network): Promise<TransactionJSON> {
+  async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
     if (network !== 'mainnet' && network !== 'testnet') {
       throw new Error('Invalid network ("mainnet", "testnet")')
     }
 
     const provider = new InsightWalletProvider(network)
 
+    const wallet = await this.walletDAO.getSelectedWallet()
+
+    if (wallet == null) {
+      throw new Error('No selected wallet found')
+    }
+
+    const addresses = await this.addressDAO.getAddressesByWalletId(wallet.walletId)
+    const allAddresses = [...addresses.change, ...addresses.receiving]
+
+
     const transaction = await provider.getTransactionByHash(hash)
 
-    return transaction.toJSON()
+    const [tx] = processProviderTransactions([transaction], wallet.walletId, allAddresses)
+
+    return tx
   }
 
   async getBlockByHash(hash: string, network: Network): Promise<BlockJSON> {
@@ -188,7 +217,7 @@ export class WalletService {
   async getWalletBalance(walletId: string): Promise<WalletBalance> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
-    if (wallet==null) {
+    if (wallet == null) {
       throw new Error('Wallet not found')
     }
 
@@ -199,10 +228,10 @@ export class WalletService {
 
     const provider = new InsightWalletProvider(wallet.network)
 
-    const addressesBalance = await provider.getBalance(addresses.map(addr=>addr.address))
+    const addressesBalance = await provider.getBalance(addresses.map(addr => addr.address))
 
     const identitiesBalances = await Promise.all(identities.map(async identity => this.getIdentityBalance(identity.identifier)))
-    const identitiesBalance = identitiesBalances.reduce((acc, curr) => acc+curr, BigInt(0))
+    const identitiesBalance = identitiesBalances.reduce((acc, curr) => acc + curr, BigInt(0))
 
     return {
       dash: {
@@ -246,7 +275,7 @@ export class WalletService {
 
         let alias: string | null = null
 
-        if (label!=null && parentDomainName != null) {
+        if (label != null && parentDomainName != null) {
           alias = `${label}.${parentDomainName}`
         }
 
