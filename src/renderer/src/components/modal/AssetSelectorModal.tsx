@@ -6,6 +6,7 @@ import { Asset } from '@renderer/hooks/useAssetSelector'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { createPortal } from 'react-dom'
 import { SelectAssetType } from '@renderer/constants'
+import NoResults from '../ui/NoResults'
 
 interface AssetSelectorModalProps {
   isOpen: boolean
@@ -98,11 +99,7 @@ export default function AssetSelectorModal({
               )
             })
           ) : (
-            <div className={"flex flex-col items-center justify-center py-12"}>
-              <Text size={14} color={"default"} opacity={50}>
-                {data.noResults}
-              </Text>
-            </div>
+            <NoResults noResults={data.noResults} />
           )}
         </div>
       )

@@ -1,4 +1,4 @@
-import { AssetSelectorPersistKey, useAssetSelector } from "@renderer/hooks/useAssetSelector";
+import { useAssetSelector } from "@renderer/hooks/useAssetSelector";
 import { useCurrencySelector } from "@renderer/hooks/useCurrencySelector";
 import { useState } from "react";
 import { selectAssetData, TransferPageType } from "@renderer/constants";
@@ -8,9 +8,9 @@ import AmountInput from "./AmountInput";
 import RecipientInput from "./RecipientInput";
 import AmountSummary from "./AmountSummary";
 
-export default function TransferPage({persistKey, pageData}: {persistKey: AssetSelectorPersistKey, pageData: TransferPageType}): React.JSX.Element {
-  const { selectedAsset, assets, showModal, closeModal, selectAsset, openModal } = useAssetSelector({ persistKey })
-  const { selectedCurrency, currencies, selectCurrency } = useCurrencySelector({ persistKey })
+export default function TransferPage({pageData}: {pageData: TransferPageType}): React.JSX.Element {
+  const { selectedAsset, assets, showModal, closeModal, selectAsset, openModal } = useAssetSelector()
+  const { selectedCurrency, currencies, selectCurrency } = useCurrencySelector()
   const [recipient, setRecipient] = useState('')
   const [amount, setAmount] = useState('')
   const assetSelector = selectAssetData
