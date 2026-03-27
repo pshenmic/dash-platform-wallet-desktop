@@ -1,103 +1,117 @@
-import { useState } from 'react';
-import { Tabs, DateBlock } from 'dash-ui-kit/react';
-import { Button } from '@renderer/components/dash-ui-kit-enxtended';
-import { FilterIcon, CheckIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
-import { Text } from '@renderer/components/dash-ui-kit-enxtended';
-import { transactionsPage } from '@renderer/constants';
-
-interface Transaction {
-  id: string
-  type: 'receive' | 'send' | 'documentsBatch'
-  detailValue: string
-  amount: number
-  usdAmount: number
-  date: number | Date | string
-}
+import { useState } from 'react'
+import { Tabs, DateBlock } from 'dash-ui-kit/react'
+import { Button } from '@renderer/components/dash-ui-kit-enxtended'
+import { FilterIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
+import { Text } from '@renderer/components/dash-ui-kit-enxtended'
+import { transactionsPage } from '@renderer/constants'
+import TransactionCard, { TransactionType } from './TransactionCard'
 
 interface TransactionGroup {
-  date: number | Date | string
-  transactions: Transaction[]
+  date: Date
+  transactions: TransactionType[]
 }
 
 const MOCK_TRANSACTION_GROUPS: TransactionGroup[] = [
   {
-    date: new Date('2025-06-20'),
+    date: new Date('2026-03-08'),
     transactions: [
       {
         id: '1',
-        type: 'receive',
-        detailValue: '12345..87sj',
-        amount: 204278360,
-        usdAmount: 0.04,
-        date: new Date('2025-06-20')
+        status: 'pending',
+        kind: 'core',
+        title: 'Send',
+        subtitleLabel: 'to',
+        labelValue: 'Xdxs2Wb2z3GUVLbj6aQobnBCKV3JdxLcSZ',
+        amount: 2,
+        usdAmount: 64.53,
+        date: new Date('2026-03-08T01:00:00'),
+        direction: 'in',
       }
     ]
   },
   {
-    date: new Date('2025-06-14'),
+    date: new Date('2026-03-06'),
     transactions: [
       {
         id: '2',
-        type: 'send',
-        detailValue: '12345..87sj',
-        amount: -101236520,
-        usdAmount: 0.02,
-        date: new Date('2025-06-14')
+        status: 'success',
+        kind: 'core',
+        title: 'Send',
+        subtitleLabel: 'to',
+        labelValue: 'XcAY5amfZ4qr8WRzppGxL03uGpCFYb19zC',
+        amount: 15,
+        usdAmount: 483.9,
+        date: new Date('2026-03-06T15:24:00'),
+        direction: 'out',
       },
       {
         id: '3',
-        type: 'documentsBatch',
-        detailValue: '12345..87SJ1',
-        amount: 40371460,
-        usdAmount: 0.008,
-        date: new Date('2025-06-14')
-      }
-    ]
-  },
-  {
-    date: new Date('2025-06-11'),
-    transactions: [
+        status: 'failed',
+        kind: 'core',
+        title: 'Send',
+        subtitleLabel: 'to',
+        labelValue: 'Xdxs2Wb2z3GUVLbj6aQobnBCKV3JdxLcSZ',
+        amount: 4,
+        usdAmount: 249.04,
+        date: new Date('2026-03-06T12:11:00'),
+        direction: 'out',
+      },
       {
         id: '4',
-        type: 'send',
-        detailValue: '12345..87sj',
-        amount: -101236520,
-        usdAmount: 0.02,
-        date: new Date('2025-06-11')
+        status: 'success',
+        kind: 'core',
+        title: 'Receive',
+        subtitleLabel: 'from',
+        labelValue: 'XotUg4YUzzRHNhXC4tvg72d8gun2S96WJJ',
+        amount: 41.2305,
+        usdAmount: 1330.09,
+        date: new Date('2026-03-06T12:07:00'),
+        direction: 'in',
       }
     ]
   },
   {
-    date: new Date('2025-06-10'),
+    date: new Date('2026-03-04'),
     transactions: [
       {
-        id: '2',
-        type: 'send',
-        detailValue: '12345..87sj',
-        amount: -101236520,
-        usdAmount: 0.02,
-        date: new Date('2025-06-14')
+        id: '5',
+        status: 'success',
+        kind: 'platform',
+        title: 'Identity Top Up',
+        subtitleLabel: 'hash',
+        labelValue: '13804e67769803ec0e0b11b2426a38946fb755ec9c581783f7f3adb8bffdf3',
+        amount: 7900463,
+        usdAmount: 0.001,
+        date: new Date('2026-03-04T21:57:00'),
+        direction: 'out',
       },
       {
-        id: '3',
-        type: 'documentsBatch',
-        detailValue: '12345..87SJ1',
-        amount: 40371460,
-        usdAmount: 0.008,
-        date: new Date('2025-06-14')
+        id: '6',
+        status: 'success',
+        kind: 'platform',
+        title: 'Masternode Vote',
+        subtitleLabel: 'towards identity',
+        labelValue: '62wymIzpsfkk1w9dmrjxcdgy4hagto1l45gfftenvjmx',
+        amount: 10000000,
+        usdAmount: 0.002,
+        date: new Date('2026-03-04T21:12:00'),
+        direction: 'out',
       }
     ]
-  },
+  }
 ]
 
-export default function TransactionsList(): React.JSX.Element {
-  const [activeTab, setActiveTab] = useState('transactions')
-  const { transactions: { title, filter, types } } = transactionsPage
+interface TransactionsListProps {
+  onTransactionClick?: (transaction: import('./TransactionCard').TransactionType) => void
+}
 
-  const getTransactionDetails = (type: Transaction['type']) => {
-    const label = type === 'receive' ? types.receive : type === 'send' ? types.send : types.documentsBatch
-    return label
-  }
+export default function TransactionsList({ onTransactionClick }: TransactionsListProps = {}): React.JSX.Element {
+  const [activeTab, setActiveTab] = useState('transactions')
+  const {
+    transactions: { title, filter }
+  } = transactionsPage
+
+  // const { txs, loading, err } = useWalletTransactions()
 
   const tabs = [
     {
@@ -107,73 +121,26 @@ export default function TransactionsList(): React.JSX.Element {
         <div className={"flex flex-col gap-5 mt-5"}>
           {MOCK_TRANSACTION_GROUPS.map((group, groupIndex) => (
             <div key={groupIndex} className={"flex flex-col gap-[.9375rem]"}>
-              <DateBlock
-                timestamp={group.date}
-                format={"dateOnly"}
-              />
-              {group.transactions.map((transaction) => {
-                return (
+              <DateBlock timestamp={group.date} format={"dateOnly"}/>
+                {group.transactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className={`
-                      flex
-                      items-center
-                      gap-[.9375rem]
-                      px-[.9375rem]
-                      py-[.625rem]
-                      rounded-[.875rem]
-                      dash-block
-                      dash-black-border
-                    `}
+                    onClick={() => { transaction.status === 'pending' || transaction.status === 'failed' ? null : onTransactionClick?.(transaction)}}
+                    className={transaction.status === 'pending' || transaction.status === 'failed' ? '' : 'cursor-pointer'}
                   >
-                    <CheckIcon
-                      size={24}
-                      color={"currentColor"}
-                      className={`
-                        shrink-0
-                        dash-text-default
-                        [&_circle]:fill-dash-primary-dark-blue/5
-                        dark:[&_circle]:fill-white/4
-                      `}
-                    />
-
-                    <div className={"flex-1 flex flex-col gap-1"}>
-                      <Text size={14} weight={"medium"} color={"brand"} className={"leading-[120%]"}>
-                        {getTransactionDetails(transaction.type).title}
-                      </Text>
-                      <Text size={10} weight={"light"} color={"brand"}>
-                        <span className={"opacity-35"}>{getTransactionDetails(transaction.type).detailLabel}</span> {transaction.detailValue}
-                      </Text>
-                    </div>
-
-                    <div className={"shrink-0 flex flex-col items-end gap-1"}>
-                      <Text
-                        size={14}
-                        weight={"extrabold"}
-                        className={transaction.type === 'receive' ? '!text-dash-brand' : '!text-dash-primary-dark-blue dark:!text-white'}
-                      >
-                        {transaction.amount} <span className={"font-medium dash-text-default"}>Credits</span>
-                      </Text>
-                      <div className={"flex items-baseline"}>
-                        <Text size={10} weight={"medium"} color={"brand"} opacity={30}>
-                        ~ ${transaction.usdAmount}
-                        </Text>
-                      </div>
-                    </div>
+                    <TransactionCard {...transaction} />
                   </div>
-                )
-              })}
+                ))}
             </div>
           ))}
         </div>
       )
-    },
+    }
   ]
 
   return (
     <div className={"px-12 pb-8"}>
-      <div
-        className={`
+      <div className={`
           relative
           flex
           flex-col
@@ -196,7 +163,7 @@ export default function TransactionsList(): React.JSX.Element {
             px-2
             py-1
             z-1
-            !min-h-fit
+            min-h-fit!
             rounded-[.3125rem]
           `}
         >
@@ -211,7 +178,7 @@ export default function TransactionsList(): React.JSX.Element {
           value={activeTab}
           onValueChange={setActiveTab}
           size={"xl"}
-          triggerClassName={'!text-dash-primary-dark-blue dark:!text-white font-medium tracking-[-0.03em]'}
+          triggerClassName={"!text-dash-primary-dark-blue dark:!text-white font-medium tracking-[-0.03em]"}
         />
       </div>
     </div>
