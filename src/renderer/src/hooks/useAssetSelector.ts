@@ -41,12 +41,10 @@ export const MOCK_ASSETS: Asset[] = [
   }
 ]
 
-export type AssetSelectorPersistKey = 'send' | 'receive'
-
-export function useAssetSelector({persistKey}: {persistKey: AssetSelectorPersistKey}) {
+export function useAssetSelector() {
   const location = useLocation()
   const [selectedAssetId, setSelectedAssetId] = useState<string>(() => {
-    const saved = localStorage.getItem(`asset-${persistKey}`)
+    const saved = localStorage.getItem(`asset-send`)
     return saved || MOCK_ASSETS[0].id
   })
   const [showModal, setShowModal] = useState(false)
@@ -55,8 +53,8 @@ export function useAssetSelector({persistKey}: {persistKey: AssetSelectorPersist
   const closeModal = () => setShowModal(false)
 
   useEffect(() => {
-    localStorage.setItem(`asset-${persistKey}`, selectedAssetId)
-  }, [persistKey, selectedAssetId])
+    localStorage.setItem(`asset-send`, selectedAssetId)
+  }, [selectedAssetId])
 
   useEffect(() => {
     setShowModal(false)
