@@ -1,126 +1,72 @@
-import { ReactNode, useState } from 'react';
-import { WebIcon, WalletIcon, NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons';
-import { Text } from '@renderer/components/dash-ui-kit-enxtended';
-import { SelectOption } from 'dash-ui-kit/react';
-import { useRipple } from '@renderer/hooks/useRipple';
-import StyledSelect from './dash-ui-kit-enxtended/styled-select';
+import React, { ReactNode, useEffect, useState } from 'react'
+import { NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
+import { useRipple } from '@renderer/hooks/useRipple'
+import DropdownSelect from './ui/DropdownSelect'
+import ConnectionSelect from './ui/ConnectionSelect'
+import { API } from '@renderer/api'
 
 interface LayoutProps {
   children: ReactNode
 }
 
-interface NetworkData {
-  value: string
-  label: string
-}
-
-interface WalletData {
-  value: string
-  label: string
-  type: string
-}
-
-const MOCK_WALLETS: WalletData[] = [
-  { value: 'wallet1', label: 'Wallet_1', type: 'Key Store' },
-  { value: 'wallet2', label: 'Wallet_2', type: 'Key Store' },
-  { value: 'wallet3', label: 'Wallet_3', type: 'Hardware' }
-]
-
-const MOCK_NETWORKS: NetworkData[] = [
-  { value: 'mainnet', label: 'mainnet' },
-  { value: 'testnet', label: 'testnet' }
-]
-
-const mapNetworkToOption = (network: NetworkData): SelectOption => ({
-  value: network.value,
-  label: network.label,
-  content: (
-    <div className={"flex items-center gap-1"}>
-      <WebIcon
-        size={16}
-        color={"currentColor"}
-        className={"dash-text-default"}
-      />
-      <Text size={14} color={"brand"}>{network.label}</Text>
-    </div>
-  )
-})
-
-const mapWalletToOption = (wallet: WalletData): SelectOption => ({
-  value: wallet.value,
-  label: wallet.label,
-  content: (
-    <div className={"flex items-center gap-2 group"}>
-      <WalletIcon
-        size={16}
-        color={"currentColor"}
-        className={"dash-text-default"}
-      />
-      <div className={"flex flex-col gap-[.125rem]"}>
-        <Text
-          size={14}
-          color={"brand"}
-          weight={"medium"}
-          className={"leading-[121%]"}
-        >
-          {wallet.label}
-        </Text>
-        <Text
-          size={10}
-          color={"brand"}
-          weight={"medium"}
-          opacity={50}
-          className={"leading-[120%]"}
-        >
-          {wallet.type}
-        </Text>
-      </div>
-    </div>
-  )
-})
+const headerButtonClass = `
+  size-12
+  overflow-hidden
+  relative
+  flex
+  items-center
+  justify-center
+  cursor-pointer
+  rounded-[.9375rem]
+  dash-block
+  dash-black-border
+  group
+`
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
-  const [selectedNetwork, setSelectedNetwork] = useState('mainnet')
-  const [selectedWallet, setSelectedWallet] = useState('wallet1')
-
-  const networkOptions = MOCK_NETWORKS.map(network => mapNetworkToOption(network))
-  const walletOptions = MOCK_WALLETS.map(wallet => mapWalletToOption(wallet))
+  const [selectedWallet, setSelectedWallet] = useState('w1')
+  const [connection, setConnection] = useState('api')
   const hoverNotification = useRipple()
+
+  useEffect(() => {
+    API.getStatus().then((result) => {
+      console.log('result', result)
+    })
+  }, [])
 
   return (
     <div id={"layout-root"} className={"relative w-full h-screen flex flex-col overflow-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}>
       <header className={"flex items-center justify-between mt-12 px-12"}>
-        <div className={"flex items-stretch gap-[.625rem] pointer-events-auto h-12"}>
-          <StyledSelect
-            options={networkOptions}
-            value={selectedNetwork}
-            onChange={setSelectedNetwork}
+        <DropdownSelect
+          options={[
+            { value: 'w1', label: 'Wallet_1', description: 'Default' },
+            { value: 'w2', label: 'Wallet_2', description: 'Default' },
+          ]}
+          value={selectedWallet}
+          onChange={setSelectedWallet}
+          onItemAction={(val) => console.log('action on', val)}
+          onAdd={() => console.log('add wallet')}
+          addLabel={"Add wallet"}
+        />
+
+        <div className={"flex items-center gap-[.625rem]"}>
+          <ConnectionSelect
+            options={[
+              { value: 'api', label: 'Connection', description: 'dashscan.io' },
+              { value: 'p2p', label: 'P2P', description: 'P2P Connection' },
+            ]}
+            value={connection}
+            onChange={setConnection}
           />
-          <StyledSelect
-            options={walletOptions}
-            value={selectedWallet}
-            onChange={setSelectedWallet}
-          />
+          <button
+            onMouseEnter={hoverNotification.onMouseEnter}
+            onMouseMove={hoverNotification.onMouseMove}
+            onMouseLeave={hoverNotification.onMouseLeave}
+            className={headerButtonClass}
+          >
+            <NotificationIcon size={17} className="dash-text-default" />
+          </button>
         </div>
-        <button
-          {...hoverNotification}
-          className={`
-            size-12
-            overflow-hidden
-            relative
-            flex
-            items-center
-            justify-center
-            cursor-pointer
-            rounded-[.9375rem]
-            dash-block
-            dash-black-border
-            group
-        `}>
-          <NotificationIcon
-            size={17}
-            className={"dash-text-default"}/>
-        </button>
       </header>
 
       <main className={"flex-1 mt-12"}>

@@ -21,7 +21,7 @@ const logoStyles = cva(
   }
 )
 
-export default function Balance({variant, balance}: {variant: 'dash' | 'credits', balance: number}): React.JSX.Element {
+export default function Balance({variant, balance, isVisible}: {variant: 'dash' | 'credits', balance: number, isVisible: boolean}): React.JSX.Element {
   const { theme } = useTheme()
 
   return (
@@ -48,12 +48,12 @@ export default function Balance({variant, balance}: {variant: 'dash' | 'credits'
       </div>
       <div className={"flex flex-col gap-[.125rem]"}>
         <Text size={12} weight="medium" color="brand" className={"leading-[120%]"} opacity={50}>{variant === 'dash' ? 'Core Balance:' : 'Platform Credits:'}</Text>
-        <Text size={16} weight="extrabold" color="brand" className={"leading-[120%]"}>
+        <Text size={16} weight="extrabold" color="brand" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>
           <BigNumber>{balance}</BigNumber>
           {variant === 'dash' ? ' Dash' : ''}
         </Text>
         { variant === 'dash' &&
-          <Text size={10} weight="medium" color="blue-mint" className={"leading-[120%]"}>~ $9621.00 USD</Text>
+          <Text size={10} weight="medium" color="blue-mint" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>~ $9621.00 USD</Text>
         }
       </div>
     </div>
