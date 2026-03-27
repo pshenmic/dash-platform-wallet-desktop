@@ -1,22 +1,26 @@
-import { TransferPageType } from "./sendPages";
 
-export const receivePage: TransferPageType = {
+export interface ReceivePageType {
   header: {
-    title: 'Withdraw',
-    description: 'You are going to transfer Dash from you account with this transaction. Carefully check the transaction details before proceeding to the next step.',
+    title: string
+    balance: string
+  },
+  receiveAddressCard: {
+    adressText: string
+    amount: string
+    placeholder: string
+    description: string
+  }
+}
+
+export const receivePage = {
+  header: {
+    title: 'Receive',
     balance: 'Balance',
   },
-  recipient: {
-    label: 'Recipient',
-    placeholder: 'Enter address or search name',
-    addressBook: 'Address Book',
-    addressManagement: 'Address Management',
-    names: 'Names',
-    noResults: 'No addresses found',
+  receiveAddressCard: {
+    adressText: 'Dash Address',
+    amount: 'Amount',
+    placeholder: 'Enter Requesting Amount',
+    description: 'You can send any amount convenient for you. We are ready to accept a transfer at any time!',
   },
-  amountSummary: {
-    fees: 'Fees:',
-    totalAmount: 'Total Amount:',
-    button: 'Next',
-  }
 }
