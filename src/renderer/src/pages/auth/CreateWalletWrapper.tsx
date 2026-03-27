@@ -1,18 +1,25 @@
 import { Text, WalletIcon } from "@renderer/components/dash-ui-kit-enxtended";
 import { ChevronIcon, DashLogo, useTheme } from "dash-ui-kit/react";
-import { ProgressStepBar } from "@renderer/components/dash-ui-kit-enxtended/progressStepBar";
 import { authTexts } from "@renderer/constants";
 import { useCreateWallet } from "@renderer/hooks/useCreateWallet";
+import { ProgressStepBar } from "@renderer/components/dash-ui-kit-enxtended/progressStepBar";
 import waveAuth from '@renderer/assets/images/pageAuthorization/waveAuth.png';
+import authBgStack from '@renderer/assets/images/pageAuthorization/auth-bg-stack.png';
+import authBgFlower from '@renderer/assets/images/pageAuthorization/auth-bg-flower.png';
 import bgLight from '@renderer/assets/images/pageAuthorization/Frame 717779 (1).png';
 import bgDark from '@renderer/assets/images/pageAuthorization/Frame 717781 (1).png';
 import CreateWallet from "../../components/pages/auth/CreateWallet";
 import SeedPhrase from "../../components/pages/auth/SeedPhrase";
 import VerifySeedPhrase from "../../components/pages/auth/VerifySeedPhrase";
 import Success from "../../components/pages/auth/Success";
+import SelectNetwork from "@renderer/components/pages/auth/SelectNetwork";
+import WelcomeDashDesktopWallet from "@renderer/components/pages/auth/WelcomeDashDesktopWallet"
+import ImportSeedPhrase from "@renderer/components/pages/auth/ImportSeedPhrase";
+import NetworkBadge from "@renderer/components/ui/NetworkBadge";
+import { useRipple } from "@renderer/hooks/useRipple";
 
 export default function CreateWalletWrapper(): React.JSX.Element {
-  const {createWallet, saveYourSeedPhrase, fillInYourSeedPhrase, seedPhraseWarning, success} = authTexts
+  const {createWallet, saveYourSeedPhrase, fillInYourSeedPhrase, seedPhraseWarning, success, successImport, selectNetwork, welcome, importSeedPhrase} = authTexts
   const { theme } = useTheme()
   const backgroundImage = theme === 'dark' ? bgDark : bgLight
 
@@ -27,13 +34,38 @@ export default function CreateWalletWrapper(): React.JSX.Element {
     verifySeedPhrase,
     verifyPhrase,
     verifyMissingWords,
-    goBack
+    goBack,
+    network,
+    setNetwork,
+    goToWelcome,
+    goToPassword,
+    goToImportSeedPhrase,
+    submitImportSeedPhrase,
+    path
   } = useCreateWallet()
+  const hoverAnimation = useRipple()
 
-  const title = step === 'password' ? createWallet.title : step === 'seed-phrase' ? saveYourSeedPhrase.title : step === 'verify' ? fillInYourSeedPhrase.title : ''
-  const description = step === 'password' ? createWallet.description : step === 'seed-phrase' ? saveYourSeedPhrase.description : step === 'verify' ? fillInYourSeedPhrase.description : ''
+  const title = step === 'password' ? createWallet.title :
+  step === 'seed-phrase' ? saveYourSeedPhrase.title :
+  step === 'verify' ? fillInYourSeedPhrase.title :
+  step === 'select-network' ? selectNetwork.title :
+  step === 'welcome' ?
+  <span className={"inline-block max-w-125 leading-[100%]"}>
+    <span className={"font-normal"}>{welcome.titlePrefix}</span> <span className={"font-bold"}>{welcome.titleHighlight}</span>
+  </span> :
+  step === 'import-seed-phrase' ? importSeedPhrase.title :''
 
-  if (step === 'success') return <Success data={success} />
+  const description = step === 'password' ? createWallet.description :
+  step === 'seed-phrase' ? saveYourSeedPhrase.description :
+  step === 'verify' ? fillInYourSeedPhrase.description :
+  step === 'select-network' ? selectNetwork.description :
+  step === 'welcome' ? welcome.description :
+  step === 'import-seed-phrase' ? importSeedPhrase.description : ''
+
+  const wave = step === 'select-network' ? authBgStack :
+  step === 'welcome' ? authBgFlower : waveAuth
+
+  if (step === 'success') return <Success data={path === 'create' ? success : successImport} />
 
   return (
     <div className={"relative flex min-h-screen items-end"}>
@@ -43,13 +75,14 @@ export default function CreateWalletWrapper(): React.JSX.Element {
         className={"dash-bg-image-auth"}
       />
       <img
-        src={waveAuth}
+        src={wave}
         alt={"wave"}
         className={"dash-bg-image-auth"}
       />
 
-      {step !== 'password' &&
+      {step !== 'select-network' &&
         <button
+          {...hoverAnimation}
           className={`
             z-50
             absolute
@@ -64,8 +97,6 @@ export default function CreateWalletWrapper(): React.JSX.Element {
             cursor-pointer
             bg-white/12
             backdrop-blur-[.5rem]
-            transition-all duration-200 ease-in-out
-            hover:bg-white/20
           `}
           onClick={goBack}
         >
@@ -78,12 +109,27 @@ export default function CreateWalletWrapper(): React.JSX.Element {
         </button>
       }
 
+      {step !== 'select-network' && step !== 'welcome' &&
+        <NetworkBadge network={network} />
+      }
+
       <div className={"relative flex flex-col w-full h-full items-center justify-end p-12 pt-[25vh] "}>
         <div className={"flex flex-col w-full mb-8"}>
           <DashLogo  containerSize={50}/>
           <Text as={"h1"} className={"mt-6 leading-[78%] tracking-[-0.03em]"} color={"brand"} size={64} weight={"extrabold"}>{title}</Text>
           <Text as={"p"} className={"mt-6"} color={"brand"}size={18} weight={"medium"} opacity={50}>{description}</Text>
         </div>
+
+        {step === 'select-network' &&
+          <SelectNetwork data={selectNetwork} network={network} setNetwork={setNetwork} goToWelcome={goToWelcome} />
+        }
+
+        {step === 'welcome' &&
+          <WelcomeDashDesktopWallet onCreateWallet={goToPassword} onImportSeedPhrase={goToImportSeedPhrase} data={{
+            createWallet: welcome.buttonCreateWallet,
+            importSeedPhrase: welcome.buttonImportSeedPhrase,
+          }} />
+        }
 
         {step === 'password' &&
           <CreateWallet
@@ -120,12 +166,24 @@ export default function CreateWalletWrapper(): React.JSX.Element {
             }}
         />}
 
-        <ProgressStepBar
-          currentStep={step === 'password' ? 1 : step === 'seed-phrase' ? 2 : 3}
-          totalSteps={3}
-          className={"mt-[.75rem]"}
-          color={"blue-mint"}
-        />
+        {step === 'import-seed-phrase' &&
+          <ImportSeedPhrase
+            submitImportSeedPhrase={submitImportSeedPhrase}
+            data={{
+              buttonContinue: importSeedPhrase.buttonContinue,
+              seedPhraseWarning: seedPhraseWarning
+            }}
+          />
+        }
+
+        {step !== 'select-network' && step !== 'welcome' &&
+          <ProgressStepBar
+            currentStep={path === 'create' ? (step === 'password' ? 1 : step === 'seed-phrase' ? 2 : 3) : (step === 'password' ? 1 : 2)}
+            totalSteps={path === 'create' ? 3 : 2}
+            className={"mt-[.75rem]"}
+            color={"blue-mint"}
+          />
+        }
 
         {step === 'password' &&
           <button className={"flex items-center gap-2 group cursor-pointer mt-6"}>

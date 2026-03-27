@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button, Text } from "@renderer/components/dash-ui-kit-enxtended"
 import { TypeUseCreateWallet } from "@renderer/hooks/useCreateWallet";
 import SeedPhraseWarning from "./SeedPhraseWarning";
@@ -16,7 +16,11 @@ type VerifySeedPhraseProps = Pick<TypeUseCreateWallet, 'verifyPhrase' | 'verifyM
 }
 
 export default function VerifySeedPhrase({ verifyPhrase, verifyMissingWords, data } : VerifySeedPhraseProps): React.JSX.Element {
-  const [answers, setAnswers] = useState<string[]>(verifyPhrase || [])
+  const [answers, setAnswers] = useState<string[]>(() => [...verifyPhrase])
+
+  useEffect(() => {
+    setAnswers([...verifyPhrase])
+  }, [verifyPhrase])
 
   const handleChange = (index: number, value: string) => {
     setAnswers(prev => {
@@ -58,7 +62,7 @@ export default function VerifySeedPhrase({ verifyPhrase, verifyMissingWords, dat
                 />
               ) : (
                 <Text size={14} weight={"medium"} color={"default"} className={"leading-[164%]"}>
-                 {word}
+                  {verifyPhrase[index]}
                 </Text>
               )}
             </div>
@@ -73,7 +77,7 @@ export default function VerifySeedPhrase({ verifyPhrase, verifyMissingWords, dat
           variant={"solid"}
           colorScheme={"lightBlue-mint"}
           size={"sm"}
-          className={"flex-1"}
+          className={"flex-1 p-4.5"}
           onClick={handleContinue}
         >
           {data.buttonContinue}

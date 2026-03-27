@@ -26,12 +26,36 @@ export interface SuccessTexts extends BaseTexts {
   buttonContinue: string
 }
 
+export interface SelectNetworkTexts extends BaseTexts {
+  mainnet: string
+  testnet: string
+  buttonNext: string
+}
+
+export interface WelcomeTexts {
+  titlePrefix: string
+  titleHighlight: string
+  description: string
+  buttonCreateWallet: string
+  buttonImportSeedPhrase: string
+}
+
+export interface ImportSeedPhraseTexts extends BaseTexts {
+  title: string
+  description: string
+  buttonContinue: string
+}
+
 export interface AuthTexts {
   createWallet: CreateWalletTexts
   saveYourSeedPhrase: SaveYourSeedPhraseTexts
   fillInYourSeedPhrase: FillInYourSeedPhraseTexts
   seedPhraseWarning: BaseTexts
-  success: SuccessTexts
+  success: SuccessTexts,
+  successImport: SuccessTexts,
+  selectNetwork: SelectNetworkTexts,
+  welcome: WelcomeTexts,
+  importSeedPhrase: ImportSeedPhraseTexts,
 }
 
 export const authTexts: AuthTexts = {
@@ -63,7 +87,32 @@ export const authTexts: AuthTexts = {
   success: {
     title: 'Your Wallet Was',
     subtitle: 'Succesfully Created',
-    description: 'Enjoy the best Dash Platform experience in browser!',
+    description: 'Enjoy the best Desktop Experience for Dash!',
     buttonContinue: 'Continue'
-  }
+  },
+  successImport: {
+    title: 'Your Wallet Was',
+    subtitle: 'Succesfully Imported',
+    description: 'Enjoy the best Desktop Experience for Dash!',
+    buttonContinue: 'Continue'
+  },
+  selectNetwork: {
+    title: 'Select Network',
+    description: 'Choose the network you want to use your wallet for.',
+    mainnet: 'Dash Mainnet',
+    testnet: 'Dash Testnet',
+    buttonNext: 'Next'
+  },
+  welcome: {
+    titlePrefix: 'Welcome to',
+    titleHighlight: 'Dash Desktop Wallet',
+    description: 'Enjoy all the benefits of using Dash on your desktop device',
+    buttonCreateWallet: 'Create Wallet',
+    buttonImportSeedPhrase: 'Import Seed Phrase',
+  },
+  importSeedPhrase: {
+    title: 'Import your Seed Phrase',
+    description: 'Paste your existing Dash Seed Phrase',
+    buttonContinue: 'Continue'
+  },
 }
