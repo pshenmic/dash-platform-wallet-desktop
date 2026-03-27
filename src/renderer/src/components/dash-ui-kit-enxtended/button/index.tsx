@@ -144,7 +144,7 @@ const styles = cva(
       {
         colorScheme: 'primary-light',
         theme: 'dark',
-        class: '!bg-transparent !text-white hover:!bg-dash-mint/10'
+        class: '!bg-white/5 !text-white hover:!bg-white/10'
       },
       {
         variant: 'outline',

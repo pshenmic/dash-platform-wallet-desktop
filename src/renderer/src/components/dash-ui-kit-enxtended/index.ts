@@ -2,6 +2,7 @@ export { Text, type TextProps } from './text'
 export { Button, type ButtonProps } from './button'
 export { Input, type InputProps } from './input'
 export { Select, type SelectProps } from './select'
+export { Heading, type HeadingProps } from './heading'
 export {
   ArrowIcon,
   CopyIcon,
@@ -49,5 +50,4 @@ export {
   SendIcon,
   ReceiveIcon,
   NotificationIcon,
-  DashIcon
 } from './icons'

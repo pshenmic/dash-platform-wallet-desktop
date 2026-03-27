@@ -7,7 +7,7 @@ type HeadingColor = 'black' | 'gray' | 'blue' | 'red' | 'green' | 'brand-white'
 
 interface HeadingProps {
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'xl36'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | 'xl36' | 'xl40'
   weight?: 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold'
   color?: HeadingColor
   colorLight?: HeadingColor
@@ -24,6 +24,7 @@ const sizeClasses = {
   xl: 'text-xl', // 20px
   xl36: 'text-[2.25rem]', // 36px
   '2xl': 'text-[2.375rem] leading-[1.3]', // 38px
+  xl40: 'text-[2.5rem]', // 40px
   '3xl': 'text-[3rem] leading-[1.2]', // 48px
 }
 
