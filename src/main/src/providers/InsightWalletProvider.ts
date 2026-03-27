@@ -1,7 +1,7 @@
-import {Transaction, Script, Block} from 'dash-core-sdk'
-import { UTXO } from '../types/UTXO'
-import { WalletProvider } from './WalletProvider'
-import { Network } from '../types'
+import {Block, Script, Transaction} from 'dash-core-sdk'
+import {UTXO} from '../types/UTXO'
+import {WalletProvider} from './WalletProvider'
+import {Network} from '../types'
 import {TransactionWalletProviderJSON} from "./types";
 
 const BASE_URLS: Record<Network, string> = {
@@ -56,12 +56,12 @@ export class InsightWalletProvider implements WalletProvider {
     return BigInt(data)
   }
 
-  async getTransactionByHash(txId: string): Promise<Transaction> {
-    const response = await this.sendRequest(`${this.baseUrl}/rawtx/${txId}`)
+  async getTransactionByHash(txId: string): Promise<TransactionWalletProviderJSON> {
+    // TODO: use raw tx after qf commit fix
+    const response = await this.sendRequest(`${this.baseUrl}/tx/${txId}`)
 
-    const data = await response.json() as {rawtx: string }
-
-    return Transaction.fromHex(data.rawtx)
+    //Transaction.fromHex(data.rawtx)
+    return await response.json() as TransactionWalletProviderJSON
   }
 
   async getBlockByHash(hash: string): Promise<Block> {

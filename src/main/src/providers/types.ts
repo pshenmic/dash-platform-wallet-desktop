@@ -18,7 +18,7 @@ export interface OutputWalletProviderJSON {
   scriptPubKey: {
     hex: string,
     asm: string,
-    addresses: string[],
+    addresses?: string[],
     type: string
   },
   spentTxId: string,
@@ -41,7 +41,7 @@ export interface TransactionWalletProviderJSON {
   size: number,
   valueIn: number,
   fees: number,
-  txLock: boolean,
+  txlock: boolean,
 }
 
 export interface AliasPlatformProviderJSON {
