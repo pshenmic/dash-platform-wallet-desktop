@@ -41,19 +41,4 @@ export const navGroups: NavGroup[] = [
       }
     ]
   },
-  {
-    id: 'secondary',
-    items: [
-      {
-        id: 'support',
-        label: 'Support',
-        to: '/support'
-      },
-      {
-        id: 'settings',
-        label: 'Settings',
-        to: '/settings'
-      }
-    ]
-  }
 ]
