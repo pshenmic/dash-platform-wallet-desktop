@@ -1,7 +1,7 @@
-import type {Knex} from 'knex'
 import {Address} from '../types/Address'
 import {GroupedAddresses} from "../types/GroupedAddresses";
-import {QueryStatus} from "../types/QueryStatus";
+import {OperationStatus} from "../types/OperationStatus";
+import {KnexProvider} from "../providers/knexProvider";
 
 function fromRow({wallet_id, account_id, address, derivation_path, index, is_change, label}): Address {
   return {
@@ -17,14 +17,14 @@ function fromRow({wallet_id, account_id, address, derivation_path, index, is_cha
 }
 
 export class AddressDAO {
-  knex: Knex
+  private knexProvider: KnexProvider
 
-  constructor(knex: Knex) {
-    this.knex = knex
+  constructor(knexProvider: KnexProvider) {
+    this.knexProvider = knexProvider
   }
 
   insertAddresses = async (addresses: Address[]): Promise<void> => {
-    await this.knex('addresses').insert(
+    await this.knexProvider.knex('addresses').insert(
       addresses.map(e => ({
         wallet_id: e.walletId,
         account_id: e.accountId,
@@ -38,7 +38,7 @@ export class AddressDAO {
   }
 
   getAddressesByWalletId = async (walletId: string): Promise<GroupedAddresses> => {
-    const rows = await this.knex('addresses')
+    const rows = await this.knexProvider.knex('addresses')
       .select('wallet_id', 'account_id', 'address', 'derivation_path', 'index', 'is_change', 'label')
       .where('wallet_id', walletId)
       .orderBy('index', 'asc')
@@ -59,8 +59,8 @@ export class AddressDAO {
     }, {receiving: [], change: []})
   }
 
-  setAddressLabel = async (walletId: string, address: string, label: string): Promise<QueryStatus> => {
-    const result = await this.knex('addresses')
+  setAddressLabel = async (walletId: string, address: string, label: string): Promise<OperationStatus> => {
+    const result = await this.knexProvider.knex('addresses')
       .where('address', address)
       .andWhere('wallet_id', walletId)
       .update({
