@@ -1,9 +1,7 @@
-import { ensureHomeFolder, getKnex, migrateKnex } from './utils'
-import path from 'path'
-import os from 'os'
-import { HomeFolderName, StorageFilename } from './constants'
+import { ensureHomeFolder } from './utils'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ipcMain } from 'electron'
+import { KnexProvider } from './providers/knexProvider'
 import { WalletDAO } from './database/WalletDAO'
 import { AddressDAO } from './database/AddressDAO'
 import { IdentityDAO } from './database/IdentityDAO'
@@ -25,6 +23,9 @@ import {DeleteWalletHandler} from "./api/wallet/deleteWallet";
 import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
+import {AuthStorageHandler} from "./api/wallet/authStorage";
+import {ChangeStoragePasswordHandler} from "./api/wallet/changeStoragePassword";
+import {LogoutStorage} from "./api/wallet/logoutStorage";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -36,6 +37,9 @@ export class WalletBackend {
       throw new Error('Services not initialized. Call start() first.')
     }
 
+    ipcMain.handle('authStorage', new AuthStorageHandler(this.walletService).handle)
+    ipcMain.handle('changeStoragePassword', new ChangeStoragePasswordHandler(this.walletService).handle)
+    ipcMain.handle('logoutStorage', new LogoutStorage(this.walletService).handle)
     ipcMain.handle('createWallet', new CreateWalletHandler(this.walletService).handle)
     ipcMain.handle('deleteWallet', new DeleteWalletHandler(this.walletService).handle)
     ipcMain.handle('getAddresses', new GetWalletAddressesHandler(this.walletService, this.addressesService).handle)
@@ -56,17 +60,14 @@ export class WalletBackend {
   async start(): Promise<void> {
     ensureHomeFolder()
 
-    const knex = getKnex(path.join(os.homedir(), HomeFolderName, StorageFilename))
-
-    await migrateKnex(knex, path.join(process.cwd(), 'src/main/migrations'))
-
-    const walletDAO = new WalletDAO(knex)
-    const addressDAO = new AddressDAO(knex)
-    const identityDAO = new IdentityDAO(knex)
+    const knexProvider = new KnexProvider()
+    const walletDAO = new WalletDAO(knexProvider)
+    const addressDAO = new AddressDAO(knexProvider)
+    const identityDAO = new IdentityDAO(knexProvider)
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
     this.applicationService = new ApplicationService()
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, knexProvider)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
 
     this.initHandlers()

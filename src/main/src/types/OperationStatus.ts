@@ -1,4 +1,4 @@
-export interface QueryStatus {
+export interface OperationStatus {
   success: boolean,
   errorMessage: string | null,
 }

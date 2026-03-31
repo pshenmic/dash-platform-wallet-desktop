@@ -1,16 +1,14 @@
 import {WalletDAO} from '../database/WalletDAO'
 import {DashPlatformSDK} from "dash-platform-sdk";
-import type { Knex } from 'knex';
+import {KnexProvider} from "../providers/knexProvider";
 
 export class WalletAPI {
-  knex: Knex
   sdk: DashPlatformSDK
   walletDAO: WalletDAO
 
-  constructor(knex, sdk: DashPlatformSDK) {
-    this.knex = knex
+  constructor(sdk: DashPlatformSDK, knexProvider: KnexProvider) {
     this.sdk = sdk
-    this.walletDAO = new WalletDAO(knex)
+    this.walletDAO = new WalletDAO(knexProvider)
   }
 
   saveWalletFromMnemonic = async (_event, mnemonic, network) => {
