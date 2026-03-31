@@ -1,4 +1,7 @@
 export const apiDefinitions = (ipcRenderer) => ({
+  authStorage: (password: string) => ipcRenderer.invoke('authStorage', password),
+  changeStoragePassword: (password: string) => ipcRenderer.invoke('changeStoragePassword', password),
+  logoutStorage: () => ipcRenderer.invoke('logoutStorage'),
   createWallet: (seedphrase: string, network: string, password: string) => ipcRenderer.invoke('createWallet', seedphrase, network, password),
   deleteWallet: (walletId: string) => ipcRenderer.invoke('deleteWallet', walletId),
   getAddresses: (walletId: string) => ipcRenderer.invoke('getAddresses', walletId),
