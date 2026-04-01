@@ -77,27 +77,28 @@ export class WalletDAO {
 
     return fromRow(rows[0])
   }
-
   setSelectedWallet = async (walletId: string): Promise<OperationStatus> => {
-    await this.knexProvider.knex('wallet')
-      .where('selected', true)
-      .update({selected: false})
+    return this.knexProvider.knex.transaction(async (trx) => {
+      const exists = await trx('wallet')
+        .where('wallet_id', walletId)
+        .count('wallet_id as count')
+        .first()
 
-    const result = await this.knexProvider.knex('wallet')
-      .update({selected: true})
-      .where('wallet_id', walletId)
+      if (!exists || Number(exists.count) === 0) {
+        return {
+          success: false,
+          errorMessage: 'Wallet not found',
+        }
+      }
 
-    if (result > 0) {
+      await trx('wallet').update({selected: false})
+      await trx('wallet').update({selected: true}).where('wallet_id', walletId)
+
       return {
         success: true,
         errorMessage: null,
       }
-    } else {
-      return {
-        success: false,
-        errorMessage: "Wallet for select not found. No selected wallet at this moment",
-      }
-    }
+    })
   }
 
   getWalletsByNetwork = async (network): Promise<Wallet[]> => {
