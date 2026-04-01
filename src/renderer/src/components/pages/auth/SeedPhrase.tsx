@@ -19,7 +19,7 @@ type SeedPhraseProps = Pick<TypeUseCreateWallet, 'seedPhrase' | 'wordCount' | 's
 export default function SeedPhrase({ seedPhrase, wordCount, setWordCount, verifySeedPhrase, data } : SeedPhraseProps): React.JSX.Element {
   const options = [
     { label: "12 words", value: 12 as const },
-    { label: "24 words", value: 24 as const },
+    { label: "24 words", value: 24 as const, disabled: true },
   ]
 
   const handleChange = (value: WordCount) => {
@@ -27,14 +27,14 @@ export default function SeedPhrase({ seedPhrase, wordCount, setWordCount, verify
   }
 
   return (
-    <div className={"flex flex-col w-full gap-6"}>
+    <div className={"flex flex-col w-full gap-6 [&>div>button:nth-child(2)]:pointer-events-none [&>div>button:nth-child(2)]:opacity-40"}>
       <Switch
         options={options}
         value={wordCount}
         onChange={handleChange}
       />
 
-      <div className="grid grid-cols-6 gap-3.75 w-full">
+      <div className={"grid grid-cols-6 gap-3.75 w-full"}>
         {seedPhrase.map(( word, index ) => (
           <div
             key={index}
@@ -64,7 +64,7 @@ export default function SeedPhrase({ seedPhrase, wordCount, setWordCount, verify
           colorScheme={"lightBlue-mint"}
           size={"sm"}
           className={"w-[16rem] p-4.5"}
-          onClick={() => navigator.clipboard.writeText(seedPhrase.join(', '))}
+          onClick={() => navigator.clipboard.writeText(seedPhrase.join(' '))}
         >
           {data.buttonCopy}
         </Button>

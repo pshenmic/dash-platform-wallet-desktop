@@ -29,7 +29,7 @@ export const messages: Messages = {
     couldNotCreateWallet: "**Could not create wallet**",
 
     passwordValidation: {
-      minLength: '**Check your password** Use at least 12 characters.',
+      minLength: '**Check your password** Password must contain at least 6 characters.',
       maxLength: '**Check your password** Password must be at most 128 characters.',
       letterRequired: '**Check your password** Include at least one letter.',
       numberRequired: '**Check your password** Include at least one number.',

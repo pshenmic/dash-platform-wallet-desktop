@@ -18,7 +18,7 @@ type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword' | 
   data: CreateWalletData
 }
 
-const MIN_WALLET_PASSWORD_LENGTH = 12
+const MIN_WALLET_PASSWORD_LENGTH = 6
 const MAX_WALLET_PASSWORD_LENGTH = 128
 const HAS_LETTER = /[A-Za-z]/
 const HAS_DIGIT = /\d/
@@ -84,8 +84,8 @@ export default function  CreateWallet({ password, setPassword, generateSeedPhras
 
 
   const tooShortOrEmpty =
-    password.trim().length < MIN_WALLET_PASSWORD_LENGTH ||
-    confirmPassword.trim().length < MIN_WALLET_PASSWORD_LENGTH
+    !password.trim().length ||
+    !confirmPassword.trim().length
 
   return (
     <form onSubmit={handleSubmit} className={"flex flex-col w-full gap-3.75"}>

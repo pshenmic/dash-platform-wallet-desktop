@@ -4,23 +4,26 @@ import { Link, useNavigate } from 'react-router-dom'
 import { loginTexts, messages } from '@renderer/constants'
 import { useLogin } from '@renderer/hooks/useLogin'
 import { toast } from '@renderer/components/ui/Toast'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import bgLight from '@renderer/assets/images/pageAuthorization/bg-light.svg'
 import bgDark from '@renderer/assets/images/pageAuthorization/bg-dark.svg'
 import wave from '@renderer/assets/images/pageAuthorization/wave.png'
 import WalletSelect from '@renderer/components/ui/WalletSelect'
+import { useAuth } from '@renderer/contexts/AuthContext'
+import { walletDisplayName } from '@renderer/utils/wallets'
 
-interface LoginPageProps {
-  onLogin: () => void
-}
+// interface LoginPageProps {
+//   onLogin: () => void
+// }
 
-export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Element {
+export default function LoginPage(): React.JSX.Element {
   const { title, description, form, links } = loginTexts
   const { login: { invalidPassword } } = messages
   const { theme } = useTheme()
   const backgroundImage = theme === 'dark' ? bgDark : bgLight
   const iconColor = theme === 'dark' ? '#ffffff' : ''
   const navigate = useNavigate()
+  const { preselectedWalletId, loginSuccess } = useAuth()
 
   const {
     wallets,
@@ -40,16 +43,50 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
     }
   }, [wallets, isLoading, navigate, links.register.to])
 
+  const walletOptions = useMemo(
+    () =>
+      wallets.map((w, i) => ({
+        ...w,
+        name: walletDisplayName(
+          {
+            walletId: w.walletId,
+            name: w.name,
+            network: w.network,
+            isDefault: w.isDefault,
+          },
+          i
+        ),
+        network: w.network ?? '',
+      })),
+    [wallets]
+  )
+
+  // const handleSubmit = async (e: React.FormEvent): Promise<void> => {
+  //   e.preventDefault()
+  //   const success = await login()
+  //   if (success) {
+  //     onLogin()
+  //   } else {
+  //     toast.error(invalidPassword)
+  //   }
+  // }
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!preselectedWalletId) return
+    const exists = wallets.some((w) => w.walletId === preselectedWalletId)
+    if (exists) setSelectedWalletId(preselectedWalletId)
+  }, [isLoading, wallets, preselectedWalletId, setSelectedWalletId])
+
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     const success = await login()
     if (success) {
-      onLogin()
+      await loginSuccess()
     } else {
       toast.error(invalidPassword)
     }
   }
-
   return (
     <div className={"relative flex min-h-screen items-end"}>
       <img
@@ -81,7 +118,7 @@ export default function LoginPage({ onLogin }: LoginPageProps): React.JSX.Elemen
                 {form.walletLabel}
               </Text>
               <WalletSelect
-                options={wallets}
+                options={walletOptions}
                 disabled={wallets.length <= 1}
                 value={selectedWalletId ?? ''}
                 onChange={setSelectedWalletId}

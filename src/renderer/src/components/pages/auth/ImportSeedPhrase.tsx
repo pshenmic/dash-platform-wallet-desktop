@@ -4,6 +4,9 @@ import { Button, Text } from "@renderer/components/dash-ui-kit-enxtended"
 import { Switch } from "dash-ui-kit/react"
 import { BaseTexts, ImportSeedPhraseTexts } from "@renderer/constants"
 import { TypeUseCreateWallet, WordCount } from "@renderer/hooks/useCreateWallet"
+import { validateMnemonic } from '@scure/bip39'
+import { wordlist } from '@scure/bip39/wordlists/english.js'
+import { toast } from "@renderer/components/ui/Toast"
 
 type ImportSeedPhraseData = Pick<ImportSeedPhraseTexts, 'buttonContinue'> & {
   seedPhraseWarning: BaseTexts
@@ -19,28 +22,66 @@ export default function ImportSeedPhrase({ submitImportSeedPhrase, data }: Impor
 
   const options = [
     { label: "12 words", value: 12 as const },
-    { label: "24 words", value: 24 as const },
+    { label: "24 words", value: 24 as const, disabled: true },
   ]
+
+  const normalize = (v: string) => v.trim().toLowerCase()
+
+  const applyWordsFromIndex = (startIndex: number, incoming: string[]) => {
+    setWords((prev) => {
+      const next = [...prev]
+      const normalized = incoming
+        .map((w) => normalize(w))
+        .filter(Boolean)
+      for (let i = 0; i < normalized.length && startIndex + i < wordCount; i++) {
+        next[startIndex + i] = normalized[i]
+      }
+      return next
+    })
+  }
+
+  const handleWordChange = (index: number, value: string) => {
+    const tokens = value.split(/\s+/).filter(Boolean)
+
+    if (tokens.length > 1) {
+      applyWordsFromIndex(index, tokens)
+      return
+    }
+    const updated = [...words]
+    updated[index] = normalize(tokens[0] ?? "")
+    setWords(updated)
+  }
 
   const handleWordCountChange = (count: WordCount) => {
     setWordCount(count)
     setWords(Array(count).fill(''))
   }
 
-  const handleWordChange = (index: number, value: string) => {
-    const updated = [...words]
-    updated[index] = value.trim().toLowerCase()
-    setWords(updated)
+  const handlePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData("text")
+    const tokens = pasted.split(/\s+/).filter(Boolean)
+    applyWordsFromIndex(index, tokens)
   }
+  const isFilled =
+  words.length === wordCount &&
+  words.every((w) => w.trim().length > 0)
+
+  const isMnemonicValid = validateMnemonic(
+    words.map((w) => w.trim().toLowerCase()).join(' '),
+    wordlist
+  )
 
   const handleContinue = () => {
+    if (!isMnemonicValid) {
+      toast.error("Invalid seed phrase")
+      return
+    }
     submitImportSeedPhrase(words)
   }
 
-  const isValid = words.length === wordCount && words.every(w => w.trim().length > 0)
-
   return (
-    <div className={"flex flex-col w-full gap-6"}>
+    <div className={"flex flex-col w-full gap-6 [&>div>button:nth-child(2)]:pointer-events-none [&>div>button:nth-child(2)]:opacity-40"}>
       <Switch
         options={options}
         value={wordCount}
@@ -60,6 +101,7 @@ export default function ImportSeedPhrase({ submitImportSeedPhrase, data }: Impor
               type={"text"}
               value={words[index] ?? ''}
               onChange={(e) => handleWordChange(index, e.target.value)}
+              onPaste={(e) => handlePaste(index, e)}
               autoComplete={"off"}
               autoCorrect={"off"}
               spellCheck={false}
@@ -81,7 +123,7 @@ export default function ImportSeedPhrase({ submitImportSeedPhrase, data }: Impor
         colorScheme={"primary"}
         size={"md"}
         className={"rounded-[.9375rem] p-4.5"}
-        disabled={!isValid}
+        disabled={!isFilled}
         onClick={handleContinue}
       >
         {data.buttonContinue}
