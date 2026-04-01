@@ -4,64 +4,48 @@ import { useState } from "react";
 import IdentityCard from "./IdentityCard";
 import NoResults from "@renderer/components/ui/NoResults";
 import { useIdentities } from "@renderer/hooks/useIdentities";
+import { useAuth } from "@renderer/contexts/AuthContext";
+import ListSkeleton from "@renderer/components/ui/Skeleton";
 
 export interface Identity {
   walletAddress: string
-  names: string
-  creationDate: string
+  // names: string
+  // creationDate: string
   balance: {
-    total: string
+    total: bigint
     approx: string
     currency: string
   }
 }
 
-const identitiesList: Identity[] = [
-  {
-    walletAddress: 'EWSqsaghuwHRjtutbXK3nR11KbRkg9a12PNAAkJWRTp1',
-    names: 'pshenmic',
-    creationDate: '2026-03-11',
-    balance: {
-      total: '100',
-      approx: '10',
-      currency: 'DASH',
-    }
-  },
-  {
-    walletAddress: 'EWSqsaghuwHRjtutbXK3nR11KbRkg9a12PNAAkJWRTp2',
-    names: 'pshenmic',
-    creationDate: '2025-03-12',
-    balance: {
-      total: '100',
-      approx: '10',
-      currency: 'CRDT',
-    }
-  },
-  {
-    walletAddress: 'EWSqsaghuwHRjtutbXK3nR11KbRkg9a12PNAAkJWRTp3',
-    names: 'pshenmic',
-    creationDate: '2023-03-12',
-    balance: {
-      total: '120',
-      approx: '10',
-      currency: 'CRDT',
-    }
-  }
-]
-
 function filterIdentities(identities: Identity[], query: string): Identity[] {
   const q = query.trim().toLowerCase()
   if (!q) return identities
   return identities.filter((identity) =>
-    identity.names.toLowerCase().includes(q) ||
+    // identity.names.toLowerCase().includes(q) ||
     identity.walletAddress.toLowerCase().includes(q)
   )
 }
 
 export default function Identities(): React.JSX.Element {
   const [searchQuery, setSearchQuery] = useState('')
-  // const { loading, err } = useIdentities()
-  const filteredIdentities = filterIdentities(identitiesList, searchQuery)
+  const { status } = useAuth()
+  console.log('status', status)
+  // const filteredIdentities = filterIdentities(identitiesList, searchQuery)
+  const { identities, loading, err } = useIdentities(status?.selectedWalletId ?? undefined)
+
+  const mappedIdentities: Identity[] = identities.map((item) => ({
+    walletAddress: item.identifier,
+    balance: {
+      total: item.balance.amount,
+      approx: item.balance.usdAmount,
+      currency: 'Credits',
+    },
+  }))
+
+  console.log('mappedIdentities', mappedIdentities)
+
+  const filteredIdentities = filterIdentities(mappedIdentities, searchQuery)
 
   const assetsList = [
     {
@@ -69,7 +53,7 @@ export default function Identities(): React.JSX.Element {
       label: 'Your Identities',
       content: (
         <div className={"flex flex-col gap-5"}>
-          <div className={"mt-[.5rem] grid grid-cols-[1fr_auto] items-stretch gap-[.75rem] w-full"}>
+          <div className={"mt-[.5rem] grid grid-cols-[1fr_auto] items-stretch w-full"}>
             <Input
               placeholder={'Search identity'}
               value={searchQuery}
@@ -83,10 +67,14 @@ export default function Identities(): React.JSX.Element {
             />
           </div>
           <div className={"flex flex-col gap-[.625rem] w-full"}>
-            {filteredIdentities.length === 0 && (
+            {loading && <ListSkeleton rows={5} />}
+            {!loading && err && (
+              <NoResults noResults={"Failed to load identities"} />
+            )}
+            {!loading && !err && filteredIdentities.length === 0 && (
               <NoResults noResults={"No identities found"} />
             )}
-            {filteredIdentities.map((identity) => (
+            {!loading && !err && filteredIdentities.map((identity) => (
               <IdentityCard key={identity.walletAddress} identity={identity} />
             ))}
           </div>
