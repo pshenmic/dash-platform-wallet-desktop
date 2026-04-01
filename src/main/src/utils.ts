@@ -93,16 +93,16 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
         return false;
       })
       .map(vout => {
-        const addresses = vout.scriptPubKey.addresses;
+        const addresses = vout.scriptPubKey.addresses ?? [];
 
-        const address = addresses?.find(addr =>
+        const address = addresses.find(addr =>
           addressesBase58Check.includes(addr)
         );
 
         return {
           value: vout.value,
           addresses,
-          address
+          address: address ?? null,
         };
       });
 
@@ -130,6 +130,25 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
       status = 'Locked'
     }
 
+    const txVout = tx.vout.map(vout => {
+      const addresses = vout.scriptPubKey.addresses ?? [];
+
+      const walletAddress = addresses.find(addr =>
+        addressesBase58Check.includes(addr)
+      );
+
+      const address = walletAddress==null ? addresses[0] : walletAddress;
+
+      return {
+        value: vout.value,
+        n: vout.n,
+        spentTxId: vout.spentTxId,
+        spentIndex: vout.spentIndex,
+        spentHeight: vout.spentHeight,
+        address: address ?? null,
+      };
+    })
+
     // TODO: Implement usd amount
     return {
       address,
@@ -145,7 +164,7 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
       confirmations: tx.confirmations,
       txid: tx.txid,
       vin: tx.vin,
-      vout: tx.vout
+      vout: txVout
     }
   })
 }
