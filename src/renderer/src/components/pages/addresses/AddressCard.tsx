@@ -6,6 +6,7 @@ import CustomBadge from '@renderer/components/ui/CustomBadge'
 import CopyButton from '@renderer/components/ui/CopyButton'
 import QrButton from '@renderer/components/ui/QrButton'
 import { WalletAddressDto } from '@renderer/hooks/useAdresses'
+import { davToDash } from '@renderer/utils/balance'
 
 export default function AddressCard({
   // walletId,
@@ -36,7 +37,7 @@ export default function AddressCard({
         <div className={"flex items-center gap-2"}>
           <Text size={14} weight={"medium"} color={"brand"}>
             <span className={"font-bold"}>
-              <BigNumber>{balance}</BigNumber>
+              <BigNumber>{davToDash(balance).toString()}</BigNumber>
             </span>
             {' Dash'}
           </Text>

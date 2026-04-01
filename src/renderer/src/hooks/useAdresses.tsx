@@ -8,7 +8,7 @@ export type WalletAddressDto = {
   derivationPath: string
   index: number
   isChange: number
-  balance: string | null
+  balance: bigint
   label: string | null
   usdBalance: string | null
 }
@@ -17,7 +17,7 @@ export type GetAddressesResponse = {
   change: WalletAddressDto[]
 }
 
-export function useAdresses(walletId = '43997f03') {
+export function useAdresses(walletId: string | undefined) {
   const [receiving, setReceiving] = useState<WalletAddressDto[]>([])
   const [change, setChange] = useState<WalletAddressDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,6 +34,7 @@ export function useAdresses(walletId = '43997f03') {
     setErr(null)
     API.getAddresses(walletId)
       .then((data) => {
+        console.log('datagetAddresses', data)
         if (dead) return
         const body = data as GetAddressesResponse
         setReceiving(body.receiving ?? [])
