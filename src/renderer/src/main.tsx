@@ -7,15 +7,18 @@ import { ThemeProvider } from 'dash-ui-kit/react'
 import { ToastContainer } from './components/ui/Toast'
 import App from './App'
 import ThemeToggle from './components/ui/ThemeToggle'
+import { AuthProvider } from './contexts/AuthContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider initialTheme={"light"}>
       <HashRouter>
-        <ThemeToggle />
-        <App />
-        <ToastContainer />
-      </HashRouter>
+        <AuthProvider>
+          <ThemeToggle />
+          <App />
+          <ToastContainer />
+        </AuthProvider>
+    </HashRouter>
     </ThemeProvider>
   </StrictMode>
 )

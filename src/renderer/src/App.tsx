@@ -9,27 +9,30 @@ import CreateWalletWrapper from "./pages/auth/CreateWalletWrapper"
 import ReceivePage from "./pages/Receive"
 import IdentitiesPage from "./pages/Identities"
 import AddressesPage from "./pages/Addresses"
+import { useAuth } from "./contexts/AuthContext"
 
 function App(): React.JSX.Element {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const navigate = useNavigate();
-  const location = useLocation();
+  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
+  const { bootstrapped, isAuthenticated } = useAuth()
+
+  // const navigate = useNavigate();
+  // const location = useLocation();
   // useSystemTheme()
 
-  const handleLogin = useCallback(() => {
-    setIsAuthenticated(true)
-  }, [])
+  // const handleLogin = useCallback(() => {
+  //   setIsAuthenticated(true)
+  // }, [])
 
-  useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/') {
-      navigate('/', { replace: true })
-    }
-  }, [])
+  // useEffect(() => {
+  //   if (!isAuthenticated && location.pathname !== '/') {
+  //     navigate('/', { replace: true })
+  //   }
+  // }, [])
 
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/" element={<LoginPage />} />
         <Route path="/create-wallet" element={<CreateWalletWrapper />} />
       </Routes>
     );
