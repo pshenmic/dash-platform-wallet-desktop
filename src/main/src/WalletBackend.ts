@@ -67,11 +67,9 @@ export class WalletBackend {
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
     this.applicationService = new ApplicationService()
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, knexProvider)
+    this.walletService = new WalletService(this.applicationService, walletDAO, addressDAO, identityDAO, dashPlatformSDK, knexProvider)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
 
     this.initHandlers()
-
-    this.applicationService.markReady()
   }
 }

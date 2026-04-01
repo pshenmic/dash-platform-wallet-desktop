@@ -18,6 +18,7 @@ import {KnexProvider} from "../providers/knexProvider";
 import path from "path";
 import os from "os";
 import {HomeFolderName, StorageFilename} from "../constants";
+import {ApplicationService} from "./ApplicationService";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -39,8 +40,10 @@ export class WalletService {
   private identityDAO: IdentityDAO
   private sdk: DashPlatformSDK
   private knexProvider: KnexProvider
+  private applicationService: ApplicationService
 
-  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, knexProvider: KnexProvider) {
+  constructor(applicationService: ApplicationService, walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, knexProvider: KnexProvider) {
+    this.applicationService = applicationService
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
@@ -49,7 +52,13 @@ export class WalletService {
   }
 
   async authStorage(password: string): Promise<OperationStatus> {
-    return this.knexProvider.setKnex(password, path.join(os.homedir(), HomeFolderName, StorageFilename))
+    const result = await this.knexProvider.setKnex(password, path.join(os.homedir(), HomeFolderName, StorageFilename))
+
+    if(result.success) {
+      this.applicationService.markReady()
+    }
+
+    return result
   }
 
   async changeStoragePassword(password: string): Promise<OperationStatus> {
@@ -57,7 +66,13 @@ export class WalletService {
   }
 
   async logoutStorage(): Promise<OperationStatus> {
-    return this.knexProvider.destroy()
+    const result = await this.knexProvider.destroy()
+
+    if(result.success) {
+      this.applicationService.markNotReady()
+    }
+
+    return result
   }
 
   async createWallet(seedphrase: string, network: Network, password: string): Promise<string> {
