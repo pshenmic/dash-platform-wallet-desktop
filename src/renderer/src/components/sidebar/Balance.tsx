@@ -21,7 +21,7 @@ const logoStyles = cva(
   }
 )
 
-export default function Balance({variant, balance, isVisible}: {variant: 'dash' | 'credits', balance: number, isVisible: boolean}): React.JSX.Element {
+export default function Balance({variant, balance, isVisible, usdAmount}: {variant: 'dash' | 'credits', balance: string, isVisible: boolean, usdAmount?: string}): React.JSX.Element {
   const { theme } = useTheme()
 
   return (
@@ -49,11 +49,11 @@ export default function Balance({variant, balance, isVisible}: {variant: 'dash' 
       <div className={"flex flex-col gap-[.125rem]"}>
         <Text size={12} weight="medium" color="brand" className={"leading-[120%]"} opacity={50}>{variant === 'dash' ? 'Core Balance:' : 'Platform Credits:'}</Text>
         <Text size={16} weight="extrabold" color="brand" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>
-          <BigNumber>{balance}</BigNumber>
-          {variant === 'dash' ? ' Dash' : ''}
+          <BigNumber className={"gap-[.125rem]!"}>{balance}</BigNumber>
+          {variant === 'dash' ? ' Dash' : ' Credits'}
         </Text>
-        { variant === 'dash' &&
-          <Text size={10} weight="medium" color="blue-mint" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>~ $9621.00 USD</Text>
+        { usdAmount &&
+          <Text size={10} weight="medium" color="blue-mint" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>~ ${usdAmount} USD</Text>
         }
       </div>
     </div>

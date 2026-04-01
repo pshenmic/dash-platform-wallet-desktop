@@ -3,13 +3,15 @@ import Balance from "./Balance";
 import { EyeClosedIcon, EyeOpenIcon } from "../dash-ui-kit-enxtended";
 import { useEffect, useState } from "react";
 import { API } from "@renderer/api";
+import { useAuth } from "@renderer/contexts/AuthContext";
+import { davToDash, formatCompactCredits } from "@renderer/utils/balance";
 
 type AssetWithUsdValue = {
   amount: bigint
-  usdAmount: number
+  usdAmount: string
 }
 
-interface Balance {
+interface BalanceType {
   dash: AssetWithUsdValue
   credits: AssetWithUsdValue
 }
@@ -23,7 +25,8 @@ export default function SidebarHeader(): React.JSX.Element {
       return true
     }
   })
-  const [balance, setBalance] = useState<number>(0)
+  const { status } = useAuth()
+  const [balance, setBalance] = useState<BalanceType | undefined>()
 
   const toggleBalanceVisibility = (): void => {
     setIsBalanceVisible((prev) => {
@@ -36,15 +39,15 @@ export default function SidebarHeader(): React.JSX.Element {
   }
 
   useEffect(() => {
-    API.getWalletBalance('43997f03')
+    API.getWalletBalance(status?.selectedWalletId ?? '')
       .then((data) => {
-        console.log('data', data)
-        // setBalance(data.balance)
+        console.log('datagetWalletBalance', data)
+        setBalance(data as BalanceType)
       })
       .catch((error) => {
         console.error(error)
       })
-  }, [balance])
+  }, [status?.selectedWalletId])
 
   return (
     <div className={"flex flex-col gap-8 justify-between w-full"}>
@@ -74,8 +77,8 @@ export default function SidebarHeader(): React.JSX.Element {
         </button>
       </div>
       <div className={"flex flex-col gap-[.75rem]"}>
-        <Balance variant="dash" balance={320} isVisible={isBalanceVisible}/>
-        <Balance variant="credits" balance={32000000000} isVisible={isBalanceVisible}/>
+        <Balance variant="dash" balance={davToDash(balance?.dash.amount ?? 0n).toString()} isVisible={isBalanceVisible} usdAmount={balance?.dash.usdAmount ?? undefined}/>
+        <Balance variant="credits" balance={formatCompactCredits(balance?.credits.amount ?? 0n).toString()} isVisible={isBalanceVisible} usdAmount={balance?.credits.usdAmount ?? undefined}/>
       </div>
     </div>
   )
