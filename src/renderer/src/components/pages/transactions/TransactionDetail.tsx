@@ -10,34 +10,12 @@ import {
 import CustomBadge from '@renderer/components/ui/CustomBadge'
 import CopyButton from '@renderer/components/ui/CopyButton'
 import { transactionsPage } from '@renderer/constants'
-import { TransactionType } from './TransactionCard'
+import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
 import QrButton from '@renderer/components/ui/QrButton'
 import { formatCreationDate, timePart } from '@renderer/utils/date'
 import { useRipple } from '@renderer/hooks/useRipple'
+import { davToDash } from '@renderer/utils/balance'
 
-interface OutputItem {
-  address: string
-  amount: number
-  receiving?: boolean
-}
-
-interface InputItem {
-  hash: string
-}
-
-const MOCK_TX_HASH = '6bd3c4a41d4d34b1806de0cf566ddd26b0ae53d979da4bfadbcc4f6af526a4b6'
-const MOCK_SIZE = 225
-const MOCK_CONFIRMATIONS = 3874
-const MOCK_LOCK_TIME = 2431476
-
-const MOCK_INPUTS: InputItem[] = [
-  { hash: '6cb710d3cf1ae0ee579fe8bc604cae2e1fd57933d34c2a1f22ca2ad1227c5c9c:3' },
-]
-
-const MOCK_OUTPUTS: OutputItem[] = [
-  { address: 'Xdxs2Wb2z3GUvLbj6aQobnBCKV3jXdLcSZ', amount: 37.0, receiving: true },
-  { address: 'XcAY5amfZ4qr8WrzppGxLQ3uGpCYFb19zC', amount: 112.99999775 },
-]
 
 const cardStyles = cva(
   'flex flex-col gap-5 p-[.9375rem] rounded-[.9375rem] dash-card-base shadow-[0_0_50px_0_rgba(0,0,0,0.1)]'
@@ -52,7 +30,7 @@ const iconCircleStyles = cva(
 )
 
 interface TransactionDetailProps {
-  transaction: TransactionType
+  transaction: WalletTxItem
   onBack: () => void
 }
 
@@ -94,6 +72,13 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
   const { theme } = useTheme()
   const isIncoming = transaction.direction === 'in'
   const hoverNotification = useRipple()
+  console.log('transaction', transaction)
+
+  function trimTrailingZeros(value: string): string {
+    return value
+      .replace(/(\.\d*?[1-9])0+$/, '$1')
+      .replace(/\.0+$/, '')
+  }
 
   return (
     <div className={"flex flex-col gap-4 px-12 pb-8"}>
@@ -127,9 +112,10 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
         </div>
         <div className={"flex items-center gap-[.3125rem]"}>
           <Identifier className={"font-mono font-extrabold!"} >
-            {MOCK_TX_HASH}
+            {/* {MOCK_TX_HASH} */}
+            {transaction.id}
           </Identifier>
-          <CopyButton text={MOCK_TX_HASH} />
+          <CopyButton text={transaction.id} />
           <QrButton />
         </div>
       </div>
@@ -139,9 +125,9 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           <Text size={14} weight={"medium"} color={"brand"} className={"tracking-[-0.03em]"}>
             {detail.details}:
           </Text>
-          <Text size={14} weight={"medium"} color={"brand"} opacity={50} className={"tracking-[-0.03em]"}>
+          {/* <Text size={14} weight={"medium"} color={"brand"} opacity={50} className={"tracking-[-0.03em]"}>
             {detail.size}: {MOCK_SIZE} {detail.bytes}
-          </Text>
+          </Text> */}
         </div>
 
         <div className={"flex flex-col gap-3"}>
@@ -163,7 +149,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
                 <Text size={14} weight={"medium"} color={"brand"}>
                   <span className={`font-extrabold ${isIncoming ? 'dash-text-primary' : ''}`}>
                     {isIncoming ? '+ ' : '- '}
-                    <BigNumber className={"text-inherit"}>{transaction.amount}</BigNumber>
+                    <BigNumber className={"text-inherit"}>{davToDash(transaction.amount).toString()}</BigNumber>
                   </span>
                   {' Dash'}
                 </Text>
@@ -171,17 +157,17 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
               subValue={`~ $${transaction.usdAmount}`}
             />
           </div>
-          <div className={"flex gap-3"}>
+          <div className={"flex gap-3 min-h-17"}>
             <DetailToken
               icon={<CheckIcon size={30} color={"currentColor"} className={"dash-text-primary [&_circle]:hidden"} />}
               label={`${detail.fields.confirmations}:`}
               value={
                 <Text size={14} weight={"medium"} color={"brand"}>
-                  <BigNumber className={"gap-0!"}>{MOCK_CONFIRMATIONS}</BigNumber>
+                  <BigNumber className={"gap-0!"}>{transaction.confirmations}</BigNumber>
                 </Text>
               }
             />
-            <DetailToken
+            {/* <DetailToken
               icon={<BoxIcon size={14} color={"currentColor"} className={"dash-text-primary"} />}
               label={`${detail.fields.lockTime}:`}
               value={
@@ -190,7 +176,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
                 </Text>
               }
               subValue={detail.fields.height}
-            />
+            /> */}
           </div>
         </div>
       </div>
@@ -200,14 +186,20 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           <Text size={14} weight={"medium"} color={"brand"} className={"tracking-[-0.03em]"}>
             {detail.inputs}:
           </Text>
-          <CustomBadge text={MOCK_INPUTS.length.toString()} variant={"muted"} size={"xs"} />
+          <CustomBadge text={transaction.vin.length.toString()} variant={"muted"} size={"xs"} />
         </div>
         <div className={"flex flex-col gap-3"}>
-          {MOCK_INPUTS.map((input, i) => (
-            <div key={`input-${i}`}>
+           {transaction.vin.map((input, i) => (
+            <div key={`input-${i}`} className={"flex items-center gap-2 justify-between"}>
               <Identifier className={"font-mono opacity-40 dark:opacity-100"}>
-                {input.hash}
+                {input.addr}
               </Identifier>
+              <Text size={14} weight={"medium"} color={"brand"} className={"shrink-0"}>
+                <span className={"font-extrabold"}>
+                  <BigNumber>{input.value}</BigNumber>
+                </span>
+                {' Dash'}
+              </Text>
             </div>
           ))}
         </div>
@@ -218,20 +210,20 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           <Text size={14} weight={"medium"} color={"brand"} className={"tracking-[-0.03em]"}>
             {detail.outputs}:
           </Text>
-          <CustomBadge text={MOCK_OUTPUTS.length.toString()} variant={"muted"} size={"xs"} />
+          <CustomBadge text={transaction.vout.length.toString()} variant={"muted"} size={"xs"} />
         </div>
         <div className={"flex flex-col gap-3"}>
-          {MOCK_OUTPUTS.map((output, i) => (
+          {transaction.vout.map((output, i) => (
             <div key={`output-${i}`} className={"flex items-center gap-2 justify-between"}>
               <div className={"flex items-center gap-2 flex-1 min-w-0"}>
-                <Identifier maxLines={1}>{output.address}</Identifier>
-                {output.receiving && (
+                <Identifier maxLines={1}>{output.scriptPubKey?.addresses?.[0]}</Identifier>
+                {/* {output.receiving && (
                   <CustomBadge text={detail.receivingBadge} variant={"default"} size={"xs"} className={"shrink-0"} />
-                )}
+                )} */}
               </div>
               <Text size={14} weight={"medium"} color={"brand"} className={"shrink-0"}>
                 <span className={"font-extrabold"}>
-                  <BigNumber>{output.amount}</BigNumber>
+                  <BigNumber>{trimTrailingZeros(output.value)}</BigNumber>
                 </span>
                 {' Dash'}
               </Text>

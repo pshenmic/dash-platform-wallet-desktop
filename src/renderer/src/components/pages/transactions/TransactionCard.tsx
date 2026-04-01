@@ -6,19 +6,21 @@ import { BigNumber, TimeDelta } from "dash-ui-kit/react"
 import { cva } from "class-variance-authority"
 import { CircleProcessIcon, Text } from "@renderer/components/dash-ui-kit-enxtended"
 import { CheckCirclePartialIcon } from "@renderer/components/dash-ui-kit-enxtended/icons"
+import { WalletTxItem } from "@renderer/hooks/useWalletTransactions"
+import { davToDash } from "@renderer/utils/balance"
 
-export interface TransactionType {
-  id: string,
-  status: 'failed' | 'success' | 'pending'
-  kind: 'core' | 'platform',
-  title: string,
-  subtitleLabel: 'from' | 'to' | 'hash' | 'towards identity',
-  labelValue: string,
-  amount: number,
-  usdAmount: number,
-  date: Date,
-  direction: 'in' | 'out'
-}
+// export interface TransactionType {
+//   id: string,
+//   status: 'failed' | 'success' | 'pending'
+//   kind: 'core' | 'platform',
+//   title: string,
+//   subtitleLabel: 'from' | 'to' | 'hash' | 'towards identity',
+//   labelValue: string,
+//   amount: number,
+//   usdAmount: number,
+//   date: Date,
+//   direction: 'in' | 'out'
+// }
 
 const transactionCardStyles = cva(
   `
@@ -53,7 +55,7 @@ export default function TransactionCard({
   usdAmount,
   date,
   direction
-} : TransactionType): React.JSX.Element {
+} : WalletTxItem): React.JSX.Element {
   const variantAmountSummary = status === 'failed' ? 'error' : kind === 'core' ? 'default' : 'muted'
   const isIncoming = direction === 'in'
 
@@ -62,7 +64,7 @@ export default function TransactionCard({
       <TransactionCardIcons status={status} />
       <div className={"flex-1 flex flex-col gap-[.25rem]"}>
         <div className={"flex items-center gap-[.3125rem]"}>
-          <CustomBadge text={kind} variant={variantAmountSummary} size={"s"} />
+          <CustomBadge text={kind ?? ''} variant={variantAmountSummary} size={"s"} />
           <Text size={12} weight={"medium"} color={"brand"} className={"leading-[120%]"}>
             {title}
           </Text>
@@ -76,7 +78,7 @@ export default function TransactionCard({
       <AmountSummary
         total={
           <span className={isIncoming ? 'text-dash-brand dark:text-dash-mint' : ""}>
-            {isIncoming ? '+' : '-'}<BigNumber className={"text-inherit"}>{amount}</BigNumber>
+            {isIncoming ? '+' : '-'}<BigNumber className={"text-inherit"}>{davToDash(amount).toString()}</BigNumber>
           </span>
         }
         textBadge={`~ $${usdAmount}`}

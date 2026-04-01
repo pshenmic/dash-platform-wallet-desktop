@@ -1,5 +1,5 @@
 import { ClockArrowIcon, CheckIcon, ErrorIcon } from "@renderer/components/dash-ui-kit-enxtended/icons";
-import { TransactionType } from "./TransactionCard";
+import { WalletTxItem } from "@renderer/hooks/useWalletTransactions";
 import { cva } from "class-variance-authority";
 
 const transactionCardIconsStyles = cva(
@@ -17,7 +17,7 @@ const transactionCardIconsStyles = cva(
   },
 )
 
-export default function TransactionCardIcons({ status }: { status: TransactionType['status'] }): React.JSX.Element {
+export default function TransactionCardIcons({ status }: { status: WalletTxItem['status'] }): React.JSX.Element {
   const iconProps = { size: 18, color: 'currentColor' as const, className: transactionCardIconsStyles({ status }) };
 
   return (
