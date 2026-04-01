@@ -5,7 +5,8 @@ import {
   WalletIcon,
   ChevronIcon,
   KebabMenuIcon,
-  PlusIcon
+  PlusIcon,
+  DeleteIcon
 } from '@renderer/components/dash-ui-kit-enxtended/icons'
 import { useClickOutside } from '@renderer/hooks/useClickOutside'
 import { useRipple } from '@renderer/hooks/useRipple'
@@ -34,7 +35,8 @@ const dropdownStyles = cva(
   dash-card-base
   shadow-[0_0_32px_0_rgba(0,0,0,0.12)]
   dark:backdrop-blur-xl
-  transition-opacity duration-150 ease-out`,
+  transition-opacity duration-150 ease-out
+  `,
   {
     variants: {
       isOpen: {
@@ -113,45 +115,47 @@ export default function DropdownSelect({
       </button>
 
       <div className={dropdownStyles({ isOpen })}>
-        {sortedOptions.map((option, index) => (
-          <div
-            key={option.value}
-            onClick={() => handleSelect(option.value)}
-            className={`
-              flex items-center justify-between gap-3
-              pl-4 pr-2 h-12
-              cursor-pointer transition-colors
-              hover:bg-dash-primary-dark-blue/5 dark:hover:bg-white/5
-              ${index < options.length - 1 || onAdd ? 'border-b border-dash-primary-dark-blue/8 dark:border-white/12' : ''}
-            `}
-          >
-            <div className={"flex items-center gap-2"}>
-              <WalletIcon size={16} color={"currentColor"} className={"dash-text-default"}/>
-              <div className={"flex flex-col gap-[.125rem]"}>
-                <Text size={14} weight={"medium"} color={"brand"}>
-                  {option.label}
-                </Text>
-                {option.description && (
-                  <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
-                    {option.description}
+        <div className={"max-h-36 overflow-y-auto scrollbar-hide"}>
+          {sortedOptions.map((option, index) => (
+            <div
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
+              className={`
+                flex items-center justify-between gap-3
+                pl-4 pr-2 h-12
+                cursor-pointer transition-colors
+                hover:bg-dash-primary-dark-blue/5 dark:hover:bg-white/5
+                ${index < options.length - 1 || onAdd ? 'border-b border-dash-primary-dark-blue/8 dark:border-white/12' : ''}
+              `}
+            >
+              <div className={"flex items-center gap-2"}>
+                <WalletIcon size={16} color={"currentColor"} className={"dash-text-default"}/>
+                <div className={"flex flex-col gap-[.125rem]"}>
+                  <Text size={14} weight={"medium"} color={"brand"}>
+                    {option.label}
                   </Text>
-                )}
+                  {option.description && (
+                    <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
+                      {option.description}
+                    </Text>
+                  )}
+                </div>
               </div>
+              {onItemAction && (
+                <button
+                  type={"button"}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onItemAction(option.value)
+                  }}
+                  className={"flex items-center justify-center w-6 h-6 cursor-pointer rounded-md hover:bg-dash-primary-dark-blue/5 dark:hover:bg-white/5"}
+                >
+                  <DeleteIcon size={12} color={"currentColor"} className={"dash-text-default"} />
+                </button>
+              )}
             </div>
-            {onItemAction && (
-              <button
-                type={"button"}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onItemAction(option.value)
-                }}
-                className={"flex items-center justify-center w-6 h-6 cursor-pointer rounded-md hover:bg-dash-primary-dark-blue/5 dark:hover:bg-white/5"}
-              >
-                <KebabMenuIcon size={2} color={"currentColor"} className={"dash-text-default"} />
-              </button>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
 
         {onAdd && (
           <div

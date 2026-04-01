@@ -30,6 +30,7 @@ const styles = cva(
         mint: '',
         gray: '',
         red: '',
+        'red-strong': '',
         lightGray: '',
         lightBlue: '',
         'lightBlue-mint': '',
@@ -124,6 +125,10 @@ const styles = cva(
         class: '!bg-gray-700/20 !text-gray-300 hover:!bg-gray-600/30'
       },
       // =====NEW====
+      {
+        colorScheme: 'red-strong',
+        class: 'bg-dash-red text-white hover:!bg-dash-red/80'
+      },
       {
         variant: 'solid',
         colorScheme: 'lightBlue-mint',
@@ -361,7 +366,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   /** Solid or outline style */
   variant?: 'solid' | 'outline'
   /** Color scheme for the button */
-  colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray' | 'primary' | 'brand-mint' | 'primary-light' | 'lightBlue-mint'
+  colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray' | 'primary' | 'brand-mint' | 'primary-light' | 'lightBlue-mint' | 'red-strong'
   /** Size of the button */
   size?: 'sm' | 'md'
 }
