@@ -15,6 +15,8 @@ import QrButton from '@renderer/components/ui/QrButton'
 import { formatCreationDate, timePart } from '@renderer/utils/date'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { davToDash } from '@renderer/utils/balance'
+import { useEffect } from 'react'
+import { API } from '@renderer/api'
 
 
 const cardStyles = cva(
@@ -125,9 +127,9 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           <Text size={14} weight={"medium"} color={"brand"} className={"tracking-[-0.03em]"}>
             {detail.details}:
           </Text>
-          {/* <Text size={14} weight={"medium"} color={"brand"} opacity={50} className={"tracking-[-0.03em]"}>
-            {detail.size}: {MOCK_SIZE} {detail.bytes}
-          </Text> */}
+          <Text size={14} weight={"medium"} color={"brand"} opacity={50} className={"tracking-[-0.03em]"}>
+            {detail.size}: {transaction.size} {detail.bytes}
+          </Text>
         </div>
 
         <div className={"flex flex-col gap-3"}>
@@ -167,16 +169,18 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
                 </Text>
               }
             />
-            {/* <DetailToken
-              icon={<BoxIcon size={14} color={"currentColor"} className={"dash-text-primary"} />}
-              label={`${detail.fields.lockTime}:`}
-              value={
-                <Text size={14} weight={"medium"} color={"brand"}>
-                  <BigNumber className={"gap-0!"}>{MOCK_LOCK_TIME}</BigNumber>
-                </Text>
-              }
-              subValue={detail.fields.height}
-            /> */}
+            {transaction.blockHeight && (
+              <DetailToken
+                icon={<BoxIcon size={14} color={"currentColor"} className={"dash-text-primary"} />}
+                label={`${detail.fields.lockTime}:`}
+                value={
+                  <Text size={14} weight={"medium"} color={"brand"}>
+                    <BigNumber className={"gap-0!"}>{transaction.blockHeight}</BigNumber>
+                  </Text>
+                }
+                subValue={detail.fields.height}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -216,7 +220,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           {transaction.vout.map((output, i) => (
             <div key={`output-${i}`} className={"flex items-center gap-2 justify-between"}>
               <div className={"flex items-center gap-2 flex-1 min-w-0"}>
-                <Identifier maxLines={1}>{output.scriptPubKey?.addresses?.[0]}</Identifier>
+                <Identifier maxLines={1}>{output.address}</Identifier>
                 {/* {output.receiving && (
                   <CustomBadge text={detail.receivingBadge} variant={"default"} size={"xs"} className={"shrink-0"} />
                 )} */}

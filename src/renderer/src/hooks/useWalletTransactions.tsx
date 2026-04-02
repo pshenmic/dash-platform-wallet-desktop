@@ -8,6 +8,8 @@ export type WalletTxDto = {
   address: string
   direction: 1 | -1
   inAmount: bigint
+  blockHeight: number | undefined
+  size: number
   outAmount: bigint
   transferAmount: bigint
   usdAmount: string
@@ -15,7 +17,7 @@ export type WalletTxDto = {
   confirmations: number
   status: string
   vin: Array<{ addr?: string; value?: number; valueSat?: number }>
-  vout: Array<{ value: string; scriptPubKey?: { addresses?: string[] } }>
+  vout: Array<{ value: string; address?: string }>
 }
 
 type UiStatus = 'success' | 'failed' | 'pending'
@@ -24,6 +26,8 @@ export type WalletTxItem = {
   id: string
   status: UiStatus
   confirmations: number
+  blockHeight: number | undefined
+  size: number
   kind?: 'core'
   title: 'Send' | 'Receive'
   subtitleLabel: 'from' | 'to'
@@ -33,7 +37,7 @@ export type WalletTxItem = {
   date: Date
   direction: 'in' | 'out'
   vin: Array<{ addr?: string; value?: number; valueSat?: number }>
-  vout: Array<{ value: string; scriptPubKey?: { addresses?: string[] } }>
+  vout: Array<{ value: string; address?: string }>
 }
 
 type TransactionGroup = {
@@ -69,6 +73,8 @@ function mapTx(raw: WalletTxDto): WalletTxItem {
     status: mapStatus(raw.status, rawConfirmations),
     confirmations: rawConfirmations,
     kind: 'core',
+    blockHeight: raw.blockHeight,
+    size: raw.size,
     title: direction === 'in' ? 'Receive' : 'Send',
     subtitleLabel: direction === 'in' ? 'from' : 'to',
     labelValue: raw.address,
