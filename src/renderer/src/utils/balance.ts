@@ -1,4 +1,4 @@
-const DAV_PER_DASH = 10_000_000n
+const DUFFS_PER_DASH = 100_000_000n
 
 export function formatCompactCredits(value: bigint): string {
   const sign = value < 0n ? '-' : ''
@@ -21,12 +21,12 @@ export function formatCompactCredits(value: bigint): string {
   return `${sign}${abs}`
 }
 
-export function davToDash(dav: bigint): string {
-  const sign = dav < 0n ? "-" : ""
-  const abs = dav < 0n ? -dav : dav
-  const whole = abs / DAV_PER_DASH
-  const frac = abs % DAV_PER_DASH
+export function davToDash(duffs: bigint): string {
+  const sign = duffs < 0n ? "-" : ""
+  const abs = duffs < 0n ? -duffs : duffs
+  const whole = abs / DUFFS_PER_DASH
+  const frac = abs % DUFFS_PER_DASH
   if (frac === 0n) return `${sign}${whole}`
-  const fracStr = frac.toString().padStart(7, "0").replace(/0+$/, "")
+  const fracStr = frac.toString().padStart(8, "0").replace(/0+$/, "")
   return `${sign}${whole}.${fracStr}`
 }
