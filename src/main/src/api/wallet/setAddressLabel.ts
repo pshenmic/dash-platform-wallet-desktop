@@ -1,6 +1,6 @@
 import { IpcMainInvokeEvent } from 'electron/utility'
 import { WalletService } from '../../services/WalletService'
-import {QueryStatus} from "../../types/QueryStatus";
+import {OperationStatus} from "../../types/OperationStatus";
 
 export class SetAddressLabel {
   private walletService: WalletService
@@ -9,7 +9,7 @@ export class SetAddressLabel {
     this.walletService = walletService
   }
 
-  handle = async (_event: IpcMainInvokeEvent, walletId: string, address: string, label: string): Promise<QueryStatus> => {
+  handle = async (_event: IpcMainInvokeEvent, walletId: string, address: string, label: string): Promise<OperationStatus> => {
     return this.walletService.setAddressLabel(walletId, address, label)
   }
 }

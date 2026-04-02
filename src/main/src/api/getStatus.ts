@@ -19,7 +19,12 @@ export class GetStatusHandler {
   }
 
   handle = async (_event: IpcMainInvokeEvent): Promise<AppStatus> => {
-    const selected = await this.walletService.getSelectedWallet()
+    let selected
+    try {
+       selected = await this.walletService.getSelectedWallet()
+    }catch {
+      // db is not connected
+    }
 
     return {
       ready: this.applicationService.isReady(),

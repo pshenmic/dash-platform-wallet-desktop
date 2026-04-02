@@ -10,10 +10,15 @@ import {Identity, IdentityInfo} from '../types/Identity'
 import {Wallet} from '../types/Wallet'
 import {PrivateKeyWASM} from 'pshenmic-dpp'
 import {BlockJSON} from "dash-core-sdk/src/types";
-import {QueryStatus} from "../types/QueryStatus";
+import {OperationStatus} from "../types/OperationStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
 import {processProviderTransactions} from "../utils";
+import {KnexProvider} from "../providers/knexProvider";
+import path from "path";
+import os from "os";
+import {HomeFolderName, StorageFilename} from "../constants";
+import {ApplicationService} from "./ApplicationService";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -34,12 +39,40 @@ export class WalletService {
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
   private sdk: DashPlatformSDK
+  private knexProvider: KnexProvider
+  private applicationService: ApplicationService
 
-  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK) {
+  constructor(applicationService: ApplicationService, walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, knexProvider: KnexProvider) {
+    this.applicationService = applicationService
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
     this.sdk = sdk
+    this.knexProvider = knexProvider
+  }
+
+  async authStorage(password: string): Promise<OperationStatus> {
+    const result = await this.knexProvider.setKnex(password, path.join(os.homedir(), HomeFolderName, StorageFilename))
+
+    if(result.success) {
+      this.applicationService.markReady()
+    }
+
+    return result
+  }
+
+  async changeStoragePassword(password: string): Promise<OperationStatus> {
+    return this.knexProvider.changePassword(password)
+  }
+
+  async logoutStorage(): Promise<OperationStatus> {
+    const result = await this.knexProvider.destroy()
+
+    if(result.success) {
+      this.applicationService.markNotReady()
+    }
+
+    return result
   }
 
   async createWallet(seedphrase: string, network: Network, password: string): Promise<string> {
@@ -138,7 +171,7 @@ export class WalletService {
     return walletId
   }
 
-  async deleteWallet(walletId: string): Promise<QueryStatus> {
+  async deleteWallet(walletId: string): Promise<OperationStatus> {
     return this.walletDAO.deleteWallet(walletId)
   }
 
@@ -154,11 +187,11 @@ export class WalletService {
     return this.walletDAO.getSelectedWallet()
   }
 
-  async setSelectedWallet(walletId: string): Promise<QueryStatus> {
+  async setSelectedWallet(walletId: string): Promise<OperationStatus> {
     return this.walletDAO.setSelectedWallet(walletId)
   }
 
-  async setAddressLabel(walletId: string, address: string, label: string): Promise<QueryStatus> {
+  async setAddressLabel(walletId: string, address: string, label: string): Promise<OperationStatus> {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }
 

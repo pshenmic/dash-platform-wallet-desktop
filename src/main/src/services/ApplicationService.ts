@@ -5,6 +5,10 @@ export class ApplicationService {
     this.ready = true
   }
 
+  markNotReady(): void {
+    this.ready = true
+  }
+
   isReady(): boolean {
     return this.ready
   }

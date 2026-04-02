@@ -2,7 +2,6 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { HomeFolderName } from './constants'
-import knex from 'knex'
 import {TransactionWalletProviderJSON} from "./providers/types";
 import {Address} from "./types/Address";
 import {TransactionStatus} from "./enums/TransactionStatus";
@@ -10,22 +9,6 @@ import {Transaction} from "./types/Transaction";
 import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
 import {DashPlatformSDK} from "dash-platform-sdk";
 import {Network} from "./types";
-
-export function getKnex (path?: string) {
-  return knex({
-    client: 'sqlite3',
-    connection: {
-      filename: path ?? ':memory:'
-    },
-    useNullAsDefault: true
-  })
-}
-
-export async function migrateKnex (knex, migrationsPath): Promise<void> {
-  await knex.migrate.latest({
-    directory: migrationsPath.toString()
-  })
-}
 
 export function ensureHomeFolder (): void {
   if (!fs.existsSync(path.join(os.homedir(), HomeFolderName))) {
