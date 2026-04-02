@@ -18,6 +18,7 @@ export interface Transaction {
   transferAmount: bigint
   usdAmount: string
   date: Date
+  size: number
   status: keyof typeof TransactionStatus
   walletId: string
   confirmations: number
