@@ -133,11 +133,7 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
     const txVout = tx.vout.map(vout => {
       const addresses = vout.scriptPubKey.addresses ?? [];
 
-      const walletAddress = addresses.find(addr =>
-        addressesBase58Check.includes(addr)
-      );
-
-      const address = walletAddress==null ? addresses[0] : walletAddress;
+      const [address] = addresses;
 
       return {
         value: vout.value,
