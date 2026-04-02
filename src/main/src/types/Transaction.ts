@@ -19,6 +19,7 @@ export interface Transaction {
   usdAmount: string
   date: Date
   size: number
+  blockHeight: number
   status: keyof typeof TransactionStatus
   walletId: string
   confirmations: number

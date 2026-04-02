@@ -156,6 +156,7 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
       status,
       size: tx.size,
       usdAmount: '0.0',
+      blockHeight: tx.blockHeight,
       // time in seconds
       date: new Date(tx.time * 1000),
       confirmations: tx.confirmations,
