@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useMemo, useState } from 'react'
-import { NotificationIcon, SunIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
+import { SunIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { API } from '@renderer/api'
 import { useAuth } from '@renderer/contexts/AuthContext'
@@ -10,7 +10,6 @@ import DropdownSelect from './ui/DropdownSelect'
 import { StatusDot } from './ui/ConnectionSelect'
 import { Text } from './dash-ui-kit-enxtended'
 import { useTheme } from 'dash-ui-kit/react'
-// import ConnectionSelect from './ui/ConnectionSelect'
 
 interface LayoutProps {
   children: ReactNode

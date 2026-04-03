@@ -1,8 +1,5 @@
 import { useState } from 'react'
 import { Tabs, DateBlock } from 'dash-ui-kit/react'
-import { Button } from '@renderer/components/dash-ui-kit-enxtended'
-import { FilterIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
-import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import { transactionsPage } from '@renderer/constants'
 import TransactionCard from './TransactionCard'
 import { useWalletTransactions, WalletTxItem } from '@renderer/hooks/useWalletTransactions'
@@ -17,7 +14,7 @@ interface TransactionsListProps {
 export default function TransactionsList({ onTransactionClick }: TransactionsListProps = {}): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('transactions')
   const {
-    transactions: { title, filter }
+    transactions: { title }
   } = transactionsPage
   const { status } = useAuth()
 
