@@ -110,10 +110,9 @@ export function useWalletTransactions(walletId: string | undefined) {
         const items = ((raw ?? []) as WalletTxDto[]).map(mapTx)
         const groups = groupTransactionsByDay(items)
         setGroups(groups)
-        console.log('raw', raw)
       })
       .catch((e) => {
-        console.log('error', e)
+        console.error('error', e)
         if (!dead) setErr(e instanceof Error ? e.message : 'Failed')
       })
       .finally(() => {

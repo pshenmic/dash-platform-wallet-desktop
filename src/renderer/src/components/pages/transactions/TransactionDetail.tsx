@@ -11,13 +11,10 @@ import CustomBadge from '@renderer/components/ui/CustomBadge'
 import CopyButton from '@renderer/components/ui/CopyButton'
 import { transactionsPage } from '@renderer/constants'
 import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
-import QrButton from '@renderer/components/ui/QrButton'
 import { formatCreationDate, timePart } from '@renderer/utils/date'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { davToDash } from '@renderer/utils/balance'
-import { useEffect } from 'react'
-import { API } from '@renderer/api'
-
+import QrButton from '@renderer/components/ui/QrButton'
 
 const cardStyles = cva(
   'flex flex-col gap-5 p-[.9375rem] rounded-[.9375rem] dash-card-base shadow-[0_0_50px_0_rgba(0,0,0,0.1)]'
@@ -74,7 +71,6 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
   const { theme } = useTheme()
   const isIncoming = transaction.direction === 'in'
   const hoverNotification = useRipple()
-  console.log('transaction', transaction)
 
   function trimTrailingZeros(value: string): string {
     return value
@@ -87,7 +83,9 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
       <div className={"flex items-center gap-4.5 mb-5"}>
         <button
           onClick={onBack}
-          {...hoverNotification}
+          onMouseEnter={hoverNotification.onMouseEnter}
+          onMouseMove={hoverNotification.onMouseMove}
+          onMouseLeave={hoverNotification.onMouseLeave}
           className={"relative overflow-hidden flex size-12 shrink-0 items-center justify-center rounded-[.9375rem] dash-block dash-black-border hover:opacity-70 transition-opacity cursor-pointer"}
         >
           <ChevronIcon
@@ -220,7 +218,16 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
           {transaction.vout.map((output, i) => (
             <div key={`output-${i}`} className={"flex items-center gap-2 justify-between"}>
               <div className={"flex items-center gap-2 flex-1 min-w-0"}>
-                <Identifier maxLines={1}>{output.address}</Identifier>
+                {
+                  output.address ? (
+                    <Identifier maxLines={1}>{output.address}</Identifier>
+                  ) : (
+                    <Text size={14} weight={"medium"} color={"brand"} opacity={40} className={"shrink-0"}>
+                      OP_RETURN
+                    </Text>
+                  )
+                }
+                {/* <Identifier maxLines={1}>{output.address}</Identifier> */}
                 {/* {output.receiving && (
                   <CustomBadge text={detail.receivingBadge} variant={"default"} size={"xs"} className={"shrink-0"} />
                 )} */}

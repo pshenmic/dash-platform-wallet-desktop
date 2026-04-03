@@ -113,8 +113,6 @@ export default function TransactionsList({ onTransactionClick }: TransactionsLis
 
   const { groups, loading, err } = useWalletTransactions(status?.selectedWalletId ?? undefined)
 
-  console.log('txs', groups)
-
   const tabs = [
     {
       value: 'transactions',
@@ -136,9 +134,9 @@ export default function TransactionsList({ onTransactionClick }: TransactionsLis
           {!loading && !err && groups.map((group, groupIndex) => (
             <div key={groupIndex} className={"flex flex-col gap-[.9375rem]"}>
               <DateBlock timestamp={group.date} format={"dateOnly"}/>
-                {group.transactions.map((transaction) => (
+                {group.transactions.map((transaction, txIndex) => (
                   <div
-                    key={transaction.id}
+                    key={`${transaction.id}-${groupIndex}-${txIndex}`}
                     onClick={() => { transaction.status === 'pending' || transaction.status === 'failed' ? null : onTransactionClick?.(transaction)}}
                     className={transaction.status === 'pending' || transaction.status === 'failed' ? '' : 'cursor-pointer'}
                   >
