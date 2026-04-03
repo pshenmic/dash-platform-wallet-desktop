@@ -1,4 +1,4 @@
-import { Avatar, BigNumber, Identifier, TimeDelta } from "dash-ui-kit/react";
+import { Avatar, BigNumber, Identifier } from "dash-ui-kit/react";
 import { Identity } from "./Page";
 // import { Text } from "@renderer/components/dash-ui-kit-enxtended";
 import AmountSummary from "@renderer/components/ui/AmountSummary";

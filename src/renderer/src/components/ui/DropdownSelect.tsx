@@ -4,7 +4,6 @@ import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import {
   WalletIcon,
   ChevronIcon,
-  KebabMenuIcon,
   PlusIcon,
   DeleteIcon
 } from '@renderer/components/dash-ui-kit-enxtended/icons'

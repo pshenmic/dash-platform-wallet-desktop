@@ -1,5 +1,4 @@
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom"
-import { useCallback, useEffect, useState } from "react"
+import { Route, Routes } from "react-router-dom"
 import TransactionsPage from "./pages/Transactions"
 import SendPage from "./pages/Send"
 import Sidebar from "./components/sidebar"
@@ -13,7 +12,7 @@ import { useAuth } from "./contexts/AuthContext"
 
 function App(): React.JSX.Element {
   // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const { bootstrapped, isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth()
 
   // const navigate = useNavigate();
   // const location = useLocation();

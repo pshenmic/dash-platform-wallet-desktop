@@ -42,7 +42,7 @@ function AddressTabContent({
 
 export default function AddressList(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('receiving')
-  const { tabs, filter } = addressesPage
+  const { tabs } = addressesPage
   const { status } = useAuth()
   console.log('statusAddressList', status)
   const { receiving, change, loading, err } = useAdresses(status?.selectedWalletId ?? undefined)

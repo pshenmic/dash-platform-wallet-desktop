@@ -15,9 +15,6 @@ import QrButton from '@renderer/components/ui/QrButton'
 import { formatCreationDate, timePart } from '@renderer/utils/date'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { davToDash } from '@renderer/utils/balance'
-import { useEffect } from 'react'
-import { API } from '@renderer/api'
-
 
 const cardStyles = cva(
   'flex flex-col gap-5 p-[.9375rem] rounded-[.9375rem] dash-card-base shadow-[0_0_50px_0_rgba(0,0,0,0.1)]'
