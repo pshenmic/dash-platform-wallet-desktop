@@ -19,7 +19,7 @@ export interface ConnectionSelectProps {
   className?: string
 }
 
-function StatusDot({ active }: { active: boolean }): React.JSX.Element {
+export function StatusDot({ active }: { active: boolean }): React.JSX.Element {
   if (active) {
     return (
       <span

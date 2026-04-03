@@ -4,21 +4,15 @@ import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import {
   WalletIcon,
   ChevronIcon,
-  KebabMenuIcon,
   PlusIcon,
   DeleteIcon
 } from '@renderer/components/dash-ui-kit-enxtended/icons'
 import { useClickOutside } from '@renderer/hooks/useClickOutside'
 import { useRipple } from '@renderer/hooks/useRipple'
-
-export interface DropdownSelectOption {
-  value: string
-  label: string
-  description?: string
-}
+import { WalletDropdownOption } from '@renderer/utils/wallets'
 
 export interface DropdownSelectProps {
-  options: DropdownSelectOption[]
+  options: WalletDropdownOption[]
   value: string
   onChange: (value: string) => void
   onItemAction?: (value: string) => void
@@ -104,9 +98,9 @@ export default function DropdownSelect({
             <Text size={14} weight={"medium"} color={"brand"}>
               {selectedOption?.label}
             </Text>
-            {selectedOption?.description && (
+            {selectedOption?.isSelected && (
               <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
-                {selectedOption.description}
+                {selectedOption.isSelected ? 'Default' : ''}
               </Text>
             )}
           </div>
@@ -134,9 +128,9 @@ export default function DropdownSelect({
                   <Text size={14} weight={"medium"} color={"brand"}>
                     {option.label}
                   </Text>
-                  {option.description && (
+                  {option.isSelected && (
                     <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
-                      {option.description}
+                      {option.isSelected ? 'Default' : ''}
                     </Text>
                   )}
                 </div>
