@@ -5,10 +5,11 @@ import { Tabs } from 'dash-ui-kit/react'
 // import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import { addressesPage } from '@renderer/constants'
 import AddressCard from './AddressCard'
-import { useAdresses, WalletAddressDto } from '@renderer/hooks/useAdresses'
+import { useAdresses } from '@renderer/hooks/useAdresses'
 import { useAuth } from '@renderer/contexts/AuthContext'
 import ListSkeleton from '@renderer/components/ui/Skeleton'
 import NoResults from '@renderer/components/ui/NoResults'
+import { WalletAddressDto } from '@renderer/api/types'
 
 function AddressTabContent({
   items,
@@ -44,11 +45,7 @@ export default function AddressList(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('receiving')
   const { tabs, filter } = addressesPage
   const { status } = useAuth()
-  console.log('statusAddressList', status)
   const { receiving, change, loading, err } = useAdresses(status?.selectedWalletId ?? undefined)
-
-  console.log('receiving', receiving)
-  console.log('change', change)
 
   const tabItems = [
     {
