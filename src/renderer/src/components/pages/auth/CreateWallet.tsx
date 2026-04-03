@@ -14,7 +14,13 @@ type CreateWalletData = Pick<
   'placeholderPassword'
 >
 
-type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword' | 'generateSeedPhrase'> & {
+// type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword' | 'generateSeedPhrase' | 'createImportedWallet'> & {
+//   data: CreateWalletData
+// }
+
+type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword'> & {
+  generateSeedPhrase?: TypeUseCreateWallet['generateSeedPhrase']
+  createImportedWallet?: TypeUseCreateWallet['createImportedWallet']
   data: CreateWalletData
 }
 
@@ -48,7 +54,7 @@ function getPasswordValidationError(password: string): string | null {
   return null
 }
 
-export default function  CreateWallet({ password, setPassword, generateSeedPhrase, data } : CreateWalletProps): React.JSX.Element {
+export default function  CreateWallet({ password, setPassword, generateSeedPhrase, createImportedWallet, data } : CreateWalletProps): React.JSX.Element {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const { theme } = useTheme()
@@ -70,7 +76,13 @@ export default function  CreateWallet({ password, setPassword, generateSeedPhras
       return
     }
     try {
-      await generateSeedPhrase()
+      if (createImportedWallet) {
+        createImportedWallet()
+      } else {
+        if (generateSeedPhrase) {
+          await generateSeedPhrase()
+        }
+      }
       toast.error(warning)
     } catch (err) {
       const message =

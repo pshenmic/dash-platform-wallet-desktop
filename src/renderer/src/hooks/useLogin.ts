@@ -1,15 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import { API } from '@renderer/api'
-
-export interface LoginWallet {
-  walletId: string
-  name: string
-  network: string
-  isDefault?: boolean
-}
+import { WalletDto } from '@renderer/api/types'
 
 export interface UseLoginReturn {
-  wallets: LoginWallet[]
+  wallets: WalletDto[]
   isLoading: boolean
   selectedWalletId: string | null
   setSelectedWalletId: (id: string) => void
@@ -20,7 +14,7 @@ export interface UseLoginReturn {
 }
 
 export function useLogin(): UseLoginReturn {
-  const [wallets, setWallets] = useState<LoginWallet[]>([])
+  const [wallets, setWallets] = useState<WalletDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null)
   const [password, setPasswordState] = useState('')
@@ -29,35 +23,18 @@ export function useLogin(): UseLoginReturn {
   useEffect(() => {
     if (!selectedWalletId) return
     API.selectWallet(selectedWalletId)
-      .then((result) => {
-        console.log('result', result)
-      })
-      .catch(() => {
-      })
   }, [selectedWalletId])
 
   useEffect(() => {
     setIsLoading(true)
     API.getAllWallets()
       .then((result) => {
-        console.log('result', result)
-        const raw = result as Array<{
-          walletId: string
-          network: string
-          selected: boolean
-        }>
+        const raw = result as WalletDto[]
         if (!Array.isArray(raw) || raw.length === 0) return
+        setWallets(raw)
 
-        const mapped: LoginWallet[] = raw.map((w, index) => ({
-          walletId: w.walletId,
-          name: `Wallet_${index + 1}`,
-          network: w.network,
-          isDefault: w.selected,
-        }))
-        setWallets(mapped)
-
-        const defaultWallet = mapped.find((w) => w.isDefault)
-        setSelectedWalletId(defaultWallet?.walletId ?? mapped[0].walletId)
+        const defaultWallet = raw.find((w) => w.selected)
+        setSelectedWalletId(defaultWallet?.walletId ?? raw[0].walletId)
       })
       .catch(() => {
       })

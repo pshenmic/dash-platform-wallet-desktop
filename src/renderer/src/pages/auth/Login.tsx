@@ -10,7 +10,7 @@ import bgDark from '@renderer/assets/images/pageAuthorization/bg-dark.svg'
 import wave from '@renderer/assets/images/pageAuthorization/wave.png'
 import WalletSelect from '@renderer/components/ui/WalletSelect'
 import { useAuth } from '@renderer/contexts/AuthContext'
-import { walletDisplayName } from '@renderer/utils/wallets'
+import { toDropdownOptions, walletDisplayName } from '@renderer/utils/wallets'
 
 // interface LoginPageProps {
 //   onLogin: () => void
@@ -43,23 +43,7 @@ export default function LoginPage(): React.JSX.Element {
     }
   }, [wallets, isLoading, navigate, links.register.to])
 
-  const walletOptions = useMemo(
-    () =>
-      wallets.map((w, i) => ({
-        ...w,
-        name: walletDisplayName(
-          {
-            walletId: w.walletId,
-            name: w.name,
-            network: w.network,
-            isDefault: w.isDefault,
-          },
-          i
-        ),
-        network: w.network ?? '',
-      })),
-    [wallets]
-  )
+  const walletOptions = useMemo(() => toDropdownOptions(wallets), [wallets])
 
   // const handleSubmit = async (e: React.FormEvent): Promise<void> => {
   //   e.preventDefault()
