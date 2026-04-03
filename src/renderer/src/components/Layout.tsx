@@ -32,13 +32,10 @@ const headerButtonClass = `
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   const [selectedWallet, setSelectedWallet] = useState('')
-  // const [connection, setConnection] = useState('api')
   const hoverNotification = useRipple()
   const { status, switchWallet, goToCreateWallet } = useAuth()
   const [wallets, setWallets] = useState<WalletDto[]>([])
-  const { theme, toggleTheme } = useTheme()
-  const isDark = theme === 'dark'
-
+  const { toggleTheme } = useTheme()
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [walletToDelete, setWalletToDelete] = useState<string | null>(null)
 
@@ -85,15 +82,6 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
         />
 
         <div className={"flex items-center gap-[.625rem]"}>
-          {/* TODO: Add ConnectionSelect */}
-          {/* <ConnectionSelect
-            options={[
-              { value: 'api', label: 'Connection', description: 'dashscan.io' },
-              { value: 'p2p', label: 'P2P', description: 'P2P Connection' },
-            ]}
-            value={connection}
-            onChange={setConnection}
-          /> */}
           <button
             type={"button"}
             className={`

@@ -1,16 +1,13 @@
 import { BigNumber } from 'dash-ui-kit/react'
 import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import { ReceiveIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
-// import { addressesPage } from '@renderer/constants'
+import { WalletAddressDto } from '@renderer/api/types'
+import { davToDash } from '@renderer/utils/balance'
 import CustomBadge from '@renderer/components/ui/CustomBadge'
 import CopyButton from '@renderer/components/ui/CopyButton'
 import QrButton from '@renderer/components/ui/QrButton'
-import { WalletAddressDto } from '@renderer/hooks/useAdresses'
-import { davToDash } from '@renderer/utils/balance'
 
 export default function AddressCard({
-  // walletId,
-  // accountId,
   address,
   balance,
   usdBalance,
@@ -28,9 +25,6 @@ export default function AddressCard({
           <CopyButton text={address} />
           <QrButton />
         </div>
-        {/* <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
-          {addressesPage.labelPrefix}: {label}
-        </Text> */}
       </div>
 
       <div className={"flex flex-col items-end gap-1"}>
@@ -43,9 +37,6 @@ export default function AddressCard({
           </Text>
           <CustomBadge text={`~ $${usdBalance}`} variant="default" size="xs" />
         </div>
-        {/* <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
-          KeyStore: <span className={"font-extrabold"}>{keyStore}</span>
-        </Text> */}
       </div>
     </div>
   )

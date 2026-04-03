@@ -1,5 +1,4 @@
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom"
-import { useCallback, useEffect, useState } from "react"
+import { Route, Routes } from "react-router-dom"
 import TransactionsPage from "./pages/Transactions"
 import SendPage from "./pages/Send"
 import Sidebar from "./components/sidebar"
@@ -12,22 +11,7 @@ import AddressesPage from "./pages/Addresses"
 import { useAuth } from "./contexts/AuthContext"
 
 function App(): React.JSX.Element {
-  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const { bootstrapped, isAuthenticated } = useAuth()
-
-  // const navigate = useNavigate();
-  // const location = useLocation();
-  // useSystemTheme()
-
-  // const handleLogin = useCallback(() => {
-  //   setIsAuthenticated(true)
-  // }, [])
-
-  // useEffect(() => {
-  //   if (!isAuthenticated && location.pathname !== '/') {
-  //     navigate('/', { replace: true })
-  //   }
-  // }, [])
+  const { isAuthenticated } = useAuth()
 
   if (!isAuthenticated) {
     return (
@@ -35,7 +19,7 @@ function App(): React.JSX.Element {
         <Route path="/" element={<LoginPage />} />
         <Route path="/create-wallet" element={<CreateWalletWrapper />} />
       </Routes>
-    );
+    )
   }
 
   return (

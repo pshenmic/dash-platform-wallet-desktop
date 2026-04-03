@@ -112,7 +112,6 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
         </div>
         <div className={"flex items-center gap-[.3125rem]"}>
           <Identifier className={"font-mono font-extrabold!"} >
-            {/* {MOCK_TX_HASH} */}
             {transaction.id}
           </Identifier>
           <CopyButton text={transaction.id} />
@@ -227,10 +226,6 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
                     </Text>
                   )
                 }
-                {/* <Identifier maxLines={1}>{output.address}</Identifier> */}
-                {/* {output.receiving && (
-                  <CustomBadge text={detail.receivingBadge} variant={"default"} size={"xs"} className={"shrink-0"} />
-                )} */}
               </div>
               <Text size={14} weight={"medium"} color={"brand"} className={"shrink-0"}>
                 <span className={"font-extrabold"}>

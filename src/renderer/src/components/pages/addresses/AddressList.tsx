@@ -1,8 +1,5 @@
 import { useState } from 'react'
 import { Tabs } from 'dash-ui-kit/react'
-// import { Button } from '@renderer/components/dash-ui-kit-enxtended'
-// import { FilterIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
-// import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import { addressesPage } from '@renderer/constants'
 import AddressCard from './AddressCard'
 import { useAdresses } from '@renderer/hooks/useAdresses'
@@ -43,7 +40,7 @@ function AddressTabContent({
 
 export default function AddressList(): React.JSX.Element {
   const [activeTab, setActiveTab] = useState('receiving')
-  const { tabs, filter } = addressesPage
+  const { tabs } = addressesPage
   const { status } = useAuth()
   const { receiving, change, loading, err } = useAdresses(status?.selectedWalletId ?? undefined)
 
@@ -70,28 +67,6 @@ export default function AddressList(): React.JSX.Element {
         dash-card-base
         shadow-[0_0_32px_0_rgba(12,28,51,0.08)]
       `}>
-        {/* <Button
-          colorScheme={"primary-light"}
-          className={`
-            absolute
-            top-5
-            right-[.9375rem]
-            flex
-            items-center
-            gap-[.625rem]
-            px-2
-            py-1
-            z-1
-            min-h-fit!
-            rounded-[.3125rem]
-          `}
-        >
-          <FilterIcon size={12} color={"currentColor"} className={"dash-text-default"} />
-          <Text size={14} weight={"medium"} color={"brand"}>
-            {filter}
-          </Text>
-        </Button> */}
-
         <Tabs
           items={tabItems}
           value={activeTab}

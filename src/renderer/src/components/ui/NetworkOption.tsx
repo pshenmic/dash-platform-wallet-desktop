@@ -1,14 +1,13 @@
 import { cva } from "class-variance-authority"
 import { CheckIcon, Text } from "../dash-ui-kit-enxtended"
 import { DashLogo } from "dash-ui-kit/react"
-import { NetworkValue } from "@renderer/hooks/useCreateWallet"
-
+import { Network } from '@renderer/api/types'
 
 export type NetworkOptionProps = {
-  value: NetworkValue
+  value: Network
   label: string
   selected: boolean
-  onSelect: (value: NetworkValue) => void
+  onSelect: (value: Network) => void
 }
 
 const networkOptionStyles = cva(

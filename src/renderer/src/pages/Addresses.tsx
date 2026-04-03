@@ -3,7 +3,6 @@ import AddressList from '@renderer/components/pages/addresses/AddressList'
 import { addressesPage } from '@renderer/constants'
 import { renderBoldText } from '@renderer/utils/renderBoldText'
 
-
 export default function AddressesPage(): React.JSX.Element {
   const { description, title } = addressesPage
 

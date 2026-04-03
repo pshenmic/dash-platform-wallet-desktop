@@ -1,16 +1,13 @@
-import { Input } from "@renderer/components/dash-ui-kit-enxtended";
-import { SearchIcon, Tabs } from "dash-ui-kit/react";
-import { useState } from "react";
-import IdentityCard from "./IdentityCard";
-import NoResults from "@renderer/components/ui/NoResults";
+import { Tabs } from "dash-ui-kit/react";
 import { useIdentities } from "@renderer/hooks/useIdentities";
 import { useAuth } from "@renderer/contexts/AuthContext";
+import IdentityCard from "./IdentityCard";
+import NoResults from "@renderer/components/ui/NoResults";
 import ListSkeleton from "@renderer/components/ui/Skeleton";
 
 export interface Identity {
   walletAddress: string
   name: string
-  // creationDate: string
   balance: {
     total: bigint
     approx: string
@@ -18,19 +15,8 @@ export interface Identity {
   }
 }
 
-function filterIdentities(identities: Identity[], query: string): Identity[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return identities
-  return identities.filter((identity) =>
-    // identity.names.toLowerCase().includes(q) ||
-    identity.walletAddress.toLowerCase().includes(q)
-  )
-}
-
 export default function Identities(): React.JSX.Element {
-  const [searchQuery, setSearchQuery] = useState('')
   const { status } = useAuth()
-  // const filteredIdentities = filterIdentities(identitiesList, searchQuery)
   const { identities, loading, err } = useIdentities(status?.selectedWalletId ?? undefined)
 
   const mappedIdentities: Identity[] = identities.map((item) => ({
@@ -43,37 +29,21 @@ export default function Identities(): React.JSX.Element {
     },
   }))
 
-  const filteredIdentities = filterIdentities(mappedIdentities, searchQuery)
-
   const assetsList = [
     {
       value: 'your-identities',
       label: 'Your Identities',
       content: (
         <div className={"flex flex-col gap-5"}>
-          {/* TODO: Add Search Input */}
-          {/* <div className={"mt-[.5rem] grid grid-cols-[1fr_auto] items-stretch w-full"}>
-            <Input
-              placeholder={'Search identity'}
-              value={searchQuery}
-              variant={"filled"}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={'rounded-[.75rem] wallet-input'}
-              colorScheme={"light"}
-              prefix={<SearchIcon size={16} className={"dash-text-default"} />}
-              prefixClassName={"absolute top-1/2 left-4"}
-              autoFocus
-            />
-          </div> */}
           <div className={"flex flex-col gap-[.625rem] w-full"}>
             {loading && <ListSkeleton rows={5} />}
             {!loading && err && (
               <NoResults noResults={"Failed to load identities"} />
             )}
-            {!loading && !err && filteredIdentities.length === 0 && (
+            {!loading && !err && mappedIdentities.length === 0 && (
               <NoResults noResults={"No identities found"} />
             )}
-            {!loading && !err && filteredIdentities.map((identity) => (
+            {!loading && !err && mappedIdentities.map((identity) => (
               <IdentityCard key={identity.walletAddress} identity={identity} />
             ))}
           </div>

@@ -172,7 +172,6 @@ export function useCreateWallet(): TypeUseCreateWallet {
 
   const goToImportSeedPhrase = useCallback(() => {
     setPath('import')
-    // setStep('password')
     setStep('import-seed-phrase')
     setImportSeedPhrase(true)
   }, [setImportSeedPhrase])
@@ -185,16 +184,6 @@ export function useCreateWallet(): TypeUseCreateWallet {
       const message = err instanceof Error ? err.message : couldNotCreateWallet
       toast.error(couldNotCreateWallet + " " + message)
     })
-    // API.createWallet(phrase.join(' '), network, password)
-    // .then(() => {
-    //   setStep('success')
-    //   console.log('createWallet success')
-    // })
-    // .catch((err) => {
-    //   console.error('createWallet failed:', err)
-    //   const message = err instanceof Error ? err.message : couldNotCreateWallet
-    //   toast.error(couldNotCreateWallet + " " + message)
-    // })
   }, [importedSeedPhrase, network, password])
 
   const submitImportSeedPhrase = useCallback((phrase: string[]) => {
@@ -204,16 +193,6 @@ export function useCreateWallet(): TypeUseCreateWallet {
     if (!isValid) return
     setImportedSeedPhrase(phrase)
     setStep('password-import')
-    // API.createWallet(phrase.join(' '), network, password)
-    // .then(() => {
-    //   setStep('success')
-    //   console.log('createWallet success')
-    // })
-    // .catch((err) => {
-    //   console.error('createWallet failed:', err)
-    //   const message = err instanceof Error ? err.message : couldNotCreateWallet
-    //   toast.error(couldNotCreateWallet + " " + message)
-    // })
   }, [network, password])
 
   return {

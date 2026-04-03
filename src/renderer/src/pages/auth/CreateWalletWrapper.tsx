@@ -3,6 +3,7 @@ import { ChevronIcon, DashLogo, useTheme } from "dash-ui-kit/react";
 import { authTexts } from "@renderer/constants";
 import { useCreateWallet } from "@renderer/hooks/useCreateWallet";
 import { ProgressStepBar } from "@renderer/components/dash-ui-kit-enxtended/progressStepBar";
+import { useRipple } from "@renderer/hooks/useRipple";
 import waveAuth from '@renderer/assets/images/pageAuthorization/waveAuth.png';
 import authBgStack from '@renderer/assets/images/pageAuthorization/auth-bg-stack.png';
 import authBgFlower from '@renderer/assets/images/pageAuthorization/auth-bg-flower.png';
@@ -16,7 +17,6 @@ import SelectNetwork from "@renderer/components/pages/auth/SelectNetwork";
 import WelcomeDashDesktopWallet from "@renderer/components/pages/auth/WelcomeDashDesktopWallet"
 import ImportSeedPhrase from "@renderer/components/pages/auth/ImportSeedPhrase";
 import NetworkBadge from "@renderer/components/ui/NetworkBadge";
-import { useRipple } from "@renderer/hooks/useRipple";
 
 export default function CreateWalletWrapper(): React.JSX.Element {
   const {createWallet, saveYourSeedPhrase, fillInYourSeedPhrase, seedPhraseWarning, success, successImport, selectNetwork, welcome, importSeedPhrase} = authTexts
@@ -205,9 +205,9 @@ export default function CreateWalletWrapper(): React.JSX.Element {
             color={"blue-mint"}
           />
         }
-{/*
+
         {step === 'password' &&
-          <button className={"flex items-center gap-2 group cursor-pointer mt-6"}>
+          <button className={"flex items-center gap-2 group cursor-pointer mt-6"} onClick={goToImportSeedPhrase}>
             <WalletIcon
               size={16}
               className={`
@@ -232,7 +232,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
               {createWallet.importWallet}
             </Text>
           </button>
-        } */}
+        }
       </div>
     </div>
   )

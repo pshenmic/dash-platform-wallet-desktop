@@ -14,10 +14,6 @@ type CreateWalletData = Pick<
   'placeholderPassword'
 >
 
-// type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword' | 'generateSeedPhrase' | 'createImportedWallet'> & {
-//   data: CreateWalletData
-// }
-
 type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword'> & {
   generateSeedPhrase?: TypeUseCreateWallet['generateSeedPhrase']
   createImportedWallet?: TypeUseCreateWallet['createImportedWallet']
@@ -93,7 +89,6 @@ export default function  CreateWallet({ password, setPassword, generateSeedPhras
       toast.error(errorTitle + " " + message)
     }
   }
-
 
   const tooShortOrEmpty =
     !password.trim().length ||
