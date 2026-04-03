@@ -15,7 +15,7 @@ export default function IdentityCard({identity}: {identity: Identity}): React.JS
         <Identifier highlight={"default"} className={"font-mono text-[.75rem]!"}>
           {identity.walletAddress}
         </Identifier>
-        {identity.name && <Text size={10} weight={"medium"} color={"default"} opacity={50}>Names: <span className={"font-bold"}>{identity.name}</span></Text>}
+        {identity.name && <Text size={10} weight={"medium"} color={"default"} opacity={50}>Username: <span className={"font-bold"}>{identity.name}</span></Text>}
       </div>
       <AmountSummary total={<BigNumber className={"text-inherit gap-[.125rem]!"}>{formatCompactCredits(identity.balance.total).toString()}</BigNumber>}
       textBadge={`~ $${identity.balance.approx}`}
