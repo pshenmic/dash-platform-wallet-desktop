@@ -2047,6 +2047,20 @@
   dependencies:
     "@types/node" "*"
 
+"@types/ripemd160@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@types/ripemd160/-/ripemd160-2.0.3.tgz#3184d476aab1211e96bbc30ea17c2afbe88e32b6"
+  integrity sha512-/GrtUuorXQGl4/qCgo0YhzHaDbWc6i2kIBt5q7gA0np+/5GmLMK6aYb0pUYFfJ4Y2oraKkrDW4falfLip3Hzdw==
+  dependencies:
+    "@types/node" "*"
+
+"@types/sha.js@^2.4.4":
+  version "2.4.4"
+  resolved "https://registry.yarnpkg.com/@types/sha.js/-/sha.js-2.4.4.tgz#36be3d0bbc02f790617181709831fd4fc4be942d"
+  integrity sha512-Qukd+D6S2Hm0wLVt2Vh+/eWBIoUt+wF8jWjBsG4F8EFQRwKtYvtXCPcNl2OEUQ1R+eTr3xuSaBYUyM3WD1x/Qw==
+  dependencies:
+    "@types/node" "*"
+
 "@types/verror@^1.10.3":
   version "1.10.11"
   resolved "https://registry.yarnpkg.com/@types/verror/-/verror-1.10.11.tgz#d3d6b418978c8aa202d41e5bb3483227b6ecc1bb"
@@ -2962,10 +2976,10 @@ csstype@^3.2.2:
   resolved "https://registry.npmjs.org/csstype/-/csstype-3.2.3.tgz"
   integrity sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==
 
-"dash-core-sdk@https://github.com/pshenmic/dash-core-sdk#5e5bbe54f4a0ca1a013aa41c8559d5f1bba57df4":
-  version "1.1.0-dev.2"
-  resolved "git+ssh://git@github.com/pshenmic/dash-core-sdk.git#5e5bbe54f4a0ca1a013aa41c8559d5f1bba57df4"
-  integrity sha512-vbp+cowPNeOtA0oaO3lNF+lhqxRhF8nWSTFn4NwbpY4nIlx6SBMJ6WJqLEsaSgPzHgr2WSaZ+Cz87oBKPqQN3w==
+dash-core-sdk@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/dash-core-sdk/-/dash-core-sdk-1.1.0.tgz#bb0b125bc0c8f7558161f5ef30f7ac6017db058c"
+  integrity sha512-lr02T8Uy0CpjrSsdNS9q8tiOqb6yR198rX/A2ASURchJddCEqsHZfllwGfR6+UO+Q7iB4euA/lJs60dPlpK1Lw==
   dependencies:
     "@dashevo/x11-hash-js" "^1.0.2"
     "@noble/curves" "^2.0.1"
@@ -2974,16 +2988,18 @@ csstype@^3.2.2:
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
     "@scure/base" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
+    "@types/ripemd160" "^2.0.3"
+    "@types/sha.js" "^2.4.4"
     bloom-filter "^0.2.0"
     imurmurhash "^0.1.4"
     protoc "^32.1.0"
     typescript "^5.9.2"
     ws "^8.18.3"
 
-dash-platform-sdk@^1.3.0-dev.15:
-  version "1.3.0-dev.15"
-  resolved "https://registry.npmjs.org/dash-platform-sdk/-/dash-platform-sdk-1.3.0-dev.15.tgz"
-  integrity sha512-0QK5B9zZuCis72nne8P6w/K7S4+JfqnFNOBB5OHNfnm4dHXV7tuciB9DAys3c406GJBTe+hmu2mM79yzMWRFpg==
+dash-platform-sdk@1.3.2:
+  version "1.3.2-dev.2"
+  resolved "https://registry.yarnpkg.com/dash-platform-sdk/-/dash-platform-sdk-1.3.2-dev.2.tgz#a32c965bf9ace4e2652428659453b2340b147440"
+  integrity sha512-wgn+yQJ1U6rH/3jcuHsu6P+qzWTTO87c350kadnHjSlTHDkIieDPQqTjxRDszEht4nrjDKKzhKH00DYVFj0jaw==
   dependencies:
     "@bufbuild/protobuf" "^2.6.0"
     "@protobuf-ts/grpcweb-transport" "^2.11.1"
@@ -2992,7 +3008,7 @@ dash-platform-sdk@^1.3.0-dev.15:
     "@scure/bip39" "^2.0.0"
     "@scure/btc-signer" "^2.0.1"
     cbor-x "^1.6.0"
-    pshenmic-dpp "1.1.2-dev.8"
+    pshenmic-dpp "1.1.2-dev.10"
 
 dash-ui-kit@1.0.94:
   version "1.0.94"
@@ -5432,10 +5448,10 @@ protoc@^32.1.0:
   resolved "https://registry.npmjs.org/protoc/-/protoc-32.1.0.tgz"
   integrity sha512-yICJJCGHJLM9ao5W2V4CGp1d7xuBsdHzgVDw6L8mdDtoIcqzN3arNPOm9Jx4Ufp5vfhQfJGkNUDo6mm/SLPdXw==
 
-pshenmic-dpp@1.1.2-dev.8:
-  version "1.1.2-dev.8"
-  resolved "https://registry.npmjs.org/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.8.tgz"
-  integrity sha512-P3czQ6uJYHr7XJ2OSWUH+FNej7Qpa+bz8Ld7+FtUqjGCBpwK6GTGQy1PDmACT9nP8+DXpFTUGu7Au9u66kvcdA==
+pshenmic-dpp@1.1.2-dev.10:
+  version "1.1.2-dev.10"
+  resolved "https://registry.yarnpkg.com/pshenmic-dpp/-/pshenmic-dpp-1.1.2-dev.10.tgz#3abc4ba0f31ac48fafe23bd6f34f2b864daa5eb3"
+  integrity sha512-2S1eF5UjhOrEJ5cLn2YBk2k/TNDFipO2cLDHbpMGOhy//NcoFIPIZfo2l6n01dA0fCOLDpjHa/1smrVABUAGkg==
   dependencies:
     fflate "^0.8.2"
 
