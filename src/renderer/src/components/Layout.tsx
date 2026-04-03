@@ -1,12 +1,16 @@
 import React, { ReactNode, useEffect, useMemo, useState } from 'react'
-import { NotificationIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
+import { NotificationIcon, SunIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
 import { useRipple } from '@renderer/hooks/useRipple'
-import DropdownSelect from './ui/DropdownSelect'
-import ConnectionSelect from './ui/ConnectionSelect'
 import { API } from '@renderer/api'
 import { useAuth } from '@renderer/contexts/AuthContext'
-import { toDropdownOptions, WalletDto } from '@renderer/utils/wallets'
+import { toDropdownOptions } from '@renderer/utils/wallets'
+import { WalletDto } from '@renderer/api/types'
 import DeleteWallet from './modal/DeleteWallet'
+import DropdownSelect from './ui/DropdownSelect'
+import { StatusDot } from './ui/ConnectionSelect'
+import { Text } from './dash-ui-kit-enxtended'
+import { useTheme } from 'dash-ui-kit/react'
+// import ConnectionSelect from './ui/ConnectionSelect'
 
 interface LayoutProps {
   children: ReactNode
@@ -28,10 +32,12 @@ const headerButtonClass = `
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   const [selectedWallet, setSelectedWallet] = useState('')
-  const [connection, setConnection] = useState('api')
+  // const [connection, setConnection] = useState('api')
   const hoverNotification = useRipple()
   const { status, switchWallet, goToCreateWallet } = useAuth()
   const [wallets, setWallets] = useState<WalletDto[]>([])
+  const { theme, toggleTheme } = useTheme()
+  const isDark = theme === 'dark'
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [walletToDelete, setWalletToDelete] = useState<string | null>(null)
@@ -50,21 +56,15 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
       .catch((e) => console.error(e))
   }, [])
 
-  useEffect(() => {
-    API.getStatus().then((result) => {
-      console.log('result', result)
-    })
-  }, [])
-
  useEffect(() => {
-  if (status?.selectedWalletId) {
-    setSelectedWallet(status.selectedWalletId)
-  } else if (wallets.length > 0 && !selectedWallet) {
-    setSelectedWallet(wallets[0].walletId)
-  }
-}, [status?.selectedWalletId, wallets, selectedWallet])
+    if (status?.selectedWalletId) {
+      setSelectedWallet(status.selectedWalletId)
+    } else if (wallets.length > 0 && !selectedWallet) {
+      setSelectedWallet(wallets[0].walletId)
+    }
+  }, [status?.selectedWalletId, wallets, selectedWallet])
 
-const walletOptions = useMemo(() => toDropdownOptions(wallets), [wallets])
+  const walletOptions = useMemo(() => toDropdownOptions(wallets), [wallets])
 
   const handleWalletChange = (walletId: string): void => {
     if (!walletId || walletId === selectedWallet) return
@@ -85,21 +85,47 @@ const walletOptions = useMemo(() => toDropdownOptions(wallets), [wallets])
         />
 
         <div className={"flex items-center gap-[.625rem]"}>
-          <ConnectionSelect
+          {/* TODO: Add ConnectionSelect */}
+          {/* <ConnectionSelect
             options={[
               { value: 'api', label: 'Connection', description: 'dashscan.io' },
               { value: 'p2p', label: 'P2P', description: 'P2P Connection' },
             ]}
             value={connection}
             onChange={setConnection}
-          />
+          /> */}
+          <button
+            type={"button"}
+            className={`
+              relative
+              overflow-hidden
+              flex items-center gap-3 px-4 h-12
+              rounded-[.9375rem]
+              dash-block-3
+              pr-6!
+              dash-black-border
+              cursor-pointer
+              focus:outline-none
+            `}
+          >
+            <StatusDot active={true} />
+            <div className={"flex flex-col items-start gap-[.125rem]"}>
+              <Text size={14} weight={"medium"} color={"brand"}>
+                Connection
+              </Text>
+              <Text size={10} weight={"medium"} color={"brand"} opacity={50}>
+                Dash Insight API
+              </Text>
+            </div>
+          </button>
           <button
             onMouseEnter={hoverNotification.onMouseEnter}
             onMouseMove={hoverNotification.onMouseMove}
             onMouseLeave={hoverNotification.onMouseLeave}
             className={headerButtonClass}
+            onClick={toggleTheme}
           >
-            <NotificationIcon size={17} className="dash-text-default" />
+            <SunIcon size={26} className="dash-text-default" />
           </button>
         </div>
       </header>

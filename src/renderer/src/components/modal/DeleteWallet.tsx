@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react"
 import { toast } from "../ui/Toast"
 import { API } from "@renderer/api"
-import { WalletDto } from "@renderer/utils/wallets"
 import { createPortal } from "react-dom"
 import { Button, CrossIcon, Input, Text } from "../dash-ui-kit-enxtended"
 import { renderBoldText } from "@renderer/utils/renderBoldText"
 import { useTheme } from "dash-ui-kit/react"
+import { WalletDto } from "@renderer/api/types"
 
 const DELETE_CONFIRM_TEXT = 'Delete'
 

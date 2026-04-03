@@ -19,11 +19,11 @@ export const navGroups: NavGroup[] = [
         label: 'Transactions',
         to: '/'
       },
-      {
-        id: 'send',
-        label: 'Send',
-        to: '/send'
-      },
+      // {
+      //   id: 'send',
+      //   label: 'Send',
+      //   to: '/send'
+      // },
       {
         id: 'receive',
         label: 'Receive',
