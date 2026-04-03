@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider initialTheme={"light"}>
       <HashRouter>
         <AuthProvider>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
           <App />
           <ToastContainer />
         </AuthProvider>

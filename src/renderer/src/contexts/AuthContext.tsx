@@ -1,14 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { API } from '@renderer/api'
 import { useNavigate } from 'react-router-dom'
-
-type Network = 'mainnet' | 'testnet'
-
-interface AppStatus {
-  ready: boolean
-  selectedWalletId: string | null
-  network: Network | null
-}
+import { AppStatus } from '@renderer/api/types'
 
 interface AuthContextValue {
   bootstrapped: boolean
