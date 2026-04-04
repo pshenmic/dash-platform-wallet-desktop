@@ -1,12 +1,11 @@
-import {randomBytes} from "node:crypto";
-import {PBKDF2_SALT_LENGTH, PBKDF2_TARGET_MS} from "./constants";
+import {PBKDF2_TARGET_MS} from "../constants";
 import fs from "fs/promises";
-import {calibratePBKDF2Iterations} from "./utils";
+import {calibratePBKDF2Iterations} from "../utils";
+import {PbkdfPreferences, PbkdfPreferencesJSON} from "./pbkdf";
 
 interface PreferencesData {
   version: number
-  pbkdf2Iterations: number
-  pbkdf2Salt: string
+  pbkdfPreferences: PbkdfPreferencesJSON
 }
 
 export class Preferences {
@@ -15,8 +14,7 @@ export class Preferences {
   // =====================================================
   // ANY CHANGES IN PREFERENCES REQUIRE BUMP VERSION ABOVE
   // =====================================================
-  pbkdf2Iterations!: number
-  pbkdf2Salt!: string
+  pbkdfPreferences!: PbkdfPreferences
 
   private path: string | null = null
 
@@ -27,7 +25,7 @@ export class Preferences {
   static async init(path?: string): Promise<Preferences> {
     if (path == null) {
       console.warn(`Preferences path not set. Using RAM`)
-      return Preferences.getDefaultValue()
+      return Preferences.default()
     }
 
     let fileExists: boolean
@@ -81,18 +79,22 @@ export class Preferences {
   }
 
   private static migrate(raw: Record<string, unknown>): Preferences {
-    const defaults = Preferences.getDefaultValue()
+    const defaults = Preferences.default()
+    const rawPbkdf = (raw.pbkdfPreferences ?? {}) as Partial<PbkdfPreferencesJSON>
 
-    const merged = {...defaults, ...raw}
+    const instance = new Preferences()
+    instance.version = Preferences.CURRENT_VERSION
+    instance.pbkdfPreferences = new PbkdfPreferences(
+      rawPbkdf.iterations ?? defaults.pbkdfPreferences.iterations,
+      rawPbkdf.salt ?? defaults.pbkdfPreferences.salt,
+    )
 
-    merged.version = Preferences.CURRENT_VERSION
-
-    return Preferences.fromObject(merged as unknown as PreferencesData)
+    return instance
   }
 
   private static async createAndWrite(path: string): Promise<Preferences> {
-    const preferences = Preferences.getDefaultValue()
-    preferences.pbkdf2Iterations = calibratePBKDF2Iterations(PBKDF2_TARGET_MS)
+    const preferences = Preferences.default()
+    preferences.pbkdfPreferences.iterations = calibratePBKDF2Iterations(PBKDF2_TARGET_MS)
 
     await fs.writeFile(path, JSON.stringify(preferences))
 
@@ -105,22 +107,20 @@ export class Preferences {
     }
   }
 
-  static getDefaultValue(): Preferences {
+  static default(): Preferences {
     const instance = new Preferences()
 
     instance.version = Preferences.CURRENT_VERSION
-    instance.pbkdf2Iterations = 100_000
-    instance.pbkdf2Salt = randomBytes(PBKDF2_SALT_LENGTH).toString('base64')
+    instance.pbkdfPreferences = PbkdfPreferences.default()
 
     return instance
   }
 
-  static fromObject({version, pbkdf2Iterations, pbkdf2Salt}: PreferencesData): Preferences {
+  static fromObject({version, pbkdfPreferences}: PreferencesData): Preferences {
     const instance = new Preferences()
 
     instance.version = version
-    instance.pbkdf2Iterations = pbkdf2Iterations
-    instance.pbkdf2Salt = pbkdf2Salt
+    instance.pbkdfPreferences = PbkdfPreferences.fromObject(pbkdfPreferences)
 
     return instance
   }
