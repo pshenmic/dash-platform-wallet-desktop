@@ -3,11 +3,16 @@ import {PBKDF2_SALT_LENGTH, PBKDF2_TARGET_MS} from "./constants";
 import fs from "fs/promises";
 import {calibratePBKDF2Iterations} from "./utils";
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-type InstanceProps<T> = Omit<T, keyof Function>;
+interface PreferencesData {
+  version: number
+  pbkdf2Iterations: number
+  pbkdf2Salt: string
+}
 
 export class Preferences {
   static readonly CURRENT_VERSION = 2
+
+  private path: string | null = null
 
   version!: number
   pbkdf2Iterations!: number
@@ -30,12 +35,18 @@ export class Preferences {
       fileExists = false
     }
 
+    let preferences: Preferences
+
     if (!fileExists) {
       console.log('Preferences file not exists. Creating Preferences')
-      return Preferences.createAndWrite(path)
+      preferences = await Preferences.createAndWrite(path)
+    } else {
+      preferences = await Preferences.readFromFile(path)
     }
 
-    return Preferences.readFromFile(path)
+    preferences.path = path
+
+    return preferences
   }
 
   private static async readFromFile(path: string): Promise<Preferences> {
@@ -72,7 +83,7 @@ export class Preferences {
 
     merged.version = Preferences.CURRENT_VERSION
 
-    return Preferences.fromObject(merged as unknown as InstanceProps<Preferences>)
+    return Preferences.fromObject(merged as unknown as PreferencesData)
   }
 
   private static async createAndWrite(path: string): Promise<Preferences> {
@@ -82,6 +93,12 @@ export class Preferences {
     await fs.writeFile(path, JSON.stringify(preferences))
 
     return preferences
+  }
+
+  async update(): Promise<void> {
+    if (this.path != null) {
+      await fs.writeFile(this.path, JSON.stringify(this))
+    }
   }
 
   static getDefaultValue(): Preferences {
@@ -94,7 +111,7 @@ export class Preferences {
     return instance
   }
 
-  static fromObject({version, pbkdf2Iterations, pbkdf2Salt}: InstanceProps<Preferences>): Preferences {
+  static fromObject({version, pbkdf2Iterations, pbkdf2Salt}: PreferencesData): Preferences {
     const instance = new Preferences()
 
     instance.version = version
