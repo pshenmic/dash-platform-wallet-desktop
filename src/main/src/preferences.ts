@@ -12,11 +12,15 @@ interface PreferencesData {
 export class Preferences {
   static readonly CURRENT_VERSION = 2
 
+  // =====================================================
+  // ANY CHANGES IN PREFERENCES REQUIRE BUMP VERSION ABOVE
+  // =====================================================
+  pbkdf2Iterations!: number
+  pbkdf2Salt!: string
+
   private path: string | null = null
 
   version!: number
-  pbkdf2Iterations!: number
-  pbkdf2Salt!: string
 
   private constructor() {/**/}
 
