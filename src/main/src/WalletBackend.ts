@@ -1,7 +1,7 @@
 import { ensureHomeFolder, getKnex, migrateKnex } from './utils'
 import path from 'path'
 import os from 'os'
-import { HomeFolderName, StorageFilename } from './constants'
+import {HomeFolderName, PreferencesFilename, StorageFilename} from './constants'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ipcMain } from 'electron'
 import { WalletDAO } from './database/WalletDAO'
@@ -25,6 +25,7 @@ import {DeleteWalletHandler} from "./api/wallet/deleteWallet";
 import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
+import {Preferences} from "./preferences";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -56,6 +57,10 @@ export class WalletBackend {
   async start(): Promise<void> {
     ensureHomeFolder()
 
+    const preferences = await Preferences.init(path.join(os.homedir(), HomeFolderName, PreferencesFilename))
+
+    console.log(preferences)
+
     const knex = getKnex(path.join(os.homedir(), HomeFolderName, StorageFilename))
 
     await migrateKnex(knex, path.join(process.cwd(), 'src/main/migrations'))
@@ -66,7 +71,7 @@ export class WalletBackend {
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
     this.applicationService = new ApplicationService()
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, preferences)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
 
     this.initHandlers()
