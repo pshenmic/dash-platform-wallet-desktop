@@ -1,8 +1,8 @@
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import { HomeFolderName } from './constants'
-import knex from 'knex'
+import {HomeFolderName, PBKDF2_DIGEST, PBKDF2_KEY_LENGTH, PBKDF2_SALT_LENGTH} from './constants'
+import knex, {Knex} from 'knex'
 import {TransactionWalletProviderJSON} from "./providers/types";
 import {Address} from "./types/Address";
 import {TransactionStatus} from "./enums/TransactionStatus";
@@ -10,8 +10,40 @@ import {Transaction} from "./types/Transaction";
 import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
 import {DashPlatformSDK} from "dash-platform-sdk";
 import {Network} from "./types";
+import {pbkdf2Sync, randomBytes} from "node:crypto";
+import {PbkdfPreferences} from "./preferences/pbkdf";
 
-export function getKnex (path?: string) {
+export function calibratePBKDF2Iterations(targetMs: number): number {
+  const testPassword = 'benchmark';
+  const testSalt = randomBytes(PBKDF2_SALT_LENGTH);
+
+  function measure(iterations: number): number {
+    const start = process.hrtime.bigint();
+    pbkdf2Sync(testPassword, testSalt, iterations, PBKDF2_KEY_LENGTH, PBKDF2_DIGEST);
+    const end = process.hrtime.bigint();
+    return Number(end - start) / 1e6;
+  }
+
+  const base = 10_000;
+  const t1 = measure(base);
+  const estimate = Math.floor(base * (targetMs / t1));
+
+  const t2 = measure(estimate);
+
+  return Math.floor(estimate * (targetMs / t2));
+}
+
+export function deriveKeyFromPassword(password: string, preferences: PbkdfPreferences, salt: Buffer): Buffer {
+  return pbkdf2Sync(
+    password,
+    salt,
+    preferences.iterations,
+    PBKDF2_KEY_LENGTH,
+    PBKDF2_DIGEST
+  )
+}
+
+export function getKnex (path?: string): Knex {
   return knex({
     client: 'sqlite3',
     connection: {
@@ -144,8 +176,6 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
         address: address ?? null,
       };
     })
-
-    console.log(tx)
 
     // TODO: Implement usd amount
     return {
