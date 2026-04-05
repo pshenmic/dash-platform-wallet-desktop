@@ -14,35 +14,37 @@ import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
 import {deriveKeyFromPassword, processProviderTransactions} from "../utils";
-import {PbkdfPreferences} from "../preferences/pbkdf";
 import {createDecipheriv} from "node:crypto";
-import {Preferences} from "../preferences";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
 
-function encryptMnemonic(mnemonic: string, password: string, pbkdfPreferences: PbkdfPreferences): string {
+function encryptMnemonic(mnemonic: string, password: string, iterations: number): string {
   const salt = randomBytes(32)
-  const passwordKey = deriveKeyFromPassword(password, pbkdfPreferences, salt)
+  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
 
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
   const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
   const tag = cipher.getAuthTag()
 
-  return Buffer.concat([iv, salt, ciphertext, tag]).toString('hex')
+  const iterBuf = Buffer.alloc(4)
+  iterBuf.writeUInt32BE(iterations)
+
+  return Buffer.concat([iv, salt, iterBuf, ciphertext, tag]).toString('hex')
 }
 
-function decryptMnemonic(encryptedHex: string, password: string, pbkdfPreferences: PbkdfPreferences): string {
+function decryptMnemonic(encryptedHex: string, password: string): string {
   const data = Buffer.from(encryptedHex, 'hex')
 
   const iv = data.slice(0, 12)
   const salt = data.slice(12, 44)
+  const iterations = data.readUInt32BE(44)
   const tag = data.slice(data.length - 16)
-  const ciphertext = data.slice(44, data.length - 16)
+  const ciphertext = data.slice(48, data.length - 16)
 
-  const passwordKey = deriveKeyFromPassword(password, pbkdfPreferences, salt)
+  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
 
   const decipher = createDecipheriv('aes-256-gcm', passwordKey, iv)
   decipher.setAuthTag(tag)
@@ -55,14 +57,14 @@ export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
-  private preferences: Preferences
   private sdk: DashPlatformSDK
+  private pbkdf2Iterations: number
 
-  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, preferences: Preferences) {
+  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, pbkdf2Iterations: number) {
+    this.pbkdf2Iterations = pbkdf2Iterations
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
-    this.preferences = preferences
     this.sdk = sdk
   }
 
@@ -76,7 +78,7 @@ export class WalletService {
     }
 
     const walletId = randomBytes(4).toString('hex')
-    const encryptedMnemonic = encryptMnemonic(seedphrase, password, this.preferences.pbkdfPreferences)
+    const encryptedMnemonic = encryptMnemonic(seedphrase, password, this.pbkdf2Iterations)
 
     await this.walletDAO.saveWallet(encryptedMnemonic, walletId, network, null)
 
@@ -195,7 +197,7 @@ export class WalletService {
     let decryptedMnemonic: string
 
     try {
-       decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password, this.preferences.pbkdfPreferences)
+       decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password)
     } catch {
       return false
     }

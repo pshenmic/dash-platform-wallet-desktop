@@ -11,7 +11,6 @@ import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
 import {DashPlatformSDK} from "dash-platform-sdk";
 import {Network} from "./types";
 import {pbkdf2Sync, randomBytes} from "node:crypto";
-import {PbkdfPreferences} from "./preferences/pbkdf";
 
 export function calibratePBKDF2Iterations(targetMs: number): number {
   const testPassword = 'benchmark';
@@ -33,11 +32,11 @@ export function calibratePBKDF2Iterations(targetMs: number): number {
   return Math.floor(estimate * (targetMs / t2));
 }
 
-export function deriveKeyFromPassword(password: string, preferences: PbkdfPreferences, salt: Buffer): Buffer {
+export function deriveKeyFromPassword(password: string, iterations: number, salt: Buffer): Buffer {
   return pbkdf2Sync(
     password,
     salt,
-    preferences.iterations,
+    iterations,
     PBKDF2_KEY_LENGTH,
     PBKDF2_DIGEST
   )
