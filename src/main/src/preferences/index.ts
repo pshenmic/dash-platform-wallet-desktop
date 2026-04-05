@@ -1,11 +1,9 @@
-import {PBKDF2_TARGET_MS} from "../constants";
 import fs from "fs/promises";
-import {calibratePBKDF2Iterations} from "../utils";
-import {PbkdfPreferences, PbkdfPreferencesJSON} from "./pbkdf";
+import {GeneralPreferences, GeneralPreferencesJSON} from "./general";
 
 interface PreferencesData {
   version: number
-  pbkdfPreferences: PbkdfPreferencesJSON
+  general: GeneralPreferencesJSON
 }
 
 export class Preferences {
@@ -14,7 +12,7 @@ export class Preferences {
   // =====================================================
   // ANY CHANGES IN PREFERENCES REQUIRE BUMP VERSION ABOVE
   // =====================================================
-  pbkdfPreferences!: PbkdfPreferences
+  general!: GeneralPreferences
 
   private path: string | null = null
 
@@ -80,12 +78,13 @@ export class Preferences {
 
   private static migrate(raw: Record<string, unknown>): Preferences {
     const defaults = Preferences.default()
-    const rawPbkdf = (raw.pbkdfPreferences ?? {}) as Partial<PbkdfPreferencesJSON>
+    const rawGeneral = (raw.general ?? {}) as Partial<GeneralPreferencesJSON>
 
     const instance = new Preferences()
     instance.version = Preferences.CURRENT_VERSION
-    instance.pbkdfPreferences = new PbkdfPreferences(
-      rawPbkdf.iterations ?? defaults.pbkdfPreferences.iterations,
+    instance.general = new GeneralPreferences(
+      rawGeneral.language ?? defaults.general.language,
+      rawGeneral.currency ?? defaults.general.currency,
     )
 
     return instance
@@ -93,11 +92,17 @@ export class Preferences {
 
   private static async createAndWrite(path: string): Promise<Preferences> {
     const preferences = Preferences.default()
-    preferences.pbkdfPreferences.iterations = calibratePBKDF2Iterations(PBKDF2_TARGET_MS)
 
     await fs.writeFile(path, JSON.stringify(preferences))
 
     return preferences
+  }
+
+  toJSON(): PreferencesData {
+    return {
+      version: this.version,
+      general: this.general.toJSON(),
+    }
   }
 
   async update(): Promise<void> {
@@ -110,16 +115,16 @@ export class Preferences {
     const instance = new Preferences()
 
     instance.version = Preferences.CURRENT_VERSION
-    instance.pbkdfPreferences = PbkdfPreferences.default()
+    instance.general = GeneralPreferences.default()
 
     return instance
   }
 
-  static fromObject({version, pbkdfPreferences}: PreferencesData): Preferences {
+  static fromObject({version, general}: PreferencesData): Preferences {
     const instance = new Preferences()
 
     instance.version = version
-    instance.pbkdfPreferences = PbkdfPreferences.fromObject(pbkdfPreferences)
+    instance.general = GeneralPreferences.fromObject(general)
 
     return instance
   }

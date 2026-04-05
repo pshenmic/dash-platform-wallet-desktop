@@ -1,7 +1,7 @@
-import { ensureHomeFolder, getKnex, migrateKnex } from './utils'
+import {calibratePBKDF2Iterations, ensureHomeFolder, getKnex, migrateKnex} from './utils'
 import path from 'path'
 import os from 'os'
-import {HomeFolderName, PreferencesFilename, StorageFilename} from './constants'
+import {HomeFolderName, PBKDF2_TARGET_MS, StorageFilename} from './constants'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ipcMain } from 'electron'
 import { WalletDAO } from './database/WalletDAO'
@@ -25,7 +25,6 @@ import {DeleteWalletHandler} from "./api/wallet/deleteWallet";
 import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
-import {Preferences} from "./preferences";
 import {VerifyWalletPasswordHandler} from "./api/wallet/verifyWalletPassword";
 
 export class WalletBackend {
@@ -59,9 +58,11 @@ export class WalletBackend {
   async start(): Promise<void> {
     ensureHomeFolder()
 
-    const preferences = await Preferences.init(path.join(os.homedir(), HomeFolderName, PreferencesFilename))
+    // calibrate only on start and then using until wallet running
+    const calibratedIterations = calibratePBKDF2Iterations(PBKDF2_TARGET_MS)
 
-    console.log(preferences)
+    // Uncomment when we start using preferences
+    // const preferences = await Preferences.init(path.join(os.homedir(), HomeFolderName, PreferencesFilename))
 
     const knex = getKnex(path.join(os.homedir(), HomeFolderName, StorageFilename))
 
@@ -72,8 +73,9 @@ export class WalletBackend {
     const identityDAO = new IdentityDAO(knex)
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
+
     this.applicationService = new ApplicationService()
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, preferences)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, calibratedIterations)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
 
     this.initHandlers()
