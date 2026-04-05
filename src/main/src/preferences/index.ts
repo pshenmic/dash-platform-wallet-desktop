@@ -9,7 +9,7 @@ interface PreferencesData {
 }
 
 export class Preferences {
-  static readonly CURRENT_VERSION = 2
+  static readonly CURRENT_VERSION = 1
 
   // =====================================================
   // ANY CHANGES IN PREFERENCES REQUIRE BUMP VERSION ABOVE
@@ -86,7 +86,6 @@ export class Preferences {
     instance.version = Preferences.CURRENT_VERSION
     instance.pbkdfPreferences = new PbkdfPreferences(
       rawPbkdf.iterations ?? defaults.pbkdfPreferences.iterations,
-      rawPbkdf.salt ?? defaults.pbkdfPreferences.salt,
     )
 
     return instance
