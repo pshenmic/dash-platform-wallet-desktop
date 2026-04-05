@@ -26,6 +26,7 @@ import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
 import {Preferences} from "./preferences";
+import {VerifyWalletPasswordHandler} from "./api/wallet/verifyWalletPassword";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -39,19 +40,20 @@ export class WalletBackend {
 
     ipcMain.handle('createWallet', new CreateWalletHandler(this.walletService).handle)
     ipcMain.handle('deleteWallet', new DeleteWalletHandler(this.walletService).handle)
+    ipcMain.handle('getAllWallets', new GetAllWalletsHandler(this.walletService).handle)
+    ipcMain.handle('selectWallet', new SelectWallet(this.walletService).handle)
+    ipcMain.handle('getWalletBalance', new GetWalletBalance(this.walletService).handle)
     ipcMain.handle('getAddresses', new GetWalletAddressesHandler(this.walletService, this.addressesService).handle)
     ipcMain.handle('getStatus', new GetStatusHandler(this.walletService, this.applicationService).handle)
-    ipcMain.handle('selectWallet', new SelectWallet(this.walletService).handle)
-    ipcMain.handle('getAllWallets', new GetAllWalletsHandler(this.walletService).handle)
     ipcMain.handle('getTransactions', new GetTransactionsHandler(this.walletService).handle)
     ipcMain.handle('getBalance', new GetBalance(this.walletService).handle)
-    ipcMain.handle('getWalletBalance', new GetWalletBalance(this.walletService).handle)
     ipcMain.handle("getTransactionByHash", new GetTransactionByHashHandler(this.walletService).handle)
     ipcMain.handle('getIdentities', new GetIdentitiesHandler(this.walletService).handle)
     ipcMain.handle('getIdentityBalance', new GetIdentityBalance(this.walletService).handle)
     ipcMain.handle('getIdentityNonce', new GetIdentityNonce(this.walletService).handle)
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
     ipcMain.handle('setAddressLabel', new SetAddressLabel(this.walletService).handle)
+    ipcMain.handle('verifyWalletPassword', new VerifyWalletPasswordHandler(this.walletService).handle)
   }
 
   async start(): Promise<void> {

@@ -182,6 +182,36 @@ export class WalletService {
     return this.walletDAO.setSelectedWallet(walletId)
   }
 
+  async verifyWalletPassword(password: string, walletId: string): Promise<boolean> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+
+    if (wallet == null) {
+      throw new Error('No selected wallet found')
+    }
+
+    const groupedAddresses = await this.addressDAO.getAddressesByWalletId(walletId)
+    const [referenceWalletAddress] = [...groupedAddresses.change, ...groupedAddresses.receiving]
+
+    let decryptedMnemonic: string
+
+    try {
+       decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password, this.preferences.pbkdfPreferences)
+    } catch {
+      return false
+    }
+
+    const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
+    const hdKey = this.sdk.keyPair.seedToHdKey(seed, wallet.network)
+    const coinType = COIN_TYPE[wallet.network]
+
+    const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/0'/1/${referenceWalletAddress.index}`)
+    if (!key.publicKey) throw new Error(`Failed to derive public key at index ${referenceWalletAddress.index}`)
+
+    const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, wallet.network)
+
+    return address === referenceWalletAddress.address;
+  }
+
   async setAddressLabel(walletId: string, address: string, label: string): Promise<QueryStatus> {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }
