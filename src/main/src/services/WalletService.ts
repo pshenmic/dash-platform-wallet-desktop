@@ -1,4 +1,4 @@
-import {createCipheriv, randomBytes, scryptSync} from 'crypto'
+import {createCipheriv, randomBytes} from 'crypto'
 import {DashPlatformSDK} from 'dash-platform-sdk'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
@@ -13,32 +13,56 @@ import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
-import {processProviderTransactions} from "../utils";
+import {deriveKeyFromPassword, processProviderTransactions} from "../utils";
+import {PbkdfPreferences} from "../preferences/pbkdf";
+import {createDecipheriv} from "node:crypto";
+import {Preferences} from "../preferences";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
 
-function encryptMnemonic(mnemonic: string, password: string): string {
+function encryptMnemonic(mnemonic: string, password: string, pbkdfPreferences: PbkdfPreferences): string {
   const salt = randomBytes(32)
+  const passwordKey = deriveKeyFromPassword(password, pbkdfPreferences, salt)
+
   const iv = randomBytes(12)
-  const key = scryptSync(password, salt, 32, {N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024})
-  const cipher = createCipheriv('aes-256-gcm', key, iv)
+  const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
   const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
   const tag = cipher.getAuthTag()
+
   return Buffer.concat([iv, salt, ciphertext, tag]).toString('hex')
+}
+
+function decryptMnemonic(encryptedHex: string, password: string, pbkdfPreferences: PbkdfPreferences): string {
+  const data = Buffer.from(encryptedHex, 'hex')
+
+  const iv = data.slice(0, 12)
+  const salt = data.slice(12, 44)
+  const tag = data.slice(data.length - 16)
+  const ciphertext = data.slice(44, data.length - 16)
+
+  const passwordKey = deriveKeyFromPassword(password, pbkdfPreferences, salt)
+
+  const decipher = createDecipheriv('aes-256-gcm', passwordKey, iv)
+  decipher.setAuthTag(tag)
+
+  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
+  return decrypted.toString('utf8')
 }
 
 export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
+  private preferences: Preferences
   private sdk: DashPlatformSDK
 
-  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK) {
+  constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, identityDAO: IdentityDAO, sdk: DashPlatformSDK, preferences: Preferences) {
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
+    this.preferences = preferences
     this.sdk = sdk
   }
 
@@ -52,7 +76,7 @@ export class WalletService {
     }
 
     const walletId = randomBytes(4).toString('hex')
-    const encryptedMnemonic = encryptMnemonic(seedphrase, password)
+    const encryptedMnemonic = encryptMnemonic(seedphrase, password, this.preferences.pbkdfPreferences)
 
     await this.walletDAO.saveWallet(encryptedMnemonic, walletId, network, null)
 
