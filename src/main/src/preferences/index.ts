@@ -1,10 +1,12 @@
 import fs from "fs/promises";
-import {GeneralPreferences, GeneralPreferencesJSON} from "./general";
+import {z} from 'zod'
+import {GeneralPreferences, GeneralPreferencesJSON, GeneralPreferencesSchema} from "./general";
 
-interface PreferencesData {
-  version: number
-  general: GeneralPreferencesJSON
-}
+export const PreferencesSchema = z.object({
+  general: GeneralPreferencesSchema,
+})
+
+export type PreferencesJSON = z.infer<typeof PreferencesSchema> & { version: number }
 
 export class Preferences {
   static readonly CURRENT_VERSION = 1
@@ -98,13 +100,28 @@ export class Preferences {
     return preferences
   }
 
-  toJSON(): PreferencesData {
+  toJSON(): PreferencesJSON {
     return {
       version: this.version,
       general: this.general.toJSON(),
     }
   }
 
+  /**
+   * Update preferences instance with passed values and save on disk.
+   * @param value
+   */
+  async apply(value: unknown): Promise<void> {
+    const {general} = PreferencesSchema.parse(value)
+
+    this.general = GeneralPreferences.fromObject(general)
+
+    await this.update()
+  }
+
+  /**
+   * Save preferencess to selected folder
+   */
   async update(): Promise<void> {
     if (this.path != null) {
       await fs.writeFile(this.path, JSON.stringify(this))
@@ -120,10 +137,12 @@ export class Preferences {
     return instance
   }
 
-  static fromObject({version, general}: PreferencesData): Preferences {
+  static fromObject(value: unknown): Preferences {
+    const {general} = PreferencesSchema.parse(value)
+
     const instance = new Preferences()
 
-    instance.version = version
+    instance.version = Preferences.CURRENT_VERSION
     instance.general = GeneralPreferences.fromObject(general)
 
     return instance
