@@ -5,6 +5,6 @@ export default function SendPage(): React.JSX.Element {
   const data = sendPageData
 
   return (
-    <TransferPage persistKey={"send"} pageData={data} />
+    <TransferPage pageData={data} />
   )
 }

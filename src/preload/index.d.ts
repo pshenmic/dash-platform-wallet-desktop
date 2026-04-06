@@ -6,10 +6,22 @@ declare global {
     api: unknown
     electronAPI: {
       createWallet: (seedphrase: string, network: string, password: string) => Promise<unknown>
-      getWalletAddresses: (walletId: string) => Promise<unknown>
+      getAddresses: (walletId: string) => Promise<unknown>
       getStatus: () => Promise<unknown>
       getAllWallets: () => Promise<unknown>
       foobar: (arg: string) => Promise<unknown>
+
+      getTransactions: (walletId: string) => Promise<unknown>
+      getTransactionByHash: (hash: string, network: string) => Promise<unknown>
+      getBlockByHash: (hash: string, network: string) => Promise<unknown>
+      getBalance: (address: string | string[], network: string) => Promise<unknown>
+      getIdentities: (walletId: string) => Promise<unknown>
+      getIdentityBalance: (identifier: string) => Promise<bigint>
+      getIdentityNonce: (identifier: string) => Promise<bigint>
+      deleteWallet: (walletId: string) => Promise<unknown>
+      selectWallet: (walletId: string) => Promise<unknown>
+      getWalletBalance: (walletId: string) => Promise<unknown>
+      setAddressLabel: (walletId: string, address: string, label: string) => Promise<unknown>
     }
     darkMode: {
       get: () => Promise<boolean>

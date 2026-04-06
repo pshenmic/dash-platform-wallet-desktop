@@ -1191,7 +1191,7 @@ export const SendIcon: React.FC<IconProps> = ({
   </svg>
 )
 
-export const WithdrawIcon: React.FC<IconProps> = ({
+export const ReceiveIcon: React.FC<IconProps> = ({
   color = 'var(--color-text)',
   size = 11,
   className = '',
@@ -1329,3 +1329,127 @@ export const ExclamationIcon: React.FC<IconProps> = ({
     <path d="M0 11.4494V9.54114H2.16266V11.4494H0ZM0 8.58703V0H2.16266V8.58703H0Z" fill="currentColor" />
   </svg>
 )
+
+export const AddressesIcon: React.FC<IconProps> = ({
+  color = 'var(--color-text)',
+  size = 15,
+  className = '',
+  onClick
+}) => (
+  <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8.79449 4.86478H4.82227" stroke="currentColor" strokeMiterlimit="10" strokeLinecap="round" />
+    <path d="M11.1731 8.00143H4.82227" stroke="currentColor" strokeMiterlimit="10" strokeLinecap="round" />
+    <path d="M7.2395 11.1352H4.82227" stroke="currentColor" strokeMiterlimit="10" strokeLinecap="round" />
+    <path d="M12.0421 0.5H3.95787C2.04814 0.5 0.5 2.04814 0.5 3.95787V12.0421C0.5 13.9518 2.04814 15.4999 3.95787 15.4999H12.0421C13.9518 15.4999 15.4999 13.9518 15.4999 12.0421V3.95787C15.4999 2.04814 13.9518 0.5 12.0421 0.5Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const ClockArrowIcon: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 18,
+  className = '',
+  onClick
+}) => (
+  <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="9" cy="9" r="9" fill="#0C1C33" fillOpacity="0.05" />
+  <path d="M4.5 9C4.5 11.4853 6.51472 13.5 9 13.5C11.4853 13.5 13.5 11.4853 13.5 9C13.5 6.51472 11.4853 4.5 9 4.5C7.65597 4.5 6.44956 5.08922 5.625 6.02345C5.57772 6.07701 5.5317 6.13171 5.48698 6.1875M9 6.75V9L10.4062 10.4062M5.48657 4.5022V6.1897H7.17407" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+</svg>
+)
+
+export const CopyIcon2: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 10,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 3H2.5C1.79994 3 1.4499 3 1.18251 3.13624C0.947306 3.25608 0.756081 3.44731 0.636244 3.68251C0.5 3.9499 0.5 4.29994 0.5 5V8.5C0.5 9.20006 0.5 9.55013 0.636244 9.8175C0.756081 10.0527 0.947306 10.2439 1.18251 10.3637C1.4499 10.5 1.79994 10.5 2.5 10.5H6C6.70006 10.5 7.05012 10.5 7.3175 10.3637C7.55269 10.2439 7.74394 10.0527 7.86375 9.8175C8 9.55013 8 9.20006 8 8.5V8M5 8H8.5C9.20006 8 9.55013 8 9.8175 7.86375C10.0527 7.74394 10.2439 7.55269 10.3637 7.3175C10.5 7.05012 10.5 6.70006 10.5 6V2.5C10.5 1.79994 10.5 1.4499 10.3637 1.18251C10.2439 0.947306 10.0527 0.756081 9.8175 0.636244C9.55013 0.5 9.20006 0.5 8.5 0.5H5C4.29994 0.5 3.9499 0.5 3.68251 0.636244C3.44731 0.756081 3.25608 0.947306 3.13624 1.18251C3 1.4499 3 1.79993 3 2.5V6C3 6.70006 3 7.05012 3.13624 7.3175C3.25608 7.55269 3.44731 7.74394 3.68251 7.86375C3.9499 8 4.29994 8 5 8Z"
+      stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export const QrCodeIcon: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 10,
+  className = '',
+  onClick
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 10 10"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    onClick={onClick}
+    color={color}
+  >
+    <rect x="0.5" y="0.5" width="3.5" height="3.5" rx="0.8" stroke="currentColor" />
+    <rect x="6" y="0.5" width="3.5" height="3.5" rx="0.8" stroke="currentColor" />
+    <rect x="0.5" y="6" width="3.5" height="3.5" rx="0.8" stroke="currentColor" />
+    <path d="M9.5 6.5V9.5H6.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+)
+
+export const CheckCirclePartialIcon: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 11,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10.3124 6.78315C10.5679 5.82961 10.5349 4.82171 10.2176 3.88691C9.90026 2.95212 9.31287 2.13241 8.52968 1.53145C7.7465 0.930491 6.80269 0.575268 5.81762 0.510703C4.83255 0.446138 3.85046 0.67513 2.99553 1.16872M0.670074 4.1995C0.414572 5.15304 0.447568 6.16094 0.764888 7.09574C1.08221 8.03053 1.6696 8.85024 2.45279 9.4512C3.23597 10.0522 4.17978 10.4074 5.16485 10.4719C6.14992 10.5365 7.13202 10.3075 7.98694 9.81393" stroke="currentColor" strokeLinecap="round" />
+      <path d="M7.39567 3.52253C7.54217 3.35769 7.76826 3.37233 7.90033 3.55518C8.03239 3.73803 8.02066 4.02025 7.87417 4.18509L4.86193 7.57453L3.11011 5.60338L3.0843 5.57117C2.96281 5.40377 2.96028 5.14535 3.08395 4.9739C3.20772 4.80253 3.41402 4.77869 3.56001 4.91209L3.58861 4.94125L4.86158 6.37347L7.39567 3.52253Z" fill="currentColor" />
+    </svg>
+  )
+}
+
+export const CalendarIconHighlighted: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 11,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3.86111 4.63889H14.75M6.97222 0.75V1.52778M11.6389 0.75V1.52778M12.4167 14.75H4.48333C3.17654 14.75 2.52315 14.75 2.02402 14.4957C1.58498 14.272 1.22802 13.9151 1.00432 13.476C0.75 12.9768 0.75 12.3235 0.75 11.0167V3.08333M6.35 11.6389H12.2611C13.1323 11.6389 13.5679 11.6389 13.9007 11.4693C14.1933 11.3202 14.4313 11.0822 14.5804 10.7896C14.75 10.4568 14.75 10.0212 14.75 9.15V4.01667C14.75 3.14547 14.75 2.70988 14.5804 2.37713C14.4313 2.08443 14.1933 1.84646 13.9007 1.69733C13.5679 1.52778 13.1323 1.52778 12.2611 1.52778H6.35C5.4788 1.52778 5.04321 1.52778 4.71046 1.69733C4.41776 1.84646 4.17979 2.08443 4.03066 2.37713C3.86111 2.70988 3.86111 3.14547 3.86111 4.01667V9.15C3.86111 10.0212 3.86111 10.4568 4.03066 10.7896C4.17979 11.0822 4.41776 11.3202 4.71046 11.4693C5.04321 11.6389 5.4788 11.6389 6.35 11.6389Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export const BoxIcon: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 14,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg width={size} height={(size * 16) / 14} className={className} onClick={onClick} color={color} viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12.75 4.65497L6.75 0.885742L0.75 4.65497M12.75 4.65497L6.75 8.4242M12.75 4.65497V11.1165L6.75 14.8857M0.75 4.65497L6.75 8.4242M0.75 4.65497V11.1165L6.75 14.8857M6.75 8.4242V14.8857" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export const SunIcon: React.FC<IconProps> = ({
+  color = 'var(--color-dash-primary-dark-blue)',
+  size = 14,
+  className = '',
+  onClick
+}) => {
+  return (
+    <svg width={size} height={size} className={className} onClick={onClick} color={color} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" />
+      <line x1="18.5" y1="12" x2="21.5" y2="12" />
+      <line x1="16.596" y1="7.404" x2="18.717" y2="5.283" />
+      <line x1="12" y1="5.5" x2="12" y2="2.5" />
+      <line x1="7.404" y1="7.404" x2="5.283" y2="5.283" />
+      <line x1="5.5" y1="12" x2="2.5" y2="12" />
+      <line x1="7.404" y1="16.596" x2="5.283" y2="18.717" />
+      <line x1="12" y1="18.5" x2="12" y2="21.5" />
+      <line x1="16.596" y1="16.596" x2="18.717" y2="18.717" />
+    </svg>
+  )
+}

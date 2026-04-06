@@ -1,13 +1,25 @@
-import Balance from "@renderer/components/pages/transactions/Balance";
-import TransactionsList from "@renderer/components/pages/transactions/TransactionsList";
+import { useState } from 'react'
+import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
+import TransactionsList from "@renderer/components/pages/transactions/TransactionsList"
+import TransactionDetail from "@renderer/components/pages/transactions/TransactionDetail"
 
 export default function TransactionsPage(): React.JSX.Element {
+  const [selectedTransaction, setSelectedTransaction] = useState<WalletTxItem | null>(null)
+
+  if (selectedTransaction) {
     return (
       <div className={"flex flex-col"}>
-        <div className={"flex items-end justify-between px-12"}>
-          <Balance />
-        </div>
-        <TransactionsList />
+        <TransactionDetail
+          transaction={selectedTransaction}
+          onBack={() => setSelectedTransaction(null)}
+        />
       </div>
     )
+  }
+
+  return (
+    <div className={"flex flex-col"}>
+      <TransactionsList onTransactionClick={setSelectedTransaction} />
+    </div>
+  )
 }

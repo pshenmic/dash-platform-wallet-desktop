@@ -18,6 +18,25 @@ interface TransactionsPage {
       documentsBatch: TransactionType
     }
   }
+  detail: {
+    backButton: string
+    titlePrefix: string
+    transactionId: string
+    details: string
+    size: string
+    bytes: string
+    fields: {
+      date: string
+      height: string
+      amount: string
+      confirmations: string
+      lockTime: string
+    }
+    inputs: string
+    outputs: string
+    receivingBadge: string
+    changeBadge: string
+  }
 }
 
 export const transactionsPage: TransactionsPage = {
@@ -43,5 +62,24 @@ export const transactionsPage: TransactionsPage = {
         detailLabel: 'Hash:',
       }
     }
+  },
+  detail: {
+    backButton: 'Back',
+    titlePrefix: 'Transaction:',
+    transactionId: 'Transaction ID',
+    details: 'Details',
+    size: 'Size',
+    bytes: 'bytes',
+    fields: {
+      date: 'Date',
+      height: 'Height',
+      amount: 'Amount',
+      confirmations: 'Confirmations',
+      lockTime: 'LockTime',
+    },
+    inputs: 'Inputs',
+    outputs: 'Outputs',
+    receivingBadge: 'Receiving',
+    changeBadge: 'Change',
   }
 }

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Button, Input, Text } from "@renderer/components/dash-ui-kit-enxtended";
 import { useTheme } from 'dash-ui-kit/react';
 import { TypeUseCreateWallet } from '@renderer/hooks/useCreateWallet';
-import { CreateWalletTexts } from '@renderer/constants';
+import { CreateWalletTexts, messages } from '@renderer/constants';
+import { toast } from '@renderer/components/ui/Toast';
 
 type CreateWalletData = Pick<
   CreateWalletTexts,
@@ -11,29 +12,87 @@ type CreateWalletData = Pick<
   'buttonNext' |
   'labelPassword' |
   'placeholderPassword'
->;
+>
 
-type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword' | 'generateSeedPhrase'> & {
+type CreateWalletProps = Pick<TypeUseCreateWallet, 'password' | 'setPassword'> & {
+  generateSeedPhrase?: TypeUseCreateWallet['generateSeedPhrase']
+  createImportedWallet?: TypeUseCreateWallet['createImportedWallet']
   data: CreateWalletData
-};
+}
 
-export default function CreateWallet({ password, setPassword, generateSeedPhrase, data } : CreateWalletProps): React.JSX.Element {
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const { theme } = useTheme();
-  const iconColor = theme === 'dark' ? '#ffffff' : '';
+const MIN_WALLET_PASSWORD_LENGTH = 6
+const MAX_WALLET_PASSWORD_LENGTH = 128
+const HAS_LETTER = /[A-Za-z]/
+const HAS_DIGIT = /\d/
+const HAS_SPECIAL = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>\/?~`]/
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const { createWallet: { passwordValidation: { minLength, maxLength, letterRequired, numberRequired, specialCharRequired, passwordsDoNotMatch },
+  seedPhrase: { warning, errorMessage, errorTitle }
+}} = messages
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
+function getPasswordValidationError(password: string): string | null {
+  const t = password.trim()
+  if (t.length < MIN_WALLET_PASSWORD_LENGTH) {
+    return minLength
+  }
+  if (t.length > MAX_WALLET_PASSWORD_LENGTH) {
+    return maxLength
+  }
+  if (!HAS_LETTER.test(t)) {
+    return letterRequired
+  }
+  if (!HAS_DIGIT.test(t)) {
+    return numberRequired
+  }
+  if (!HAS_SPECIAL.test(t)) {
+    return specialCharRequired
+  }
+  return null
+}
+
+export default function  CreateWallet({ password, setPassword, generateSeedPhrase, createImportedWallet, data } : CreateWalletProps): React.JSX.Element {
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError] = useState('')
+  const { theme } = useTheme()
+  const iconColor = theme === 'dark' ? '#ffffff' : ''
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    const pwdError = getPasswordValidationError(password)
+    if (pwdError !== null) {
+      setError(pwdError)
+      toast.error(pwdError)
+      return
     }
+    if (password !== confirmPassword) {
+      const msg = passwordsDoNotMatch
+      setError(msg)
+      toast.error(msg)
+      return
+    }
+    try {
+      if (createImportedWallet) {
+        createImportedWallet()
+      } else {
+        if (generateSeedPhrase) {
+          await generateSeedPhrase()
+        }
+      }
+      toast.error(warning)
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : errorMessage
+      setError(message)
+      toast.error(errorTitle + " " + message)
+    }
+  }
 
-    generateSeedPhrase();
-  };
+  const tooShortOrEmpty =
+    !password.trim().length ||
+    !confirmPassword.trim().length
 
   return (
     <form onSubmit={handleSubmit} className={"flex flex-col w-full gap-3.75"}>
@@ -54,7 +113,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
               setPassword(e.target.value);
               setError('');
             }}
-            className={'h-full rounded-[1.25rem]'}
+            className={'h-full rounded-[1.25rem] bg-transparent'}
             iconColor={iconColor}
             colorScheme={error ? 'error' : 'primary'}
           />
@@ -75,7 +134,7 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
               setConfirmPassword(e.target.value);
               setError('');
             }}
-            className={'h-full rounded-[1.25rem]'}
+            className={'h-full rounded-[1.25rem] bg-transparent'}
             iconColor={iconColor}
             colorScheme={error ? 'error' : 'primary'}
           />
@@ -85,8 +144,8 @@ export default function CreateWallet({ password, setPassword, generateSeedPhrase
         type={"submit"}
         colorScheme={"primary"}
         size={"md"}
-        className={"h-fit rounded-[1.25rem] self-end relative overflow-hidden w-full"}
-        disabled={!password || !confirmPassword}
+        className={"rounded-[.9375rem] p-4.5"}
+        disabled={tooShortOrEmpty}
       >
         {data.buttonNext}
       </Button>

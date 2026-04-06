@@ -20,40 +20,20 @@ export const navGroups: NavGroup[] = [
         to: '/'
       },
       {
-        id: 'send',
-        label: 'Send',
-        to: '/send'
+        id: 'receive',
+        label: 'Receive',
+        to: '/receive'
       },
       {
-        id: 'withdraw',
-        label: 'Withdraw',
-        to: '/withdraw'
+        id: 'addresses',
+        label: 'Addresses',
+        to: '/addresses'
       },
       {
-        id: 'tokens',
-        label: 'Tokens',
-        to: '/tokens'
-      },
-      {
-        id: 'names',
-        label: 'Names',
-        to: '/names'
+        id: 'identities',
+        label: 'Identities',
+        to: '/identities'
       }
     ]
   },
-  {
-    id: 'secondary',
-    items: [
-      {
-        id: 'support',
-        label: 'Support',
-        to: '/support'
-      },
-      {
-        id: 'settings',
-        label: 'Settings',
-        to: '/settings'
-      }
-    ]
-  }
 ]

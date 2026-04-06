@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cva } from "class-variance-authority";
-import { SidebarNavGroupProps } from "../sidebar/SidebarNavGroup";
-import { Text } from "../dash-ui-kit-enxtended";
+import { NavGroupProps } from "./NavGroup";
+import { ChevronIcon, Text } from "../dash-ui-kit-enxtended";
 import { useRipple } from "@renderer/hooks/useRipple";
 import { useEffect, useRef } from "react";
 
@@ -65,7 +65,7 @@ const textStyles = cva(
   }
 )
 
-export default function NavLinkItem({item}: {item: SidebarNavGroupProps}): React.JSX.Element {
+export default function NavLinkItem({item}: {item: NavGroupProps}): React.JSX.Element {
   const Icon = item?.icon
   const location = useLocation()
   const isActive = location.pathname === item?.items.to
@@ -120,6 +120,13 @@ export default function NavLinkItem({item}: {item: SidebarNavGroupProps}): React
           <Text size={14} color={"brand"} className={textStyles({ isActive })}>
             {item?.items.label}
           </Text>
+          {item?.arrow && (
+            <ChevronIcon
+              color={"inherit"}
+              size={16}
+              className={`transition-transform duration-200 -rotate-90 ml-auto`}
+            />
+          )}
         </>
       )}
     </NavLink>

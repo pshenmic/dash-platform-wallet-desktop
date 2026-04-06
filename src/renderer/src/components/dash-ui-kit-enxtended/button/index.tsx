@@ -30,6 +30,7 @@ const styles = cva(
         mint: '',
         gray: '',
         red: '',
+        'red-strong': '',
         lightGray: '',
         lightBlue: '',
         'lightBlue-mint': '',
@@ -125,6 +126,10 @@ const styles = cva(
       },
       // =====NEW====
       {
+        colorScheme: 'red-strong',
+        class: 'bg-dash-red text-white hover:!bg-dash-red/80'
+      },
+      {
         variant: 'solid',
         colorScheme: 'lightBlue-mint',
         theme: 'light',
@@ -144,7 +149,7 @@ const styles = cva(
       {
         colorScheme: 'primary-light',
         theme: 'dark',
-        class: '!bg-transparent !text-white hover:!bg-dash-mint/10'
+        class: '!bg-white/5 !text-white hover:!bg-white/10'
       },
       {
         variant: 'outline',
@@ -361,7 +366,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   /** Solid or outline style */
   variant?: 'solid' | 'outline'
   /** Color scheme for the button */
-  colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray' | 'primary' | 'brand-mint' | 'primary-light' | 'lightBlue-mint'
+  colorScheme?: 'brand' | 'mint' | 'gray' | 'red' | 'lightBlue' | 'lightGray' | 'primary' | 'brand-mint' | 'primary-light' | 'lightBlue-mint' | 'red-strong'
   /** Size of the button */
   size?: 'sm' | 'md'
 }

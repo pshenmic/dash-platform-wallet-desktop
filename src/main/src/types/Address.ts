@@ -5,4 +5,7 @@ export interface Address {
   derivationPath: string
   index: number
   isChange: boolean
+  label: string | null
+  balance?: bigint | null
+  usdBalance?: string | null
 }

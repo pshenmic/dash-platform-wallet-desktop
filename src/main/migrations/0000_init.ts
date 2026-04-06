@@ -1,4 +1,4 @@
-export async function up (knex) {
+export async function up (knex): Promise<void> {
   await knex.schema.createTable('wallet', table => {
     table.text('wallet_id').primary()
     table.text('network').notNullable().checkIn(['testnet', 'mainnet'])
@@ -22,6 +22,7 @@ export async function up (knex) {
     table.text('wallet_id').notNullable().references('wallet_id').inTable('wallet')
     table.text('address').notNullable()
     table.text('derivation_path').notNullable()
+    table.text('label')
     table.integer('account_id').notNullable()
     table.integer('index').notNullable()
     table.boolean('is_change').notNullable().defaultTo(false)
@@ -31,6 +32,6 @@ export async function up (knex) {
   })
 };
 
-export async function down (knex) {
+export async function down (knex): Promise<void> {
   await knex.schema.dropTableIfExists('wallet')
 };

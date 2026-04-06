@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { AssetSelectorPersistKey } from './useAssetSelector'
 import { DollarIcon, EuroIcon, IconProps } from '@renderer/components/dash-ui-kit-enxtended/icons'
 
 export interface Currency {
@@ -12,15 +11,15 @@ const MOCK_CURRENCIES: Currency[] = [
   { id: 'eur', icon: EuroIcon },
 ]
 
-export function useCurrencySelector({ persistKey }: { persistKey: AssetSelectorPersistKey }) {
+export function useCurrencySelector() {
   const [selectedCurrencyId, setSelectedCurrencyId] = useState<string>(() => {
-    const saved = localStorage.getItem(`currency-${persistKey}`)
+    const saved = localStorage.getItem(`currency-send`)
     return saved || MOCK_CURRENCIES[0].id
   })
 
   useEffect(() => {
-    localStorage.setItem(`currency-${persistKey}`, selectedCurrencyId)
-  }, [persistKey, selectedCurrencyId])
+    localStorage.setItem(`currency-send`, selectedCurrencyId)
+  }, [selectedCurrencyId])
 
   const selectedCurrency = MOCK_CURRENCIES.find(c => c.id === selectedCurrencyId)
 

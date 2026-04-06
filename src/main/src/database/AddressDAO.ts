@@ -1,8 +1,19 @@
-import type { Knex } from 'knex'
-import { Address } from '../types/Address'
+import type {Knex} from 'knex'
+import {Address} from '../types/Address'
+import {GroupedAddresses} from "../types/GroupedAddresses";
+import {QueryStatus} from "../types/QueryStatus";
 
-function fromRow ({ wallet_id, account_id, address, derivation_path, index, is_change }): Address {
-  return { walletId: wallet_id, accountId: account_id, address, derivationPath: derivation_path, index, isChange: is_change }
+function fromRow({wallet_id, account_id, address, derivation_path, index, is_change, label}): Address {
+  return {
+    walletId: wallet_id,
+    accountId: account_id,
+    address,
+    derivationPath: derivation_path,
+    index,
+    isChange: is_change,
+    balance: null,
+    label
+  }
 }
 
 export class AddressDAO {
@@ -12,7 +23,7 @@ export class AddressDAO {
     this.knex = knex
   }
 
-  insertAddresses = async (addresses: Address[]) => {
+  insertAddresses = async (addresses: Address[]): Promise<void> => {
     await this.knex('addresses').insert(
       addresses.map(e => ({
         wallet_id: e.walletId,
@@ -20,17 +31,53 @@ export class AddressDAO {
         address: e.address,
         derivation_path: e.derivationPath,
         index: e.index,
-        is_change: e.isChange
+        is_change: e.isChange,
+        label: e.label,
       }))
     )
   }
 
-  getAddressesByWalletId = async (walletId: string): Promise<Address[]> => {
+  getAddressesByWalletId = async (walletId: string): Promise<GroupedAddresses> => {
     const rows = await this.knex('addresses')
-      .select('wallet_id', 'account_id', 'address', 'derivation_path', 'index', 'is_change')
+      .select('wallet_id', 'account_id', 'address', 'derivation_path', 'index', 'is_change', 'label')
       .where('wallet_id', walletId)
       .orderBy('index', 'asc')
 
-    return rows.map(fromRow)
+    return rows.reduce((acc, row) => {
+      const address = fromRow(row)
+      if (Boolean(row.is_change) === true) {
+        return {
+          ...acc,
+          change: [...acc.change, address],
+        }
+      } else {
+        return {
+          ...acc,
+          receiving: [...acc.receiving, address],
+        }
+      }
+    }, {receiving: [], change: []})
+  }
+
+  setAddressLabel = async (walletId: string, address: string, label: string): Promise<QueryStatus> => {
+    const result = await this.knex('addresses')
+      .where('address', address)
+      .andWhere('wallet_id', walletId)
+      .update({
+        label: label
+      })
+
+    if (result > 0) {
+      return {
+        success: true,
+        errorMessage: null,
+      }
+    } else {
+      return {
+        success: false,
+        errorMessage: "address or wallet not found",
+      }
+    }
+
   }
 }
