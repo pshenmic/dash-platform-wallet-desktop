@@ -1,21 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API } from '@renderer/api'
-
-export type WalletAddressDto = {
-  walletId: string
-  accountId: number
-  address: string
-  derivationPath: string
-  index: number
-  isChange: number
-  balance: bigint
-  label: string | null
-  usdBalance: string | null
-}
-export type GetAddressesResponse = {
-  receiving: WalletAddressDto[]
-  change: WalletAddressDto[]
-}
+import { GetAddressesResponse, WalletAddressDto } from '@renderer/api/types'
 
 export function useAdresses(walletId: string | undefined) {
   const [receiving, setReceiving] = useState<WalletAddressDto[]>([])
@@ -34,14 +19,13 @@ export function useAdresses(walletId: string | undefined) {
     setErr(null)
     API.getAddresses(walletId)
       .then((data) => {
-        console.log('datagetAddresses', data)
         if (dead) return
         const body = data as GetAddressesResponse
         setReceiving(body.receiving ?? [])
         setChange(body.change ?? [])
       })
       .catch((e) => {
-        console.log('error', e)
+        console.error('error', e)
         if (!dead) setErr(e instanceof Error ? e.message : 'Failed')
       })
       .finally(() => {

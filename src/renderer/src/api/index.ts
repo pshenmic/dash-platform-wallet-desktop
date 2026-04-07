@@ -23,28 +23,8 @@ export class API {
     return this.api.getTransactions(walletId)
   }
 
-  static async getTransactionByHash(hash: string, network: string) {
-    return this.api.getTransactionByHash(hash, network)
-  }
-
-  static async getBlockByHash(hash: string, network: string) {
-    return this.api.getBlockByHash(hash, network)
-  }
-
-  static async getBalance(address: string | string[], network: string) {
-    return this.api.getBalance(address, network)
-  }
-
   static async getIdentities(walletId: string) {
     return this.api.getIdentities(walletId)
-  }
-
-  static async getIdentityBalance(identifier: string) {
-    return this.api.getIdentityBalance(identifier)
-  }
-
-  static async getIdentityNonce(identifier: string) {
-    return this.api.getIdentityNonce(identifier)
   }
 
   static async deleteWallet(walletId: string) {
@@ -57,9 +37,5 @@ export class API {
 
   static async getWalletBalance(walletId: string) {
     return this.api.getWalletBalance(walletId)
-  }
-
-  static async setAddressLabel(walletId: string, address: string, label: string) {
-    return this.api.setAddressLabel(walletId, address, label)
   }
 }

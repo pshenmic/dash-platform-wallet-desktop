@@ -45,7 +45,7 @@ export class AddressDAO {
 
     return rows.reduce((acc, row) => {
       const address = fromRow(row)
-      if (row.is_change === true) {
+      if (Boolean(row.is_change) === true) {
         return {
           ...acc,
           change: [...acc.change, address],

@@ -5,16 +5,12 @@ import { loginTexts, messages } from '@renderer/constants'
 import { useLogin } from '@renderer/hooks/useLogin'
 import { toast } from '@renderer/components/ui/Toast'
 import { useEffect, useMemo } from 'react'
+import { useAuth } from '@renderer/contexts/AuthContext'
+import { toDropdownOptions } from '@renderer/utils/wallets'
 import bgLight from '@renderer/assets/images/pageAuthorization/bg-light.svg'
 import bgDark from '@renderer/assets/images/pageAuthorization/bg-dark.svg'
 import wave from '@renderer/assets/images/pageAuthorization/wave.png'
 import WalletSelect from '@renderer/components/ui/WalletSelect'
-import { useAuth } from '@renderer/contexts/AuthContext'
-import { walletDisplayName } from '@renderer/utils/wallets'
-
-// interface LoginPageProps {
-//   onLogin: () => void
-// }
 
 export default function LoginPage(): React.JSX.Element {
   const { title, description, form, links } = loginTexts
@@ -43,33 +39,7 @@ export default function LoginPage(): React.JSX.Element {
     }
   }, [wallets, isLoading, navigate, links.register.to])
 
-  const walletOptions = useMemo(
-    () =>
-      wallets.map((w, i) => ({
-        ...w,
-        name: walletDisplayName(
-          {
-            walletId: w.walletId,
-            name: w.name,
-            network: w.network,
-            isDefault: w.isDefault,
-          },
-          i
-        ),
-        network: w.network ?? '',
-      })),
-    [wallets]
-  )
-
-  // const handleSubmit = async (e: React.FormEvent): Promise<void> => {
-  //   e.preventDefault()
-  //   const success = await login()
-  //   if (success) {
-  //     onLogin()
-  //   } else {
-  //     toast.error(invalidPassword)
-  //   }
-  // }
+  const walletOptions = useMemo(() => toDropdownOptions(wallets), [wallets])
 
   useEffect(() => {
     if (isLoading) return

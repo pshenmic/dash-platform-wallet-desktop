@@ -2,7 +2,7 @@ import { useAssetSelector } from "@renderer/hooks/useAssetSelector";
 import { useCurrencySelector } from "@renderer/hooks/useCurrencySelector";
 import { useState } from "react";
 import { selectAssetData, TransferPageType } from "@renderer/constants";
-import Header from "./Heade";
+import Header from "./Header";
 import AssetSelectorModal from "@renderer/components/modal/AssetSelectorModal";
 import AmountInput from "./AmountInput";
 import RecipientInput from "./RecipientInput";

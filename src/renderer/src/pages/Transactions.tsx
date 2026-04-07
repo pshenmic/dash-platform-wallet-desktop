@@ -1,8 +1,7 @@
 import { useState } from 'react'
+import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
 import TransactionsList from "@renderer/components/pages/transactions/TransactionsList"
 import TransactionDetail from "@renderer/components/pages/transactions/TransactionDetail"
-// import { TransactionType } from "@renderer/components/pages/transactions/TransactionCard"
-import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
 
 export default function TransactionsPage(): React.JSX.Element {
   const [selectedTransaction, setSelectedTransaction] = useState<WalletTxItem | null>(null)

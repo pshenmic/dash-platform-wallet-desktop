@@ -4,6 +4,7 @@ import { wordlist } from '@scure/bip39/wordlists/english.js'
 import { toast } from '../components/ui/Toast'
 import { API } from '../api'
 import { messages } from '@renderer/constants'
+import { Network } from '@renderer/api/types'
 
 export type CreateWalletStep =
   | 'password'
@@ -13,8 +14,8 @@ export type CreateWalletStep =
   | 'select-network'
   | 'welcome'
   | 'import-seed-phrase'
+  | 'password-import'
 export type WordCount = 12 | 24
-export type NetworkValue = 'mainnet' | 'testnet'
 
 const VERIFY_HIDDEN_COUNT: Record<12 | 24, number> = {
   12: 4,
@@ -47,7 +48,7 @@ export interface TypeUseCreateWallet {
   seedPhrase: string[]
   verifyPhrase: string[]
   wordCount: WordCount
-  network: NetworkValue
+  network: Network
   path: Path
   setPassword: (password: string) => void
   setWordCount: (count: WordCount) => void
@@ -55,11 +56,12 @@ export interface TypeUseCreateWallet {
   verifyMissingWords: (words: string[]) => void
   verifySeedPhrase: () => void
   goBack: () => void
-  setNetwork: (network: NetworkValue) => void
+  setNetwork: (network: Network) => void
   goToWelcome: () => void
   goToPassword: () => void
   goToImportSeedPhrase: () => void
   submitImportSeedPhrase: (phrase: string[]) => void
+  createImportedWallet: () => void
 }
 
 const PREV_STEP: Partial<Record<CreateWalletStep, CreateWalletStep>> = {
@@ -68,6 +70,7 @@ const PREV_STEP: Partial<Record<CreateWalletStep, CreateWalletStep>> = {
   'verify':             'seed-phrase',
   'welcome':            'select-network',
   'import-seed-phrase': 'welcome',
+  'password-import': 'import-seed-phrase',
 }
 
 export function useCreateWallet(): TypeUseCreateWallet {
@@ -76,10 +79,11 @@ export function useCreateWallet(): TypeUseCreateWallet {
   const [seedPhrase, setSeedPhrase] = useState<string[]>([])
   const [verifyPhrase, setVerifyPhrase] = useState<string[]>([])
   const [wordCount, setWordCountState] = useState<WordCount>(12)
-  const [network, setNetwork] = useState<NetworkValue>('mainnet')
+  const [network, setNetwork] = useState<Network>('mainnet')
   const [importSeedPhrase, setImportSeedPhrase] = useState(false)
   const { createWallet: { invalidPhrase, phraseDoesNotMatch, couldNotCreateWallet } } = messages
   const [path, setPath] = useState<Path>(null)
+  const [importedSeedPhrase, setImportedSeedPhrase] = useState<string[]>([])
 
   const setPassword = useCallback((newPassword: string) => {
     setPasswordState(newPassword)
@@ -168,26 +172,27 @@ export function useCreateWallet(): TypeUseCreateWallet {
 
   const goToImportSeedPhrase = useCallback(() => {
     setPath('import')
-    setStep('password')
+    setStep('import-seed-phrase')
     setImportSeedPhrase(true)
   }, [setImportSeedPhrase])
+
+  const createImportedWallet = useCallback(() => {
+    API.createWallet(importedSeedPhrase.join(' '), network, password)
+    .then(() => setStep('success'))
+    .catch((err) => {
+      console.error('createWallet failed:', err)
+      const message = err instanceof Error ? err.message : couldNotCreateWallet
+      toast.error(couldNotCreateWallet + " " + message)
+    })
+  }, [importedSeedPhrase, network, password])
 
   const submitImportSeedPhrase = useCallback((phrase: string[]) => {
     const isValid =
       (phrase.length === 12 || phrase.length === 24) && phrase.every((w) => w.trim().length > 0)
 
     if (!isValid) return
-
-    API.createWallet(phrase.join(' '), network, password)
-    .then(() => {
-      setStep('success')
-      console.log('createWallet success')
-    })
-    .catch((err) => {
-      console.error('createWallet failed:', err)
-      const message = err instanceof Error ? err.message : couldNotCreateWallet
-      toast.error(couldNotCreateWallet + " " + message)
-    })
+    setImportedSeedPhrase(phrase)
+    setStep('password-import')
   }, [network, password])
 
   return {
@@ -208,6 +213,7 @@ export function useCreateWallet(): TypeUseCreateWallet {
     goToPassword,
     goToImportSeedPhrase,
     submitImportSeedPhrase,
+    createImportedWallet,
     path
   }
 }

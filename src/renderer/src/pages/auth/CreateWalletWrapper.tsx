@@ -3,6 +3,7 @@ import { ChevronIcon, DashLogo, useTheme } from "dash-ui-kit/react";
 import { authTexts } from "@renderer/constants";
 import { useCreateWallet } from "@renderer/hooks/useCreateWallet";
 import { ProgressStepBar } from "@renderer/components/dash-ui-kit-enxtended/progressStepBar";
+import { useRipple } from "@renderer/hooks/useRipple";
 import waveAuth from '@renderer/assets/images/pageAuthorization/waveAuth.png';
 import authBgStack from '@renderer/assets/images/pageAuthorization/auth-bg-stack.png';
 import authBgFlower from '@renderer/assets/images/pageAuthorization/auth-bg-flower.png';
@@ -16,7 +17,6 @@ import SelectNetwork from "@renderer/components/pages/auth/SelectNetwork";
 import WelcomeDashDesktopWallet from "@renderer/components/pages/auth/WelcomeDashDesktopWallet"
 import ImportSeedPhrase from "@renderer/components/pages/auth/ImportSeedPhrase";
 import NetworkBadge from "@renderer/components/ui/NetworkBadge";
-import { useRipple } from "@renderer/hooks/useRipple";
 
 export default function CreateWalletWrapper(): React.JSX.Element {
   const {createWallet, saveYourSeedPhrase, fillInYourSeedPhrase, seedPhraseWarning, success, successImport, selectNetwork, welcome, importSeedPhrase} = authTexts
@@ -41,6 +41,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
     goToPassword,
     goToImportSeedPhrase,
     submitImportSeedPhrase,
+    createImportedWallet,
     path
   } = useCreateWallet()
   const hoverAnimation = useRipple()
@@ -53,14 +54,16 @@ export default function CreateWalletWrapper(): React.JSX.Element {
   <span className={"inline-block max-w-125 leading-[100%]"}>
     <span className={"font-normal"}>{welcome.titlePrefix}</span> <span className={"font-bold"}>{welcome.titleHighlight}</span>
   </span> :
-  step === 'import-seed-phrase' ? importSeedPhrase.title :''
+  step === 'import-seed-phrase' ? importSeedPhrase.title :
+  step === 'password-import' ? 'Create Password' : ''
 
   const description = step === 'password' ? createWallet.description :
   step === 'seed-phrase' ? saveYourSeedPhrase.description :
   step === 'verify' ? fillInYourSeedPhrase.description :
   step === 'select-network' ? selectNetwork.description :
   step === 'welcome' ? welcome.description :
-  step === 'import-seed-phrase' ? importSeedPhrase.description : ''
+  step === 'import-seed-phrase' ? importSeedPhrase.description :
+  step === 'password-import' ? createWallet.description : ''
 
   const wave = step === 'select-network' ? authBgStack :
   step === 'welcome' ? authBgFlower : waveAuth
@@ -82,7 +85,9 @@ export default function CreateWalletWrapper(): React.JSX.Element {
 
       {step !== 'select-network' &&
         <button
-          {...hoverAnimation}
+          onMouseEnter={hoverAnimation.onMouseEnter}
+          onMouseMove={hoverAnimation.onMouseMove}
+          onMouseLeave={hoverAnimation.onMouseLeave}
           className={`
             z-50
             absolute
@@ -143,7 +148,23 @@ export default function CreateWalletWrapper(): React.JSX.Element {
               labelPassword: createWallet.labelPassword,
               placeholderPassword: createWallet.placeholderPassword
             }}
-        />}
+          />
+        }
+
+        {step === 'password-import' &&
+          <CreateWallet
+            setPassword={setPassword}
+            password={password}
+            createImportedWallet={createImportedWallet}
+            data={{
+              labelConfirmPassword: createWallet.labelConfirmPassword,
+              placeholderConfirmPassword: createWallet.placeholderConfirmPassword,
+              buttonNext: createWallet.buttonNext,
+              labelPassword: createWallet.labelPassword,
+              placeholderPassword: createWallet.placeholderPassword
+            }}
+          />
+        }
         {step === 'seed-phrase' &&
           <SeedPhrase
             data={{
@@ -178,7 +199,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
 
         {step !== 'select-network' && step !== 'welcome' &&
           <ProgressStepBar
-            currentStep={path === 'create' ? (step === 'password' ? 1 : step === 'seed-phrase' ? 2 : 3) : (step === 'password' ? 1 : 2)}
+            currentStep={path === 'create' ? (step === 'password' ? 1 : step === 'seed-phrase' ? 2 : 3) : (step === 'import-seed-phrase' ? 1 : 2)}
             totalSteps={path === 'create' ? 3 : 2}
             className={"mt-[.75rem]"}
             color={"blue-mint"}
@@ -186,7 +207,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
         }
 
         {step === 'password' &&
-          <button className={"flex items-center gap-2 group cursor-pointer mt-6"}>
+          <button className={"flex items-center gap-2 group cursor-pointer mt-6"} onClick={goToImportSeedPhrase}>
             <WalletIcon
               size={16}
               className={`

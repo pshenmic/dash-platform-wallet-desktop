@@ -11,22 +11,7 @@ import AddressesPage from "./pages/Addresses"
 import { useAuth } from "./contexts/AuthContext"
 
 function App(): React.JSX.Element {
-  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const { isAuthenticated } = useAuth()
-
-  // const navigate = useNavigate();
-  // const location = useLocation();
-  // useSystemTheme()
-
-  // const handleLogin = useCallback(() => {
-  //   setIsAuthenticated(true)
-  // }, [])
-
-  // useEffect(() => {
-  //   if (!isAuthenticated && location.pathname !== '/') {
-  //     navigate('/', { replace: true })
-  //   }
-  // }, [])
 
   if (!isAuthenticated) {
     return (
@@ -34,7 +19,7 @@ function App(): React.JSX.Element {
         <Route path="/" element={<LoginPage />} />
         <Route path="/create-wallet" element={<CreateWalletWrapper />} />
       </Routes>
-    );
+    )
   }
 
   return (

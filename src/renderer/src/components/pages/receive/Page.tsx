@@ -1,5 +1,5 @@
 import { ReceivePageType } from "@renderer/constants";
-import Header from "../transfer/Heade";
+import Header from "../transfer/Header";
 import ReceiveAddressCard from "./ReceiveAddressCard";
 
 const selectedAsset = {

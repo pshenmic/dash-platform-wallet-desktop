@@ -3,16 +3,10 @@ import { cva } from 'class-variance-authority'
 import { Text } from '@renderer/components/dash-ui-kit-enxtended'
 import { WalletIcon, ChevronIcon } from '@renderer/components/dash-ui-kit-enxtended/icons'
 import { useClickOutside } from '@renderer/hooks/useClickOutside'
-
-export interface WalletSelectWallet {
-  walletId: string
-  name: string
-  network: string
-  isDefault?: boolean
-}
+import { WalletDropdownOption } from '@renderer/utils/wallets'
 
 export interface WalletSelectProps {
-  options: WalletSelectWallet[]
+  options: WalletDropdownOption[]
   value: string
   onChange: (value: string) => void
   className?: string
@@ -59,10 +53,10 @@ export default function WalletSelect({
 }: WalletSelectProps): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const selectedOption = options.find((o) => o.walletId === value)
+  const selectedOption = options.find((o) => o.value === value)
 
   const sortedOptions = useMemo(
-    () => [...options].sort((a, b) => (b.walletId === value ? 1 : 0) - (a.walletId === value ? 1 : 0)),
+    () => [...options].sort((a, b) => (b.value === value ? 1 : 0) - (a.value === value ? 1 : 0)),
     [options, value]
   )
 
@@ -102,9 +96,9 @@ export default function WalletSelect({
             <WalletIcon size={16} color={"currentColor"} className={"dash-text-default"} />
             <div className={"flex items-center gap-2"}>
               <Text size={14} weight={"medium"} color={"brand"}>
-                {selectedOption?.name}
+                {selectedOption?.label}
               </Text>
-              {selectedOption?.isDefault && <DefaultBadge />}
+              {selectedOption?.isSelected && <DefaultBadge />}
             </div>
           </div>
           {!disabled &&
@@ -115,11 +109,11 @@ export default function WalletSelect({
 
       <div className={dropdownStyles({ isOpen })}>
         {sortedOptions.map((option, index) => {
-          const isSelected = option.walletId === value
+          const isSelected = option.value === value
           return (
             <div
-              key={option.walletId}
-              onClick={() => handleSelect(option.walletId)}
+              key={option.value}
+              onClick={() => handleSelect(option.value)}
               className={`
                 flex items-center
                 px-6.25 h-14.25
@@ -136,9 +130,9 @@ export default function WalletSelect({
                 <WalletIcon size={16} color={"currentColor"} className={"dash-text-default"} />
                 <div className={"flex items-center gap-2"}>
                   <Text size={14} weight={"medium"} color={"brand"}>
-                    {option.name}
+                    {option.label}
                   </Text>
-                  {option.isDefault && <DefaultBadge />}
+                  {option.isSelected && <DefaultBadge />}
                 </div>
               </div>
             </div>

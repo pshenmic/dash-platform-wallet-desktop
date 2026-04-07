@@ -1,10 +1,10 @@
 import { NetworkOption } from '@renderer/components/ui/NetworkOption';
 import { Button } from '@renderer/components/dash-ui-kit-enxtended';
 import { SelectNetworkTexts } from '@renderer/constants';
-import { NetworkValue } from '@renderer/hooks/useCreateWallet';
+import { Network } from '@renderer/api/types';
 
-export default function  SelectNetwork({ data, network, setNetwork, goToWelcome } : { data: SelectNetworkTexts, network: NetworkValue, setNetwork: (network: NetworkValue) => void, goToWelcome: () => void }): React.JSX.Element {
-  const OPTIONS: { value: NetworkValue; label: string }[] = [
+export default function  SelectNetwork({ data, network, setNetwork, goToWelcome } : { data: SelectNetworkTexts, network: Network, setNetwork: (network: Network) => void, goToWelcome: () => void }): React.JSX.Element {
+  const OPTIONS: { value: Network; label: string }[] = [
     { value: "mainnet", label: data.mainnet },
     { value: "testnet", label: data.testnet },
   ]

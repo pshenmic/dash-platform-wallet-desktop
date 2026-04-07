@@ -41,7 +41,6 @@ export default function SidebarHeader(): React.JSX.Element {
   useEffect(() => {
     API.getWalletBalance(status?.selectedWalletId ?? '')
       .then((data) => {
-        console.log('datagetWalletBalance', data)
         setBalance(data as BalanceType)
       })
       .catch((error) => {

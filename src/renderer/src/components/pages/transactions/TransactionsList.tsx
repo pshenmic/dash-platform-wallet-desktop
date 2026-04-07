@@ -20,8 +20,6 @@ export default function TransactionsList({ onTransactionClick }: TransactionsLis
 
   const { groups, loading, err } = useWalletTransactions(status?.selectedWalletId ?? undefined)
 
-  console.log('txs', groups)
-
   const tabs = [
     {
       value: 'transactions',
@@ -43,9 +41,9 @@ export default function TransactionsList({ onTransactionClick }: TransactionsLis
           {!loading && !err && groups.map((group, groupIndex) => (
             <div key={groupIndex} className={"flex flex-col gap-[.9375rem]"}>
               <DateBlock timestamp={group.date} format={"dateOnly"}/>
-                {group.transactions.map((transaction) => (
+                {group.transactions.map((transaction, txIndex) => (
                   <div
-                    key={transaction.id}
+                    key={`${transaction.id}-${groupIndex}-${txIndex}`}
                     onClick={() => { transaction.status === 'pending' || transaction.status === 'failed' ? null : onTransactionClick?.(transaction)}}
                     className={transaction.status === 'pending' || transaction.status === 'failed' ? '' : 'cursor-pointer'}
                   >
@@ -72,28 +70,6 @@ export default function TransactionsList({ onTransactionClick }: TransactionsLis
           shadow-[0_0_32px_0_rgba(12,28,51,0.08)]
         `}
       >
-        {/* <Button
-          colorScheme={"primary-light"}
-          className={`
-            absolute
-            top-5
-            right-[.9375rem]
-            flex
-            items-center
-            gap-[.625rem]
-            px-2
-            py-1
-            z-1
-            min-h-fit!
-            rounded-[.3125rem]
-          `}
-        >
-          <FilterIcon size={12} color={"currentColor"} className={"dash-text-default"} />
-          <Text size={14} weight={"medium"} color={"brand"}>
-            {filter}
-          </Text>
-        </Button> */}
-
         <Tabs
           items={tabs}
           value={activeTab}

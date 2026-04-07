@@ -1,19 +1,19 @@
-export type WalletDto = {
-  walletId: string
-  name?: string | null
-  network?: string | null
-  isDefault?: boolean
+import type { WalletDto as ApiWalletDto } from '@renderer/api/types'
+
+export interface WalletDropdownOption {
+  value: string
+  label: string
+  isSelected: boolean
 }
 
-export function walletDisplayName(wallet: WalletDto, index: number): string {
-  const raw = wallet.name?.trim()
+export function walletDisplayName(wallet: ApiWalletDto, index: number): string {
+  const raw = wallet.label?.trim()
   return raw && raw.length > 0 ? raw : `Wallet_${index + 1}`
 }
-
-export function toDropdownOptions(wallets: WalletDto[]) {
+export function toDropdownOptions(wallets: ApiWalletDto[]): WalletDropdownOption[] {
   return wallets.map((w, i) => ({
     value: w.walletId,
     label: walletDisplayName(w, i),
-    description: w.isDefault ? 'Default' : (w.network ?? ''),
+    isSelected: w.selected,
   }))
 }
