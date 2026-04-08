@@ -184,7 +184,7 @@ export class WalletService {
     return this.walletDAO.setSelectedWallet(walletId)
   }
 
-  async verifyWalletPassword(password: string, walletId: string): Promise<boolean> {
+  async verifyWalletPassword(walletId: string, password: string): Promise<boolean> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
     if (wallet == null) {
