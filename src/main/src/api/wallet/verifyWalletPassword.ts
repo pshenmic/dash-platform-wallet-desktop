@@ -8,7 +8,7 @@ export class VerifyWalletPasswordHandler {
     this.walletService = walletService
   }
 
-  handle = async (_event: IpcMainInvokeEvent, password: string, walletId: string): Promise<boolean> => {
-    return this.walletService.verifyWalletPassword(password, walletId)
+  handle = async (_event: IpcMainInvokeEvent, walletId: string, password: string): Promise<boolean> => {
+    return this.walletService.verifyWalletPassword(walletId, password)
   }
 }
