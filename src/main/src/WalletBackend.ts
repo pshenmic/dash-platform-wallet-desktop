@@ -26,10 +26,11 @@ import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
 import {VerifyWalletPasswordHandler} from "./api/wallet/verifyWalletPassword";
-import {UpdatePreferencesHandler} from "./api/updatePreferences";
+import {SetLanguageHandler} from "./api/setLanguage";
 import {Preferences} from "./preferences";
 import {GetPreferencesHandler} from "./api/getPreferences";
 import {ResetPreferencesHandler} from "./api/resetPreferences";
+import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -58,8 +59,9 @@ export class WalletBackend {
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
     ipcMain.handle('setAddressLabel', new SetAddressLabel(this.walletService).handle)
     ipcMain.handle('verifyWalletPassword', new VerifyWalletPasswordHandler(this.walletService).handle)
-    ipcMain.handle('updatePreferences', new UpdatePreferencesHandler(this.preferences).handle)
     ipcMain.handle('getPreferences', new GetPreferencesHandler(this.preferences).handle)
+    ipcMain.handle('setLanguage', new SetLanguageHandler(this.preferences).handle)
+    ipcMain.handle('setFiatCurrency', new SetFiatCurrencyHandler(this.preferences).handle)
     ipcMain.handle('resetPreferences', new ResetPreferencesHandler(this.preferences).handle)
   }
 

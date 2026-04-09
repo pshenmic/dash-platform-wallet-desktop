@@ -3,16 +3,23 @@ import {Preferences} from "../preferences";
 import {QueryStatus} from "../types/QueryStatus";
 import {ZodError} from "zod";
 
-export class UpdatePreferencesHandler {
+export class SetFiatCurrencyHandler {
   private preferences: Preferences
 
   constructor(preferences: Preferences) {
     this.preferences = preferences
   }
 
-  handle = async (_event: IpcMainInvokeEvent, preferences: unknown): Promise<QueryStatus> => {
+  handle = async (_event: IpcMainInvokeEvent, currency: string): Promise<QueryStatus> => {
     try {
-      await this.preferences.apply(preferences)
+      await this.preferences.apply({
+        ...this.preferences,
+        general: {
+          ...this.preferences.general,
+          currency,
+        }
+      })
+
 
       return {success: true, errorMessage: null}
     } catch (err) {
