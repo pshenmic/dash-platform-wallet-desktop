@@ -1,7 +1,7 @@
 import {calibratePBKDF2Iterations, ensureHomeFolder, getKnex, migrateKnex} from './utils'
 import path from 'path'
 import os from 'os'
-import {HomeFolderName, PBKDF2_TARGET_MS, StorageFilename} from './constants'
+import {HomeFolderName, PBKDF2_TARGET_MS, PreferencesFilename, StorageFilename} from './constants'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ipcMain } from 'electron'
 import { WalletDAO } from './database/WalletDAO'
@@ -26,14 +26,20 @@ import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
 import {VerifyWalletPasswordHandler} from "./api/wallet/verifyWalletPassword";
+import {SetLanguageHandler} from "./api/setLanguage";
+import {Preferences} from "./preferences";
+import {GetPreferencesHandler} from "./api/getPreferences";
+import {ResetPreferencesHandler} from "./api/resetPreferences";
+import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
 
 export class WalletBackend {
   private walletService?: WalletService
   private addressesService?: AddressesService
   private applicationService?: ApplicationService
+  private preferences?: Preferences
 
   private initHandlers(): void {
-    if (!this.walletService || !this.addressesService || !this.applicationService) {
+    if (!this.walletService || !this.addressesService || !this.applicationService || !this.preferences) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
@@ -53,6 +59,10 @@ export class WalletBackend {
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
     ipcMain.handle('setAddressLabel', new SetAddressLabel(this.walletService).handle)
     ipcMain.handle('verifyWalletPassword', new VerifyWalletPasswordHandler(this.walletService).handle)
+    ipcMain.handle('getPreferences', new GetPreferencesHandler(this.preferences).handle)
+    ipcMain.handle('setLanguage', new SetLanguageHandler(this.preferences).handle)
+    ipcMain.handle('setFiatCurrency', new SetFiatCurrencyHandler(this.preferences).handle)
+    ipcMain.handle('resetPreferences', new ResetPreferencesHandler(this.preferences).handle)
   }
 
   async start(): Promise<void> {
@@ -61,8 +71,7 @@ export class WalletBackend {
     // calibrate only on start and then using until wallet running
     const calibratedIterations = calibratePBKDF2Iterations(PBKDF2_TARGET_MS)
 
-    // Uncomment when we start using preferences
-    // const preferences = await Preferences.init(path.join(os.homedir(), HomeFolderName, PreferencesFilename))
+    const preferences = await Preferences.init(path.join(os.homedir(), HomeFolderName, PreferencesFilename))
 
     const knex = getKnex(path.join(os.homedir(), HomeFolderName, StorageFilename))
 
@@ -77,6 +86,7 @@ export class WalletBackend {
     this.applicationService = new ApplicationService()
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, calibratedIterations)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
+    this.preferences = preferences
 
     this.initHandlers()
 
