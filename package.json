@@ -1,7 +1,7 @@
 {
-  "name": "dash-desktop-wallet",
-  "version": "1.0.0",
-  "description": "dash-platform-wallet-desktop",
+  "name": "dash-desktop",
+  "version": "0.0.1",
+  "description": "dash-desktop",
   "main": "./out/main/index.js",
   "author": "",
   "license": "ISC",
