@@ -3,6 +3,19 @@ import os from 'os'
 import path from 'path'
 import {HomeFolderName, PBKDF2_DIGEST, PBKDF2_KEY_LENGTH, PBKDF2_SALT_LENGTH} from './constants'
 import knex, {Knex} from 'knex'
+import * as migration0000 from '../migrations/0000_init'
+import * as migration0001 from '../migrations/0001_identities'
+
+const migrations = [
+  { name: '0000_init', migration: migration0000 },
+  { name: '0001_identities', migration: migration0001 },
+]
+
+const inlineMigrationSource = {
+  getMigrations: () => Promise.resolve(migrations),
+  getMigrationName: (m: typeof migrations[number]) => m.name,
+  getMigration: (m: typeof migrations[number]) => Promise.resolve(m.migration),
+}
 import {TransactionWalletProviderJSON} from "./providers/types";
 import {Address} from "./types/Address";
 import {TransactionStatus} from "./enums/TransactionStatus";
@@ -52,10 +65,8 @@ export function getKnex (path?: string): Knex {
   })
 }
 
-export async function migrateKnex (knex, migrationsPath): Promise<void> {
-  await knex.migrate.latest({
-    directory: migrationsPath.toString()
-  })
+export async function migrateKnex (knex: Knex): Promise<void> {
+  await knex.migrate.latest({ migrationSource: inlineMigrationSource })
 }
 
 export function ensureHomeFolder (): void {

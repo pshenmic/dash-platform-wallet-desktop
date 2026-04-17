@@ -75,7 +75,7 @@ export class WalletBackend {
 
     const knex = getKnex(path.join(os.homedir(), HomeFolderName, StorageFilename))
 
-    await migrateKnex(knex, path.join(process.cwd(), 'src/main/migrations'))
+    await migrateKnex(knex)
 
     const walletDAO = new WalletDAO(knex)
     const addressDAO = new AddressDAO(knex)
