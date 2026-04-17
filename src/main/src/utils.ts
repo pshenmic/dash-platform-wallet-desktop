@@ -7,8 +7,8 @@ import * as migration0000 from '../migrations/0000_init'
 import * as migration0001 from '../migrations/0001_identities'
 
 const migrations = [
-  { name: '0000_init', migration: migration0000 },
-  { name: '0001_identities', migration: migration0001 },
+  { name: '0000_init.ts', migration: migration0000 },
+  { name: '0001_identities.ts', migration: migration0001 },
 ]
 
 const inlineMigrationSource = {
