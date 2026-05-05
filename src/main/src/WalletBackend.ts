@@ -31,15 +31,20 @@ import {Preferences} from "./preferences";
 import {GetPreferencesHandler} from "./api/getPreferences";
 import {ResetPreferencesHandler} from "./api/resetPreferences";
 import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
+import {SpvService} from './services/SpvService'
+import {StartSpvSyncHandler} from './api/spv/startSpvSync'
+import {StopSpvSyncHandler} from './api/spv/stopSpvSync'
+import {GetSpvStatusHandler} from './api/spv/getSpvStatus'
 
 export class WalletBackend {
   private walletService?: WalletService
   private addressesService?: AddressesService
   private applicationService?: ApplicationService
   private preferences?: Preferences
+  private spvService?: SpvService
 
   private initHandlers(): void {
-    if (!this.walletService || !this.addressesService || !this.applicationService || !this.preferences) {
+    if (!this.walletService || !this.addressesService || !this.applicationService || !this.preferences || !this.spvService) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
@@ -63,6 +68,9 @@ export class WalletBackend {
     ipcMain.handle('setLanguage', new SetLanguageHandler(this.preferences).handle)
     ipcMain.handle('setFiatCurrency', new SetFiatCurrencyHandler(this.preferences).handle)
     ipcMain.handle('resetPreferences', new ResetPreferencesHandler(this.preferences).handle)
+    ipcMain.handle('startSpvSync', new StartSpvSyncHandler(this.spvService).handle)
+    ipcMain.handle('stopSpvSync', new StopSpvSyncHandler(this.spvService).handle)
+    ipcMain.handle('getSpvStatus', new GetSpvStatusHandler(this.spvService).handle)
   }
 
   async start(): Promise<void> {
@@ -87,6 +95,7 @@ export class WalletBackend {
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, calibratedIterations)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
     this.preferences = preferences
+    this.spvService = new SpvService(walletDAO)
 
     this.initHandlers()
 

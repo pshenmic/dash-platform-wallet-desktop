@@ -19,5 +19,9 @@ export const apiDefinitions = (ipcRenderer) => ({
   getPreferences: () => ipcRenderer.invoke('getPreferences'),
   setLanguage: (language: string) => ipcRenderer.invoke('setLanguage', language),
   setFiatCurrency: (currency: string) => ipcRenderer.invoke('setFiatCurrency', currency),
-  resetPreferences: () => ipcRenderer.invoke('resetPreferences')
+  resetPreferences: () => ipcRenderer.invoke('resetPreferences'),
+  // spv
+  startSpvSync: (walletId: string) => ipcRenderer.invoke('startSpvSync', walletId),
+  stopSpvSync: () => ipcRenderer.invoke('stopSpvSync'),
+  getSpvStatus: () => ipcRenderer.invoke('getSpvStatus'),
 })
