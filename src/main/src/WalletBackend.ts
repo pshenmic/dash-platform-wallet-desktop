@@ -35,6 +35,7 @@ import {SpvService} from './services/SpvService'
 import {StartSpvSyncHandler} from './api/spv/startSpvSync'
 import {StopSpvSyncHandler} from './api/spv/stopSpvSync'
 import {GetSpvStatusHandler} from './api/spv/getSpvStatus'
+import {GetUtxosHandler} from './api/spv/getUtxos'
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -43,12 +44,14 @@ export class WalletBackend {
   private preferences?: Preferences
   private spvService?: SpvService
 
+  private addressDAO?: AddressDAO
+
   private initHandlers(): void {
-    if (!this.walletService || !this.addressesService || !this.applicationService || !this.preferences || !this.spvService) {
+    if (!this.walletService || !this.addressesService || !this.applicationService || !this.preferences || !this.spvService || !this.addressDAO) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
-    ipcMain.handle('createWallet', new CreateWalletHandler(this.walletService).handle)
+    ipcMain.handle('createWallet', new CreateWalletHandler(this.walletService, this.addressDAO, this.spvService).handle)
     ipcMain.handle('deleteWallet', new DeleteWalletHandler(this.walletService).handle)
     ipcMain.handle('getAllWallets', new GetAllWalletsHandler(this.walletService).handle)
     ipcMain.handle('selectWallet', new SelectWallet(this.walletService).handle)
@@ -71,6 +74,7 @@ export class WalletBackend {
     ipcMain.handle('startSpvSync', new StartSpvSyncHandler(this.spvService).handle)
     ipcMain.handle('stopSpvSync', new StopSpvSyncHandler(this.spvService).handle)
     ipcMain.handle('getSpvStatus', new GetSpvStatusHandler(this.spvService).handle)
+    ipcMain.handle('getUtxos', new GetUtxosHandler(this.spvService).handle)
   }
 
   async start(): Promise<void> {
@@ -95,7 +99,8 @@ export class WalletBackend {
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, calibratedIterations)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
     this.preferences = preferences
-    this.spvService = new SpvService(walletDAO)
+    this.spvService = new SpvService(walletDAO, addressDAO)
+    this.addressDAO = addressDAO
 
     this.initHandlers()
 

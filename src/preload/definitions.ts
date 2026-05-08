@@ -24,4 +24,5 @@ export const apiDefinitions = (ipcRenderer) => ({
   startSpvSync: (walletId: string) => ipcRenderer.invoke('startSpvSync', walletId),
   stopSpvSync: () => ipcRenderer.invoke('stopSpvSync'),
   getSpvStatus: () => ipcRenderer.invoke('getSpvStatus'),
+  getUtxos: () => ipcRenderer.invoke('getUtxos'),
 })
