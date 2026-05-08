@@ -67,10 +67,11 @@ export class SpvService {
       this.send({ type: 'stop' })
     }
 
-    // Watch every address from every wallet on this network — the chain.db is
-    // network-scoped, and matching across wallets means a single scan covers
-    // all loaded wallets without re-running for each.
-    const watchAddresses = await this.addressDAO.getAllAddressesForNetwork(network)
+    // Per-wallet sync: only this wallet's addresses go into the watch set.
+    // chain.db's UTXO and cfcursor keyspaces are scoped by walletId so each
+    // wallet keeps its own scan state independent of others.
+    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
+    const watchAddresses = [...grouped.receiving, ...grouped.change].map(a => a.address)
 
     this.activeWalletId = walletId
     this.utxos = []
@@ -78,6 +79,7 @@ export class SpvService {
     this.send({
       type: 'start',
       network,
+      walletId,
       chainDbPath: path.join(os.homedir(), HomeFolderName, ChainStorageFilename),
       startHeight: 1,
       startHash: '0000047d24635e347be3aaaeb66c26be94901a2f962feccd4f95090191f208c1',
@@ -98,11 +100,11 @@ export class SpvService {
   }
 
   // Hot-add addresses to the live cfilter watch set. No-op when no SPV child
-  // is running. The utility process filters by network, so callers don't need
-  // to gate on the active wallet's network.
-  addWatchAddresses = (network: 'mainnet' | 'testnet', addresses: string[]): void => {
+  // is running OR when the active sync is for a different wallet — the
+  // utility process gates on walletId match.
+  addWatchAddresses = (walletId: string, addresses: string[]): void => {
     if (!this.child || addresses.length === 0) return
-    this.send({ type: 'addWatchAddresses', network, addresses })
+    this.send({ type: 'addWatchAddresses', walletId, addresses })
   }
 
   getStatus = (): SpvStatus | null => {

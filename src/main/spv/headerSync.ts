@@ -30,6 +30,9 @@ export interface HeaderSyncStatus {
   tipHeight: number
   tipHash: string | null
   peerCount: number
+  // Highest bestHeight reported by any ready peer. Renderer uses this as the
+  // denominator for header-sync % progress.
+  estimatedChainHeight: number
 }
 
 export interface HeaderSyncOptions {
@@ -59,6 +62,7 @@ export class HeaderSync {
 
   private chainTipHeight: number
   private chainTipHash: string
+  private maxPeerHeight = 0
 
   private pool: Pool
   private messages: Messages
@@ -115,6 +119,7 @@ export class HeaderSync {
       tipHeight: this.chainTipHeight,
       tipHash: this.chainTipHash || null,
       peerCount: this.readyPeers.size,
+      estimatedChainHeight: Math.max(this.maxPeerHeight, this.chainTipHeight),
     })
   }
 
@@ -137,6 +142,8 @@ export class HeaderSync {
     this.pool.on('peerready', (peer: Peer) => {
       if (this.stopped) return
       this.readyPeers.add(peer)
+      const best = (peer as { bestHeight?: number }).bestHeight ?? 0
+      if (best > this.maxPeerHeight) this.maxPeerHeight = best
       console.log(`[spv] peerready ${peer.host}:${peer.port} v${peer.version} bestHeight=${peer.bestHeight} ready=${this.readyPeers.size}`)
       peer.sendMessage((this.messages as any).SendHeaders())
 

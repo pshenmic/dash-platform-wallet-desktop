@@ -15,6 +15,7 @@ let chainDAO: ChainDAO | null = null
 let headerSync: HeaderSync | null = null
 let cfilterSync: CFilterSync | null = null
 let activeNetwork: SpvStatus['network'] = null
+let activeWalletId: string | null = null
 let activeWatchAddresses: string[] = []
 let activeBirthdayHeight = 1
 let cfilterStarted = false
@@ -22,11 +23,18 @@ let cfilterStarted = false
 let status: SpvStatus = {
   phase: 'idle',
   network: null,
+  walletId: null,
   tipHeight: 0,
   tipHash: null,
-  peerCount: 0,
-  cfilterHeight: 0,
+  estimatedChainHeight: 0,
+  cfheadersHeight: 0,
+  cfilterScanHeight: 0,
+  matchedBlocksPending: 0,
   utxoCount: 0,
+  totalBalance: '0',
+  peerCount: 0,
+  filterCapablePeerCount: 0,
+  lastError: null,
   updatedAt: Date.now(),
 }
 
@@ -40,6 +48,8 @@ function emitUtxos(utxos: SpvUtxoSummary[]): void {
 }
 
 function reportError(message: string): void {
+  status = { ...status, lastError: message, updatedAt: Date.now() }
+  process.parentPort.postMessage({ type: 'status', status })
   process.parentPort.postMessage({ type: 'error', message })
 }
 
@@ -53,8 +63,10 @@ function emitFromHeaderSync(s: HeaderSyncStatus): void {
         ? s.phase
         : 'synced-headers',
     network: activeNetwork,
+    walletId: activeWalletId,
     tipHeight: s.tipHeight,
     tipHash: s.tipHash,
+    estimatedChainHeight: s.estimatedChainHeight,
     peerCount: s.peerCount,
   })
 
@@ -69,23 +81,32 @@ function emitFromHeaderSync(s: HeaderSyncStatus): void {
 function emitFromCFilterSync(s: CFilterSyncStatus): void {
   // Map cfilter sub-phases to the wire SpvPhase enum.
   const phase: SpvStatus['phase'] =
-    s.phase === 'connecting' ? 'syncing-cfilters'
-    : s.phase === 'cfcheckpt' || s.phase === 'cfheaders' || s.phase === 'cfilters' ? 'syncing-cfilters'
+    s.phase === 'connecting' ? 'syncing-cfcheckpt'
+    : s.phase === 'cfcheckpt' ? 'syncing-cfcheckpt'
+    : s.phase === 'cfheaders' ? 'syncing-cfheaders'
+    : s.phase === 'cfilters' ? 'syncing-cfilters'
     : s.phase === 'synced' ? 'synced'
     : s.phase === 'stopped' ? 'stopped'
     : status.phase
   emit({
     phase,
-    cfilterHeight: s.cfilterHeight,
+    cfheadersHeight: s.cfheadersHeight,
+    cfilterScanHeight: s.cfilterScanHeight,
+    matchedBlocksPending: s.matchedBlocksPending,
     utxoCount: s.utxoCount,
+    totalBalance: s.totalBalance,
+    // Header pool and cfilter pool are independent; report whichever has more
+    // peers so the renderer never sees the count drop on transition.
     peerCount: Math.max(status.peerCount, s.peerCount),
+    filterCapablePeerCount: s.filterCapablePeerCount,
   })
 }
 
 async function startCFilterSync(tipHeight: number, tipHashDisplayHex: string): Promise<void> {
-  if (!chainDAO || !activeNetwork) return
+  if (!chainDAO || !activeNetwork || !activeWalletId) return
   cfilterSync = new CFilterSync({
     network: activeNetwork,
+    walletId: activeWalletId,
     chainDAO,
     chainTipHeight: tipHeight,
     chainTipHashDisplayHex: tipHashDisplayHex,
@@ -117,14 +138,24 @@ async function handleStart(cmd: Extract<SpvCommand, { type: 'start' }>): Promise
   await teardown()
 
   activeNetwork = cmd.network
+  activeWalletId = cmd.walletId
   activeWatchAddresses = cmd.watchAddresses ?? []
   activeBirthdayHeight = cmd.birthdayHeight && cmd.birthdayHeight > 0 ? cmd.birthdayHeight : 1
   emit({
     phase: 'connecting',
     network: cmd.network,
-    peerCount: 0,
-    cfilterHeight: 0,
+    walletId: cmd.walletId,
+    tipHeight: 0,
+    tipHash: null,
+    estimatedChainHeight: 0,
+    cfheadersHeight: 0,
+    cfilterScanHeight: 0,
+    matchedBlocksPending: 0,
     utxoCount: 0,
+    totalBalance: '0',
+    peerCount: 0,
+    filterCapablePeerCount: 0,
+    lastError: null,
   })
 
   chainDAO = new ChainDAO(cmd.chainDbPath)
@@ -138,11 +169,14 @@ async function handleStart(cmd: Extract<SpvCommand, { type: 'start' }>): Promise
     return
   }
 
-  // Emit the initial UTXO snapshot so the renderer can populate before sync.
-  const initialUtxos = await chainDAO.getAllUtxos(cmd.network)
+  // Emit the initial UTXO snapshot for THIS wallet so the renderer can
+  // populate before sync. Compute total balance up front too.
+  const initialUtxos = await chainDAO.getAllUtxos(cmd.walletId)
   if (initialUtxos.length > 0) {
     emitUtxos(initialUtxos)
-    emit({utxoCount: initialUtxos.length})
+    let initialBalance = 0n
+    for (const u of initialUtxos) initialBalance += BigInt(u.satoshis)
+    emit({utxoCount: initialUtxos.length, totalBalance: initialBalance.toString()})
   }
 
   let resumeHeight = persisted.tipHeight
@@ -174,8 +208,8 @@ async function handleStart(cmd: Extract<SpvCommand, { type: 'start' }>): Promise
 }
 
 function handleAddWatchAddresses(cmd: Extract<SpvCommand, { type: 'addWatchAddresses' }>): void {
-  if (!activeNetwork || cmd.network !== activeNetwork) return
-  // Track the active set so a teardown+restart inherits the additions.
+  // Hot-add only applies if the active sync is for THIS wallet.
+  if (!activeWalletId || cmd.walletId !== activeWalletId) return
   const merged = new Set(activeWatchAddresses)
   for (const a of cmd.addresses) merged.add(a)
   activeWatchAddresses = [...merged]
@@ -185,9 +219,24 @@ function handleAddWatchAddresses(cmd: Extract<SpvCommand, { type: 'addWatchAddre
 async function handleStop(): Promise<void> {
   await teardown()
   activeNetwork = null
+  activeWalletId = null
   activeWatchAddresses = []
   activeBirthdayHeight = 1
-  emit({ phase: 'stopped', network: null, peerCount: 0, cfilterHeight: 0, utxoCount: 0 })
+  emit({
+    phase: 'stopped',
+    network: null,
+    walletId: null,
+    tipHeight: 0,
+    tipHash: null,
+    estimatedChainHeight: 0,
+    cfheadersHeight: 0,
+    cfilterScanHeight: 0,
+    matchedBlocksPending: 0,
+    utxoCount: 0,
+    totalBalance: '0',
+    peerCount: 0,
+    filterCapablePeerCount: 0,
+  })
 }
 
 process.parentPort.on('message', ({ data }) => {

@@ -54,13 +54,24 @@ export type CFilterPhase =
 
 export interface CFilterSyncStatus {
   phase: CFilterPhase
-  cfilterHeight: number
+  // Frontier of the cfheaders walk: highest height with a verified filter
+  // header. Lags chain tip during walk, equal afterward.
+  cfheadersHeight: number
+  // Cursor of the cfilter scan: highest height whose cfilter has been
+  // matched against the watch set.
+  cfilterScanHeight: number
   utxoCount: number
+  // Sum of utxo.satoshis as decimal string (bigint doesn't survive JSON).
+  totalBalance: string
+  // Matched blocks awaiting fetch+apply.
+  matchedBlocksPending: number
   peerCount: number
+  filterCapablePeerCount: number
 }
 
 export interface CFilterSyncOptions {
   network: Network
+  walletId: string
   chainDAO: ChainDAO
   chainTipHeight: number
   chainTipHashDisplayHex: string
@@ -120,6 +131,7 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
 
 export class CFilterSync {
   private network: Network
+  private walletId: string
   private chainDAO: ChainDAO
   private emitStatusCb: (status: CFilterSyncStatus) => void
   private emitUtxosCb: (utxos: PersistedUtxo[]) => void
@@ -184,6 +196,7 @@ export class CFilterSync {
 
   constructor(opts: CFilterSyncOptions) {
     this.network = opts.network
+    this.walletId = opts.walletId
     this.chainDAO = opts.chainDAO
     this.emitStatusCb = opts.emitStatus
     this.emitUtxosCb = opts.emitUtxos
@@ -213,8 +226,8 @@ export class CFilterSync {
     // Restore prior progress: if we've scanned past the birthday in a previous
     // run, resume from the cursor. Already-persisted UTXOs are loaded so the
     // first emission to the renderer reflects on-disk state immediately.
-    const cursor = await this.chainDAO.getCFilterCursor(this.network)
-    const persistedUtxos = await this.chainDAO.getAllUtxos(this.network)
+    const cursor = await this.chainDAO.getCFilterCursor(this.walletId)
+    const persistedUtxos = await this.chainDAO.getAllUtxos(this.walletId)
     for (const u of persistedUtxos) {
       const k = `${u.txid}:${u.vout}`
       this.utxos.set(k, u)
@@ -237,6 +250,17 @@ export class CFilterSync {
     const genesisWire = displayHexToWire(GENESIS_HASH[this.network])
     this.heightToBlockHash.set(1, genesisWire)
     this.wireHexToHeight.set(bytesToHex(genesisWire), 1)
+
+    // Load cached filter headers — network-scoped, populated by previous runs
+    // (possibly under different wallets). Cross-validated against cfcheckpt
+    // before use. Anything past the validated point is re-walked.
+    const cachedFilterHeaders = await this.chainDAO.iterateFilterHeadersInRange(1, this.chainTipHeight)
+    for (const {height, header} of cachedFilterHeaders) {
+      this.heightToFilterHeader.set(height, header)
+    }
+    if (cachedFilterHeaders.length > 0) {
+      console.log(`[cfilter] loaded ${cachedFilterHeaders.length} filter headers from cache`)
+    }
 
     this.emit('connecting')
     this.pool.connect()
@@ -334,44 +358,83 @@ export class CFilterSync {
 
   private emit(phase: CFilterPhase): void {
     this.phase = phase
-    // During cfcheckpt/cfheaders we report walk progress; during cfilters we
-    // report scan cursor; otherwise the cursor is meaningful as-is.
-    const cfilterHeight =
-      phase === 'cfheaders' || phase === 'cfcheckpt'
-        ? Math.max(0, this.cfHeadersWalkStart - 1)
-        : Math.max(0, this.cfilterCursor - 1)
+    let totalBalance = 0n
+    for (const u of this.utxos.values()) totalBalance += BigInt(u.satoshis)
+    const matchedBlocksPending = this.matchedBlocks.size + this.blockRequestsInflight.size
     this.emitStatusCb({
       phase,
-      cfilterHeight,
+      cfheadersHeight: Math.max(0, this.cfHeadersWalkStart - 1),
+      cfilterScanHeight: Math.max(0, this.cfilterCursor - 1),
       utxoCount: this.utxos.size,
+      totalBalance: totalBalance.toString(),
+      matchedBlocksPending,
       peerCount: this.readyPeers.size,
+      filterCapablePeerCount: this.filterCapablePeers.size,
     })
   }
 
   // Build the height ↔ wire-hash maps from persisted headers. We need both
   // directions: cfilter responses identify blocks by hash, cfheader requests
   // identify them by stop-height.
-  private async buildChainIndex(resumeHeight: number): Promise<void> {
-    const from = Math.max(1, resumeHeight - 1)
+  private async buildChainIndex(_resumeHeight: number): Promise<void> {
+    // Always cover the whole chain from genesis to tip. The narrow
+    // [resumeHeight-1, tip] window is tempting but breaks two things:
+    //   1. cfcheckpt's stop-hash sits at floor((tip-100)/1000)*1000, well
+    //      below cursor — no hash → request never sent.
+    //   2. addWatchAddresses resets the cursor to birthday for re-scan, so
+    //      cfilter scan suddenly needs hashes for the full chain.
+    // With the n: hash cache the full load is a fast LevelDB range scan,
+    // so the optimization isn't worth the resume hazards.
+    const from = 1
     const to = this.chainTipHeight
+    const expected = to - from + 1
     console.log(`[cfilter] building chain index ${from}..${to}`)
+
+    // Fast path: hashes were persisted on prior runs. No x11 needed.
+    const cached = await this.chainDAO.iterateHashesInRange(from, to)
+    if (cached.length === expected) {
+      for (const {height, wire} of cached) {
+        this.heightToBlockHash.set(height, wire)
+        this.wireHexToHeight.set(bytesToHex(wire), height)
+      }
+      console.log(`[cfilter] chain index loaded from cache (${cached.length} entries)`)
+      this.ensureTipInIndex()
+      return
+    }
+
+    // Fallback / one-time backfill: chain.db predates the n: keyspace, or has
+    // gaps. x11 every missing header and persist the hash so next launch hits
+    // the fast path. Existing cached hashes are reused.
+    console.log(`[cfilter] no hash cache (${cached.length}/${expected}); hashing + backfilling`)
+    const cachedByHeight = new Map<number, Uint8Array>()
+    for (const {height, wire} of cached) cachedByHeight.set(height, wire)
+
     const headers = await this.chainDAO.iterateHeadersInRange(from, to)
-    console.log(`[cfilter] hashing ${headers.length} headers`)
     let processed = 0
+    let backfill: Array<{height: number; wire: Uint8Array}> = []
     for (const {height, raw} of headers) {
-      const wire = x11Wire(raw)
+      const wire = cachedByHeight.get(height) ?? x11Wire(raw)
       this.heightToBlockHash.set(height, wire)
       this.wireHexToHeight.set(bytesToHex(wire), height)
+      if (!cachedByHeight.has(height)) backfill.push({height, wire})
       processed++
-      // Yield the event loop periodically so console.log flushes and incoming
-      // peer messages get a chance to be parsed. Without this the entire
-      // utility process stalls for 1-3 minutes on a fresh-from-genesis chain.
+      // Flush backfill chunks + yield the event loop so console.log flushes
+      // and incoming peer messages get processed during the rebuild.
       if (processed % 50_000 === 0) {
         console.log(`[cfilter] chain index ${processed}/${headers.length}`)
+        if (backfill.length > 0) {
+          await this.chainDAO.writeBackfillHashes(backfill)
+          backfill = []
+        }
         await new Promise(resolve => setImmediate(resolve))
       }
     }
-    console.log(`[cfilter] chain index built (${processed} entries)`)
+    if (backfill.length > 0) await this.chainDAO.writeBackfillHashes(backfill)
+    console.log(`[cfilter] chain index built (${processed} entries, hashes cached)`)
+    this.ensureTipInIndex()
+  }
+
+  private ensureTipInIndex(): void {
     if (!this.heightToBlockHash.has(this.chainTipHeight)) {
       this.heightToBlockHash.set(this.chainTipHeight, this.chainTipWire)
       this.wireHexToHeight.set(bytesToHex(this.chainTipWire), this.chainTipHeight)
@@ -518,18 +581,37 @@ export class CFilterSync {
     for (let i = 0; i < headers.length; i++) {
       this.checkpointHeaders.set((i + 1) * 1000, headers[i]!)
     }
+
+    // Cross-validate any cached filter headers against the just-received
+    // checkpoints. If the cache contradicts a checkpoint, drop everything
+    // from that height onward — chain may have reorged or the cache is from
+    // a different fork. Without this we'd skip the walk and trust stale data.
+    let firstBadCheckpoint = Infinity
+    for (const [ckptHeight, ckptHeader] of this.checkpointHeaders) {
+      const cached = this.heightToFilterHeader.get(ckptHeight)
+      if (cached && !equalBytes(cached, ckptHeader)) {
+        firstBadCheckpoint = Math.min(firstBadCheckpoint, ckptHeight)
+      }
+    }
+    if (firstBadCheckpoint !== Infinity) {
+      console.warn(`[cfilter] cached filter headers diverge from checkpoint at h=${firstBadCheckpoint} — dropping cache from there`)
+      for (const h of [...this.heightToFilterHeader.keys()]) {
+        if (h >= firstBadCheckpoint) this.heightToFilterHeader.delete(h)
+      }
+      this.chainDAO.deleteFilterHeadersFrom(firstBadCheckpoint).catch(err =>
+        console.error('[cfilter] failed to drop stale filter headers:', err)
+      )
+    }
+
     const start = Math.max(this.birthdayHeight, this.cfilterCursor)
     const anchorCkpt = Math.floor((start - 1) / 1000) * 1000
-    let anchorFilterHeader: Uint8Array
     if (anchorCkpt > 0 && this.checkpointHeaders.has(anchorCkpt)) {
       this.anchorHeight = anchorCkpt
-      anchorFilterHeader = this.checkpointHeaders.get(anchorCkpt)!
-      this.heightToFilterHeader.set(anchorCkpt, anchorFilterHeader)
+      this.heightToFilterHeader.set(anchorCkpt, this.checkpointHeaders.get(anchorCkpt)!)
     } else {
       this.anchorHeight = 0
-      anchorFilterHeader = new Uint8Array(32)
     }
-    console.log(`[cfilter] received ${headers.length} checkpoints; anchor at h=${this.anchorHeight}`)
+    console.log(`[cfilter] received ${headers.length} checkpoints; anchor at h=${this.anchorHeight}; cached headers=${this.heightToFilterHeader.size}`)
     this.cfHeadersWalkStart = Math.max(this.anchorHeight + 1, this.birthdayHeight)
     this.walkCFHeadersNext()
   }
@@ -539,8 +621,24 @@ export class CFilterSync {
   private walkCFHeadersNext(): void {
     if (this.stopped) return
     const effectiveTip = this.effectiveScanTipHeight()
+
+    // Fast-forward past any windows we already have fully cached. Cache
+    // entries were either persisted by a previous run (any wallet on the
+    // same chain) or just cross-validated against cfcheckpt.
+    while (this.cfHeadersWalkStart <= effectiveTip) {
+      const startHeight = this.cfHeadersWalkStart
+      const nextCkpt = (Math.floor((startHeight - 1) / 1000) + 1) * 1000
+      const stopHeight = Math.min(nextCkpt, effectiveTip)
+      let fullyCached = true
+      for (let h = startHeight; h <= stopHeight; h++) {
+        if (!this.heightToFilterHeader.has(h)) { fullyCached = false; break }
+      }
+      if (!fullyCached) break
+      this.cfHeadersWalkStart = stopHeight + 1
+    }
+
     if (this.cfHeadersWalkStart > effectiveTip) {
-      console.log('[cfilter] cfheaders complete; starting cfilter scan')
+      console.log('[cfilter] cfheaders complete (cached); starting cfilter scan')
       this.startCFilterScan()
       return
     }
@@ -594,12 +692,16 @@ export class CFilterSync {
       console.warn(`[cfilter] cfheaders prev mismatch at h=${pending.startHeight - 1}`)
       return
     }
+    // Derive headers into a buffer first; only commit to the in-memory map
+    // and persist after the checkpoint validation passes. Otherwise a
+    // dishonest peer's hashes would leak into our cache.
+    const derived: Array<{ height: number; header: Uint8Array }> = []
     for (let i = 0; i < filterHashes.length; i++) {
       const concat = new Uint8Array(64)
       concat.set(filterHashes[i]!, 0)
       concat.set(prev, 32)
       const next = doubleSHA256(concat)
-      this.heightToFilterHeader.set(pending.startHeight + i, next)
+      derived.push({height: pending.startHeight + i, header: next})
       prev = next
     }
     const ckpt = this.checkpointHeaders.get(pending.stopHeight)
@@ -607,6 +709,13 @@ export class CFilterSync {
       console.warn(`[cfilter] cfheaders checkpoint mismatch at h=${pending.stopHeight} — peer dishonest`)
       return
     }
+
+    // Validation passed. Commit and persist for reuse on next launch / by
+    // other wallets on this chain.
+    for (const e of derived) this.heightToFilterHeader.set(e.height, e.header)
+    this.chainDAO.writeFilterHeaders(derived).catch(err =>
+      console.error('[cfilter] failed to persist filter headers:', err)
+    )
 
     console.log(`[cfheaders] processed checkpoint until: ${pending.startHeight}`)
 
@@ -681,7 +790,7 @@ export class CFilterSync {
       await this.applyBlock(this.matchedBlocks.get(h)!, h)
     }
     this.matchedBlocks.clear()
-    await this.chainDAO.setCFilterCursor(this.network, this.effectiveScanTipHeight())
+    await this.chainDAO.setCFilterCursor(this.walletId, this.effectiveScanTipHeight())
     this.finishScan()
   }
 
@@ -708,7 +817,11 @@ export class CFilterSync {
       if (height % 5000 < CFILTER_BATCH) {
         console.log(`[cfilters] batch ${owner.startHeight}..${owner.stopHeight} done  inflight-batches=${this.inflightBatches.size}`)
       }
-      if (this.phase === 'cfilters') this.pumpCFilters()
+      if (this.phase === 'cfilters') {
+        // Surface scan progress to the renderer once per completed batch.
+        this.emit('cfilters')
+        this.pumpCFilters()
+      }
     }
   }
 
@@ -813,7 +926,7 @@ export class CFilterSync {
     }
 
     if (mutated) {
-      await this.chainDAO.applyBlockUtxos(this.network, spends, received, height)
+      await this.chainDAO.applyBlockUtxos(this.walletId, spends, received, height)
       this.emitUtxosCb([...this.utxos.values()])
     }
   }
