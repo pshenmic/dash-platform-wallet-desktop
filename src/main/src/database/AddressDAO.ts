@@ -59,6 +59,17 @@ export class AddressDAO {
     }, {receiving: [], change: []})
   }
 
+  // Returns every address row for every wallet on a given network. Used by
+  // the SPV service to build the cfilter watch set across all loaded wallets.
+  getAllAddressesForNetwork = async (network: string): Promise<string[]> => {
+    const rows = await this.knex('addresses')
+      .join('wallet', 'addresses.wallet_id', 'wallet.wallet_id')
+      .where('wallet.network', network)
+      .select('addresses.address as address')
+
+    return rows.map((r: { address: string }) => r.address)
+  }
+
   setAddressLabel = async (walletId: string, address: string, label: string): Promise<QueryStatus> => {
     const result = await this.knex('addresses')
       .where('address', address)
