@@ -34,7 +34,6 @@ import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
 import {WalletSyncService} from './services/WalletSyncService'
 import {StartWalletSyncHandler} from './api/walletSync/startWalletSync'
 import {StopWalletSyncHandler} from './api/walletSync/stopWalletSync'
-import {GetWalletSyncStatusHandler} from './api/walletSync/getWalletSyncStatus'
 import {GetUtxosHandler} from './api/walletSync/getUtxos'
 
 export class WalletBackend {
@@ -57,7 +56,7 @@ export class WalletBackend {
     ipcMain.handle('selectWallet', new SelectWallet(this.walletService).handle)
     ipcMain.handle('getWalletBalance', new GetWalletBalance(this.walletService).handle)
     ipcMain.handle('getAddresses', new GetWalletAddressesHandler(this.walletService, this.addressesService).handle)
-    ipcMain.handle('getStatus', new GetStatusHandler(this.walletService, this.applicationService).handle)
+    ipcMain.handle('getStatus', new GetStatusHandler(this.walletService, this.applicationService, this.walletSyncService).handle)
     ipcMain.handle('getTransactions', new GetTransactionsHandler(this.walletService).handle)
     ipcMain.handle('getBalance', new GetBalance(this.walletService).handle)
     ipcMain.handle("getTransactionByHash", new GetTransactionByHashHandler(this.walletService).handle)
@@ -73,7 +72,6 @@ export class WalletBackend {
     ipcMain.handle('resetPreferences', new ResetPreferencesHandler(this.preferences).handle)
     ipcMain.handle('startWalletSync', new StartWalletSyncHandler(this.walletSyncService).handle)
     ipcMain.handle('stopWalletSync', new StopWalletSyncHandler(this.walletSyncService).handle)
-    ipcMain.handle('getWalletSyncStatus', new GetWalletSyncStatusHandler(this.walletSyncService).handle)
     ipcMain.handle('getUtxos', new GetUtxosHandler(this.walletSyncService).handle)
   }
 
