@@ -77,6 +77,12 @@ interface BlockRequest {
   timer: ReturnType<typeof setTimeout> | null
 }
 
+interface PendingCFHeaders {
+  startHeight: number
+  stopHeight: number
+  raceTimer: ReturnType<typeof setTimeout> | null
+}
+
 function displayHexToWire(hex: string): Uint8Array {
   return hexToBytes(hex).reverse()
 }
@@ -121,46 +127,60 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
 export class CFilterSyncWorker extends Worker {
   readonly name = 'CFilterSyncWorker'
 
-  private network: Network
-  private walletId: string
-  private chainStore: ChainStore
-  private peerPool: PoolService
-
-  private chainTipHeight: number
-  private chainTipWire: Uint8Array
-  private birthdayHeight: number
-
+  // ── deps + immutable seed ────────────────────────────────────────────────
+  private readonly network: Network
+  private readonly walletId: string
+  private readonly chainStore: ChainStore
+  private readonly peerPool: PoolService
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly M: any
+  private readonly seedUtxos: WalletSyncUtxo[]
+  private readonly initialCfilterCursor: number | null
+  private readonly birthdayHeight: number
 
+  // ── chain state (mutable: extended on tip-follow) ────────────────────────
+  private chainTipHeight: number
+  private chainTipWire: Uint8Array
+
+  // ── worker state ─────────────────────────────────────────────────────────
   private phase: CFilterPhase = 'connecting'
   private stopped = false
   private leader: Peer | null = null
 
+  // ── chain index (height ↔ wire-byte hash) ────────────────────────────────
   private heightToBlockHash = new Map<number, Uint8Array>()
   private wireHexToHeight = new Map<string, number>()
+
+  // ── filter-header chain ──────────────────────────────────────────────────
   private heightToFilterHeader = new Map<number, Uint8Array>()
   private checkpointHeaders = new Map<number, Uint8Array>()
   private anchorHeight = -1
 
+  // ── watch set (cfilter inputs) ──────────────────────────────────────────
   private watchedItems: Uint8Array[] = []
   private watchedAddressSet = new Set<string>()
 
-  private cfcheckptResponded = false
-  private cfcheckptRaceTimer: ReturnType<typeof setTimeout> | null = null
-  private cfcheckptTriedPeers = new Set<Peer>()
+  // ── per-phase state ─────────────────────────────────────────────────────
+  private cfcheckpt = {
+    responded: false,
+    raceTimer: null as ReturnType<typeof setTimeout> | null,
+    triedPeers: new Set<Peer>(),
+  }
 
-  private cfHeadersWalkStart = 0
-  private pendingCFHeaders = new Map<number, {
-    startHeight: number
-    stopHeight: number
-    raceTimer: ReturnType<typeof setTimeout> | null
-  }>()
+  private cfHeaders = {
+    walkStart: 0,
+    pending: new Map<number, PendingCFHeaders>(),
+  }
 
-  private cfilterCursor = 0
-  private inflightBatches = new Map<number, CFilterBatch>()
-  private blockRequestsInflight = new Map<string, BlockRequest>()
-  private matchedBlocks = new Map<number, Block>()
+  private cfilter = {
+    cursor: 0,
+    inflightBatches: new Map<number, CFilterBatch>(),
+  }
+
+  private blockFetch = {
+    inflight: new Map<string, BlockRequest>(),
+    matched: new Map<number, Block>(),
+  }
 
   // In-memory UTXO map. Source of truth lives in SQL (main process); this
   // is a session cache seeded at start time and mutated as blocks apply.
@@ -179,20 +199,16 @@ export class CFilterSyncWorker extends Worker {
   //
   private utxos = new Map<string, WalletSyncUtxo>()
 
-  private readonly seedUtxos: WalletSyncUtxo[]
-  private readonly initialCfilterCursor: number | null
-
-  // Bound listener references — kept as fields so stop() can detach.
-  private onPeerReady = (peer: Peer): void => this.handlePeerReady(peer)
-  private onPeerDisconnect = (peer: Peer): void => this.handlePeerDisconnect(peer)
-  private onPeerCheckpt = (peer: Peer, msg: Message): void =>
-    this.onCheckpoints(msg as Message & CFCheckptArgs, peer)
-  private onPeerCFHeaders = (peer: Peer, msg: Message): void =>
-    this.onCFHeaders(msg as Message & CFHeadersArgs, peer)
-  private onPeerCFilter = (_peer: Peer, msg: Message): void =>
-    this.onCFilter(msg as Message & CFilterArgs)
-  private onPeerBlock = (peer: Peer, msg: Message & { block?: unknown }): void =>
-    this.handlePeerBlock(peer, msg)
+  // Bound peer-event listeners. Stable references kept for stop()'s off().
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly peerListeners: Array<[string, (...args: any[]) => void]> = [
+    ['peerready', (p: Peer) => this.handlePeerReady(p)],
+    ['peerdisconnect', (p: Peer) => this.handlePeerDisconnect(p)],
+    ['peercfcheckpt', (p: Peer, m: Message) => this.onCheckpoints(m as Message & CFCheckptArgs, p)],
+    ['peercfheaders', (p: Peer, m: Message) => this.onCFHeaders(m as Message & CFHeadersArgs, p)],
+    ['peercfilter', (_p: Peer, m: Message) => this.onCFilter(m as Message & CFilterArgs)],
+    ['peerblock', (p: Peer, m: Message & {block?: unknown}) => this.handlePeerBlock(p, m)],
+  ]
 
   constructor(opts: CFilterSyncWorkerOptions) {
     super()
@@ -218,12 +234,11 @@ export class CFilterSyncWorker extends Worker {
   start = async (): Promise<void> => {
     // Restore prior per-wallet state from seed (sourced from SQL by main).
     for (const u of this.seedUtxos) {
-      const k = `${u.txid}:${u.vout}`
-      this.utxos.set(k, u)
+      this.utxos.set(`${u.txid}:${u.vout}`, u)
       this.watchedItems.push(bip158Outpoint(u.txid, u.vout))
     }
 
-    this.cfilterCursor = this.initialCfilterCursor != null
+    this.cfilter.cursor = this.initialCfilterCursor != null
       ? Math.max(this.birthdayHeight, this.initialCfilterCursor + 1)
       : this.birthdayHeight
 
@@ -232,9 +247,7 @@ export class CFilterSyncWorker extends Worker {
     // Seed genesis (height 1) into the index — HeaderSync starts WITH this
     // header as its tip and only persists subsequent ones, so it's not in
     // chain.db.
-    const genesisWire = displayHexToWire(GENESIS[this.network].hash)
-    this.heightToBlockHash.set(1, genesisWire)
-    this.wireHexToHeight.set(bytesToHex(genesisWire), 1)
+    this.setHashIndex(1, displayHexToWire(GENESIS[this.network].hash))
 
     // Network-shared filter-header cache.
     const cachedFilterHeaders = await this.chainStore.iterateFilterHeadersInRange(1, this.chainTipHeight)
@@ -245,14 +258,8 @@ export class CFilterSyncWorker extends Worker {
       console.log(`[cfilter] loaded ${cachedFilterHeaders.length} filter headers from cache`)
     }
 
-    // Subscribe to peer events from the shared pool.
-    this.peerPool.on('peerready', this.onPeerReady)
-    this.peerPool.on('peerdisconnect', this.onPeerDisconnect)
-    this.peerPool.on('peercfcheckpt', this.onPeerCheckpt)
-    this.peerPool.on('peercfheaders', this.onPeerCFHeaders)
-    this.peerPool.on('peercfilter', this.onPeerCFilter)
-    this.peerPool.on('peerblock', this.onPeerBlock)
-
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const [evt, handler] of this.peerListeners) (this.peerPool as any).on(evt, handler)
     this.emitStatus('connecting')
 
     // Already-ready filter-capable peers? Kick off cfcheckpt now.
@@ -263,33 +270,23 @@ export class CFilterSyncWorker extends Worker {
     if (this.stopped) return
     this.stopped = true
     this.clearTimers()
-    this.peerPool.off('peerready', this.onPeerReady)
-    this.peerPool.off('peerdisconnect', this.onPeerDisconnect)
-    this.peerPool.off('peercfcheckpt', this.onPeerCheckpt)
-    this.peerPool.off('peercfheaders', this.onPeerCFHeaders)
-    this.peerPool.off('peercfilter', this.onPeerCFilter)
-    this.peerPool.off('peerblock', this.onPeerBlock)
-    this.phase = 'stopped'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const [evt, handler] of this.peerListeners) (this.peerPool as any).off(evt, handler)
     this.emitStatus('stopped')
   }
 
   // Called by the Orchestrator when HeaderSyncWorker emits 'chainExtended'.
   onChainExtended = (headers: PersistedHeader[]): void => {
     if (this.stopped || headers.length === 0) return
-    for (const h of headers) {
-      const wire = displayHexToWire(h.hash)
-      this.heightToBlockHash.set(h.height, wire)
-      this.wireHexToHeight.set(bytesToHex(wire), h.height)
-    }
+    for (const h of headers) this.setHashIndex(h.height, displayHexToWire(h.hash))
     const last = headers[headers.length - 1]!
     if (last.height > this.chainTipHeight) {
       this.chainTipHeight = last.height
       this.chainTipWire = displayHexToWire(last.hash)
     }
     if (this.phase !== 'synced' && this.phase !== 'cfilters') return
-    if (this.cfilterCursor <= this.effectiveScanTipHeight()) {
+    if (this.cfilter.cursor <= this.effectiveScanTipHeight()) {
       if (this.phase === 'synced') this.emitStatus('cfilters')
-      this.phase = 'cfilters'
       this.pumpCFilters()
     }
   }
@@ -310,56 +307,52 @@ export class CFilterSyncWorker extends Worker {
     const target = Math.max(this.birthdayHeight, rewindToHeight ?? this.birthdayHeight)
     console.log(`[cfilter] addWatchAddresses +${added} (total ${this.watchedAddressSet.size}); rewinding cursor to h=${target}`)
 
-    for (const b of this.inflightBatches.values()) {
-      if (b.timer) clearTimeout(b.timer)
-    }
-    this.inflightBatches.clear()
-    this.matchedBlocks.clear()
-    this.cfilterCursor = target
+    for (const b of this.cfilter.inflightBatches.values()) if (b.timer) clearTimeout(b.timer)
+    this.cfilter.inflightBatches.clear()
+    this.blockFetch.matched.clear()
+    this.cfilter.cursor = target
 
-    if (this.phase === 'cfheaders' || this.phase === 'cfcheckpt' || this.phase === 'connecting') {
-      return
-    }
+    if (this.phase === 'cfheaders' || this.phase === 'cfcheckpt' || this.phase === 'connecting') return
     if (this.heightToFilterHeader.size === 0) {
       this.requestCheckpoints()
       return
     }
-    this.phase = 'cfilters'
     this.emitStatus('cfilters')
     this.pumpCFilters()
   }
 
-  // ── status ────────────────────────────────────────────────────────────────
+  // ── status & utilities ────────────────────────────────────────────────────
 
   private emitStatus(phase: CFilterPhase): void {
     this.phase = phase
-    const matchedBlocksPending = this.matchedBlocks.size + this.blockRequestsInflight.size
-    const status: CFilterSyncWorkerStatus = {
+    this.emit('status', {
       phase,
-      cfheadersHeight: Math.max(0, this.cfHeadersWalkStart - 1),
-      cfilterScanHeight: Math.max(0, this.cfilterCursor - 1),
-      matchedBlocksPending,
+      cfheadersHeight: Math.max(0, this.cfHeaders.walkStart - 1),
+      cfilterScanHeight: Math.max(0, this.cfilter.cursor - 1),
+      matchedBlocksPending: this.blockFetch.matched.size + this.blockFetch.inflight.size,
       peerCount: this.peerPool.readyPeers.size,
       filterCapablePeerCount: this.peerPool.filterCapablePeers.size,
-    }
-    this.emit('status', status)
+    } satisfies CFilterSyncWorkerStatus)
+  }
+
+  private setHashIndex(height: number, wire: Uint8Array): void {
+    this.heightToBlockHash.set(height, wire)
+    this.wireHexToHeight.set(bytesToHex(wire), height)
   }
 
   private clearTimers(): void {
-    if (this.cfcheckptRaceTimer) clearTimeout(this.cfcheckptRaceTimer)
-    this.cfcheckptRaceTimer = null
-    for (const p of this.pendingCFHeaders.values()) {
-      if (p.raceTimer) clearTimeout(p.raceTimer)
-    }
-    this.pendingCFHeaders.clear()
-    for (const b of this.inflightBatches.values()) {
-      if (b.timer) clearTimeout(b.timer)
-    }
-    this.inflightBatches.clear()
-    for (const r of this.blockRequestsInflight.values()) {
-      if (r.timer) clearTimeout(r.timer)
-    }
-    this.blockRequestsInflight.clear()
+    if (this.cfcheckpt.raceTimer) clearTimeout(this.cfcheckpt.raceTimer)
+    this.cfcheckpt.raceTimer = null
+    for (const p of this.cfHeaders.pending.values()) if (p.raceTimer) clearTimeout(p.raceTimer)
+    for (const b of this.cfilter.inflightBatches.values()) if (b.timer) clearTimeout(b.timer)
+    for (const r of this.blockFetch.inflight.values()) if (r.timer) clearTimeout(r.timer)
+    this.cfHeaders.pending.clear()
+    this.cfilter.inflightBatches.clear()
+    this.blockFetch.inflight.clear()
+  }
+
+  private effectiveScanTipHeight(): number {
+    return Math.max(this.birthdayHeight, this.chainTipHeight - SCAN_TIP_DEPTH)
   }
 
   // ── chain index ───────────────────────────────────────────────────────────
@@ -375,57 +368,40 @@ export class CFilterSyncWorker extends Worker {
 
     const cached = await this.chainStore.iterateHashesInRange(from, to)
     if (cached.length === expected) {
-      for (const {height, wire} of cached) {
-        this.heightToBlockHash.set(height, wire)
-        this.wireHexToHeight.set(bytesToHex(wire), height)
-      }
+      for (const {height, wire} of cached) this.setHashIndex(height, wire)
       console.log(`[cfilter] chain index loaded from cache (${cached.length} entries)`)
-      this.ensureTipInIndex()
-      return
-    }
+    } else {
+      // Fallback: x11 + backfill. One-time cost on chain.db that predates the
+      // n: keyspace.
+      console.log(`[cfilter] no hash cache (${cached.length}/${expected}); hashing + backfilling`)
+      const cachedByHeight = new Map<number, Uint8Array>()
+      for (const {height, wire} of cached) cachedByHeight.set(height, wire)
 
-    // Fallback: x11 + backfill. One-time cost on chain.db that predates the
-    // n: keyspace.
-    console.log(`[cfilter] no hash cache (${cached.length}/${expected}); hashing + backfilling`)
-    const cachedByHeight = new Map<number, Uint8Array>()
-    for (const {height, wire} of cached) cachedByHeight.set(height, wire)
-
-    const headers = await this.chainStore.iterateHeadersInRange(from, to)
-    let processed = 0
-    let backfill: Array<{height: number; wire: Uint8Array}> = []
-    for (const {height, raw} of headers) {
-      const wire = cachedByHeight.get(height) ?? x11Wire(raw)
-      this.heightToBlockHash.set(height, wire)
-      this.wireHexToHeight.set(bytesToHex(wire), height)
-      if (!cachedByHeight.has(height)) backfill.push({height, wire})
-      processed++
-      if (processed % 50_000 === 0) {
-        console.log(`[cfilter] chain index ${processed}/${headers.length}`)
-        if (backfill.length > 0) {
-          await this.chainStore.writeBackfillHashes(backfill)
-          backfill = []
+      const headers = await this.chainStore.iterateHeadersInRange(from, to)
+      let processed = 0
+      let backfill: Array<{height: number; wire: Uint8Array}> = []
+      for (const {height, raw} of headers) {
+        const wire = cachedByHeight.get(height) ?? x11Wire(raw)
+        this.setHashIndex(height, wire)
+        if (!cachedByHeight.has(height)) backfill.push({height, wire})
+        processed++
+        if (processed % 50_000 === 0) {
+          console.log(`[cfilter] chain index ${processed}/${headers.length}`)
+          if (backfill.length > 0) {
+            await this.chainStore.writeBackfillHashes(backfill)
+            backfill = []
+          }
+          await new Promise(resolve => setImmediate(resolve))
         }
-        await new Promise(resolve => setImmediate(resolve))
       }
+      if (backfill.length > 0) await this.chainStore.writeBackfillHashes(backfill)
+      console.log(`[cfilter] chain index built (${processed} entries, hashes cached)`)
     }
-    if (backfill.length > 0) await this.chainStore.writeBackfillHashes(backfill)
-    console.log(`[cfilter] chain index built (${processed} entries, hashes cached)`)
-    this.ensureTipInIndex()
-  }
 
-  private ensureTipInIndex(): void {
+    // Tip not in chain.db (HeaderSync starts WITH it, persists only after).
     if (!this.heightToBlockHash.has(this.chainTipHeight)) {
-      this.heightToBlockHash.set(this.chainTipHeight, this.chainTipWire)
-      this.wireHexToHeight.set(bytesToHex(this.chainTipWire), this.chainTipHeight)
+      this.setHashIndex(this.chainTipHeight, this.chainTipWire)
     }
-  }
-
-  private effectiveScanTipHeight(): number {
-    return Math.max(this.birthdayHeight, this.chainTipHeight - SCAN_TIP_DEPTH)
-  }
-
-  private cfcheckptStopHeight(): number {
-    return Math.floor(this.effectiveScanTipHeight() / 1000) * 1000
   }
 
   // ── peer event handlers ───────────────────────────────────────────────────
@@ -446,7 +422,7 @@ export class CFilterSyncWorker extends Worker {
     }
   }
 
-  private handlePeerBlock(peer: Peer, message: Message & { block?: unknown }): void {
+  private handlePeerBlock(peer: Peer, message: Message & {block?: unknown}): void {
     if (this.stopped) return
     const block = message.block as Block | undefined
     if (!block) {
@@ -457,18 +433,18 @@ export class CFilterSyncWorker extends Worker {
     const blockHashWire = displayHexToWire(blockHashHex)
     const key = bytesToHex(blockHashWire)
     const height = this.wireHexToHeight.get(key) ?? -1
-    const pending = this.blockRequestsInflight.get(key)
+    const pending = this.blockFetch.inflight.get(key)
     if (pending) {
       if (pending.timer) clearTimeout(pending.timer)
-      this.blockRequestsInflight.delete(key)
+      this.blockFetch.inflight.delete(key)
     }
     if (height < 0) {
       console.warn(`[cfilter] peerblock from ${peer.host} unknown hash ${blockHashHex.slice(0, 16)}…`)
       return
     }
-    console.log(`[cfilter] peerblock h=${height} from ${peer.host}  inflight-blocks=${this.blockRequestsInflight.size}`)
+    console.log(`[cfilter] peerblock h=${height} from ${peer.host}  inflight-blocks=${this.blockFetch.inflight.size}`)
     if (this.phase === 'cfilters') {
-      this.matchedBlocks.set(height, block)
+      this.blockFetch.matched.set(height, block)
       this.maybeDrainAndFinish().catch(err => console.error('[cfilter] drain failed:', err))
     } else {
       this.applyBlock(block, height).catch(err => console.error('[cfilter] applyBlock failed:', err))
@@ -479,17 +455,16 @@ export class CFilterSyncWorker extends Worker {
 
   private requestCheckpoints(): void {
     if (this.stopped) return
-    this.phase = 'cfcheckpt'
-    this.cfcheckptResponded = false
-    const stopHeight = this.cfcheckptStopHeight()
+    this.cfcheckpt.responded = false
+    const stopHeight = Math.floor(this.effectiveScanTipHeight() / 1000) * 1000
     const stopHashWire = this.heightToBlockHash.get(stopHeight)
     if (!stopHashWire) {
       console.warn(`[cfilter] cfcheckpt: no hash for stop h=${stopHeight}, chain too short`)
       return
     }
-    let candidates = [...this.peerPool.filterCapablePeers].filter(p => !this.cfcheckptTriedPeers.has(p))
+    let candidates = [...this.peerPool.filterCapablePeers].filter(p => !this.cfcheckpt.triedPeers.has(p))
     if (candidates.length === 0) {
-      this.cfcheckptTriedPeers.clear()
+      this.cfcheckpt.triedPeers.clear()
       candidates = [...this.peerPool.filterCapablePeers]
     }
     if (candidates.length === 0) {
@@ -500,12 +475,12 @@ export class CFilterSyncWorker extends Worker {
     console.log(`[cfilter] cfcheckpt stopHeight=${stopHeight} picks=${picks.length} pool=${this.peerPool.filterCapablePeers.size}`)
     const msg = this.M.GetCFCheckpt({filterType: FILTER_TYPE, stopHash: stopHashWire})
     for (const p of picks) {
-      this.cfcheckptTriedPeers.add(p)
+      this.cfcheckpt.triedPeers.add(p)
       p.sendMessage(msg)
     }
-    if (this.cfcheckptRaceTimer) clearTimeout(this.cfcheckptRaceTimer)
-    this.cfcheckptRaceTimer = setTimeout(() => {
-      if (this.cfcheckptResponded || this.stopped) return
+    if (this.cfcheckpt.raceTimer) clearTimeout(this.cfcheckpt.raceTimer)
+    this.cfcheckpt.raceTimer = setTimeout(() => {
+      if (this.cfcheckpt.responded || this.stopped) return
       console.warn('[cfilter] cfcheckpt timeout — rotating')
       this.requestCheckpoints()
     }, CFCHECKPT_RACE_TIMEOUT_MS)
@@ -513,13 +488,12 @@ export class CFilterSyncWorker extends Worker {
   }
 
   private onCheckpoints(msg: CFCheckptArgs, fromPeer: Peer): void {
-    if (this.stopped) return
-    if (this.cfcheckptResponded) return
-    this.cfcheckptResponded = true
-    this.cfcheckptTriedPeers.clear()
-    if (this.cfcheckptRaceTimer) {
-      clearTimeout(this.cfcheckptRaceTimer)
-      this.cfcheckptRaceTimer = null
+    if (this.stopped || this.cfcheckpt.responded) return
+    this.cfcheckpt.responded = true
+    this.cfcheckpt.triedPeers.clear()
+    if (this.cfcheckpt.raceTimer) {
+      clearTimeout(this.cfcheckpt.raceTimer)
+      this.cfcheckpt.raceTimer = null
     }
     this.leader = fromPeer
 
@@ -546,7 +520,7 @@ export class CFilterSyncWorker extends Worker {
       )
     }
 
-    const start = Math.max(this.birthdayHeight, this.cfilterCursor)
+    const start = Math.max(this.birthdayHeight, this.cfilter.cursor)
     const anchorCkpt = Math.floor((start - 1) / 1000) * 1000
     if (anchorCkpt > 0 && this.checkpointHeaders.has(anchorCkpt)) {
       this.anchorHeight = anchorCkpt
@@ -555,7 +529,7 @@ export class CFilterSyncWorker extends Worker {
       this.anchorHeight = 0
     }
     console.log(`[cfilter] received ${headers.length} checkpoints; anchor at h=${this.anchorHeight}; cached headers=${this.heightToFilterHeader.size}`)
-    this.cfHeadersWalkStart = Math.max(this.anchorHeight + 1, this.birthdayHeight)
+    this.cfHeaders.walkStart = Math.max(this.anchorHeight + 1, this.birthdayHeight)
     this.walkCFHeadersNext()
   }
 
@@ -565,8 +539,8 @@ export class CFilterSyncWorker extends Worker {
     if (this.stopped) return
     const effectiveTip = this.effectiveScanTipHeight()
 
-    while (this.cfHeadersWalkStart <= effectiveTip) {
-      const startHeight = this.cfHeadersWalkStart
+    while (this.cfHeaders.walkStart <= effectiveTip) {
+      const startHeight = this.cfHeaders.walkStart
       const nextCkpt = (Math.floor((startHeight - 1) / 1000) + 1) * 1000
       const stopHeight = Math.min(nextCkpt, effectiveTip)
       let fullyCached = true
@@ -574,16 +548,16 @@ export class CFilterSyncWorker extends Worker {
         if (!this.heightToFilterHeader.has(h)) { fullyCached = false; break }
       }
       if (!fullyCached) break
-      this.cfHeadersWalkStart = stopHeight + 1
+      this.cfHeaders.walkStart = stopHeight + 1
     }
 
-    if (this.cfHeadersWalkStart > effectiveTip) {
+    if (this.cfHeaders.walkStart > effectiveTip) {
       console.log('[cfilter] cfheaders complete (cached); starting cfilter scan')
       this.startCFilterScan()
       return
     }
     this.phase = 'cfheaders'
-    const startHeight = this.cfHeadersWalkStart
+    const startHeight = this.cfHeaders.walkStart
     const nextCkpt = (Math.floor((startHeight - 1) / 1000) + 1) * 1000
     const stopHeight = Math.min(nextCkpt, effectiveTip)
     const stopHashWire = this.heightToBlockHash.get(stopHeight)
@@ -591,21 +565,21 @@ export class CFilterSyncWorker extends Worker {
       console.warn(`[cfilter] cfheaders: no hash for h=${stopHeight}; stopping`)
       return
     }
-    if (this.pendingCFHeaders.has(stopHeight)) return
+    if (this.cfHeaders.pending.has(stopHeight)) return
 
     const racers = [...this.peerPool.filterCapablePeers]
     if (racers.length === 0) {
       console.warn('[cfilter] cfheaders: no +CF peers — waiting')
       return
     }
-    const entry = {startHeight, stopHeight, raceTimer: null as ReturnType<typeof setTimeout> | null}
-    this.pendingCFHeaders.set(stopHeight, entry)
+    const entry: PendingCFHeaders = {startHeight, stopHeight, raceTimer: null}
+    this.cfHeaders.pending.set(stopHeight, entry)
     const msg = this.M.GetCFHeaders({filterType: FILTER_TYPE, startHeight, stopHash: stopHashWire})
     for (const p of racers) p.sendMessage(msg)
     entry.raceTimer = setTimeout(() => {
-      if (!this.pendingCFHeaders.has(stopHeight) || this.stopped) return
+      if (!this.cfHeaders.pending.has(stopHeight) || this.stopped) return
       console.warn(`[cfilter] cfheaders ${startHeight}..${stopHeight} timeout — re-racing`)
-      this.pendingCFHeaders.delete(stopHeight)
+      this.cfHeaders.pending.delete(stopHeight)
       this.walkCFHeadersNext()
     }, CFHEADERS_RACE_TIMEOUT_MS)
   }
@@ -614,10 +588,10 @@ export class CFilterSyncWorker extends Worker {
     if (this.stopped) return
     const stopHashWire = msg.stopHash ?? new Uint8Array(32)
     const stopHeight = this.wireHexToHeight.get(bytesToHex(stopHashWire)) ?? -1
-    const pending = stopHeight >= 0 ? this.pendingCFHeaders.get(stopHeight) : undefined
+    const pending = stopHeight >= 0 ? this.cfHeaders.pending.get(stopHeight) : undefined
     if (!pending) return
     if (pending.raceTimer) clearTimeout(pending.raceTimer)
-    this.pendingCFHeaders.delete(stopHeight)
+    this.cfHeaders.pending.delete(stopHeight)
     this.leader = fromPeer
 
     const filterHashes = msg.filterHashes ?? []
@@ -633,7 +607,7 @@ export class CFilterSyncWorker extends Worker {
       console.warn(`[cfilter] cfheaders prev mismatch at h=${pending.startHeight - 1}`)
       return
     }
-    const derived: Array<{ height: number; header: Uint8Array }> = []
+    const derived: Array<{height: number; header: Uint8Array}> = []
     for (let i = 0; i < filterHashes.length; i++) {
       const concat = new Uint8Array(64)
       concat.set(filterHashes[i]!, 0)
@@ -655,16 +629,15 @@ export class CFilterSyncWorker extends Worker {
 
     console.log(`[cfheaders] processed checkpoint until: ${pending.startHeight}`)
 
-    this.cfHeadersWalkStart = pending.stopHeight + 1
+    this.cfHeaders.walkStart = pending.stopHeight + 1
     this.walkCFHeadersNext()
   }
 
   // ── cfilter scan ──────────────────────────────────────────────────────────
 
   private startCFilterScan(): void {
-    this.phase = 'cfilters'
-    this.cfilterCursor = Math.max(this.birthdayHeight, this.cfilterCursor, this.anchorHeight + 1)
-    console.log(`[cfilter] scanning ${this.cfilterCursor}..${this.effectiveScanTipHeight()}`)
+    this.cfilter.cursor = Math.max(this.birthdayHeight, this.cfilter.cursor, this.anchorHeight + 1)
+    console.log(`[cfilter] scanning ${this.cfilter.cursor}..${this.effectiveScanTipHeight()}`)
     this.emitStatus('cfilters')
     this.pumpCFilters()
   }
@@ -683,7 +656,7 @@ export class CFilterSyncWorker extends Worker {
   private armCFilterBatchTimer(batch: CFilterBatch): void {
     if (batch.timer) clearTimeout(batch.timer)
     batch.timer = setTimeout(() => {
-      if (!this.inflightBatches.has(batch.startHeight) || this.stopped) return
+      if (!this.cfilter.inflightBatches.has(batch.startHeight) || this.stopped) return
       if (batch.remaining.size === 0) return
       console.warn(`[cfilter] batch ${batch.startHeight}..${batch.stopHeight} stuck (${batch.remaining.size}) — re-racing`)
       this.dispatchCFilterBatch(batch)
@@ -694,42 +667,44 @@ export class CFilterSyncWorker extends Worker {
   private pumpCFilters(): void {
     if (this.stopped) return
     const effectiveTip = this.effectiveScanTipHeight()
-    while (this.cfilterCursor <= effectiveTip && this.inflightBatches.size < MAX_INFLIGHT_BATCHES) {
-      const startHeight = this.cfilterCursor
+    while (this.cfilter.cursor <= effectiveTip && this.cfilter.inflightBatches.size < MAX_INFLIGHT_BATCHES) {
+      const startHeight = this.cfilter.cursor
       const stopHeight = Math.min(startHeight + CFILTER_BATCH - 1, effectiveTip)
       const stopHashWire = this.heightToBlockHash.get(stopHeight)
       if (!stopHashWire) break
       const remaining = new Set<number>()
       for (let h = startHeight; h <= stopHeight; h++) remaining.add(h)
       const batch: CFilterBatch = {startHeight, stopHeight, stopHashWire, remaining, timer: null}
-      this.inflightBatches.set(startHeight, batch)
+      this.cfilter.inflightBatches.set(startHeight, batch)
       this.dispatchCFilterBatch(batch)
       this.armCFilterBatchTimer(batch)
-      this.cfilterCursor = stopHeight + 1
+      this.cfilter.cursor = stopHeight + 1
     }
-    if (this.cfilterCursor > effectiveTip && this.inflightBatches.size === 0) {
+    if (this.cfilter.cursor > effectiveTip && this.cfilter.inflightBatches.size === 0) {
       this.maybeDrainAndFinish().catch(err => console.error('[cfilter] drain failed:', err))
     }
   }
 
   private async maybeDrainAndFinish(): Promise<void> {
     if (this.phase !== 'cfilters') return
-    if (this.cfilterCursor <= this.effectiveScanTipHeight()) return
-    if (this.inflightBatches.size > 0) return
-    if (this.blockRequestsInflight.size > 0) {
-      const waiting = [...this.blockRequestsInflight.values()].map(r => r.height).sort((a, b) => a - b)
+    if (this.cfilter.cursor <= this.effectiveScanTipHeight()) return
+    if (this.cfilter.inflightBatches.size > 0) return
+    if (this.blockFetch.inflight.size > 0) {
+      const waiting = [...this.blockFetch.inflight.values()].map(r => r.height).sort((a, b) => a - b)
       console.log(`[cfilters] scan reached tip; waiting on ${waiting.length} block(s): ${waiting.slice(0, 10).join(',')}${waiting.length > 10 ? '…' : ''}`)
       return
     }
-    const sortedHeights = [...this.matchedBlocks.keys()].sort((a, b) => a - b)
+    const sortedHeights = [...this.blockFetch.matched.keys()].sort((a, b) => a - b)
     for (const h of sortedHeights) {
-      await this.applyBlock(this.matchedBlocks.get(h)!, h)
+      await this.applyBlock(this.blockFetch.matched.get(h)!, h)
     }
-    this.matchedBlocks.clear()
+    this.blockFetch.matched.clear()
     // Advance the persisted cursor to the effective scan tip — covers the
     // run of unmatched blocks that produced no blockApplied events.
     this.emit('cursorAdvanced', {walletId: this.walletId, height: this.effectiveScanTipHeight()})
-    this.finishScan()
+    this.emitStatus('synced')
+    const balance = [...this.utxos.values()].reduce((s, u) => s + BigInt(u.satoshis), 0n)
+    console.log(`[cfilter] scan complete utxos=${this.utxos.size} balance=${balance.toString()} sats`)
   }
 
   private onCFilter(msg: CFilterArgs): void {
@@ -738,7 +713,7 @@ export class CFilterSyncWorker extends Worker {
     const height = this.wireHexToHeight.get(bytesToHex(blockHashWire)) ?? -1
     if (height < 0) return
     let owner: CFilterBatch | undefined
-    for (const b of this.inflightBatches.values()) {
+    for (const b of this.cfilter.inflightBatches.values()) {
       if (b.remaining.has(height)) { owner = b; break }
     }
     if (!owner) return
@@ -752,9 +727,9 @@ export class CFilterSyncWorker extends Worker {
 
     if (owner.remaining.size === 0) {
       if (owner.timer) clearTimeout(owner.timer)
-      this.inflightBatches.delete(owner.startHeight)
+      this.cfilter.inflightBatches.delete(owner.startHeight)
       if (height % 5000 < CFILTER_BATCH) {
-        console.log(`[cfilters] batch ${owner.startHeight}..${owner.stopHeight} done  inflight-batches=${this.inflightBatches.size}`)
+        console.log(`[cfilters] batch ${owner.startHeight}..${owner.stopHeight} done  inflight-batches=${this.cfilter.inflightBatches.size}`)
       }
       if (this.phase === 'cfilters') {
         this.emitStatus('cfilters')
@@ -765,45 +740,34 @@ export class CFilterSyncWorker extends Worker {
 
   private requestFullBlock(height: number, blockHashWire: Uint8Array): void {
     const key = bytesToHex(blockHashWire)
-    if (this.blockRequestsInflight.has(key)) return
+    if (this.blockFetch.inflight.has(key)) return
     const target = this.pickBlockPeer(new Set())
     if (!target) return
-    const entry: BlockRequest = {
-      hashWire: blockHashWire,
-      height,
-      triedPeers: new Set([target]),
-      timer: null,
-    }
-    this.blockRequestsInflight.set(key, entry)
+    const entry: BlockRequest = {hashWire: blockHashWire, height, triedPeers: new Set([target]), timer: null}
+    this.blockFetch.inflight.set(key, entry)
     target.sendMessage(this.M.GetData([{type: Inventory.TYPE.BLOCK, hash: blockHashWire}]))
     this.armBlockRequestTimer(key, entry)
   }
 
   private pickBlockPeer(exclude: Set<Peer>): Peer | undefined {
-    for (const p of this.peerPool.readyPeers) {
-      if (!exclude.has(p)) return p
-    }
+    for (const p of this.peerPool.readyPeers) if (!exclude.has(p)) return p
     return undefined
   }
 
   private armBlockRequestTimer(key: string, entry: BlockRequest): void {
     if (entry.timer) clearTimeout(entry.timer)
     entry.timer = setTimeout(() => {
-      if (this.stopped) return
-      if (!this.blockRequestsInflight.has(key)) return
-      const next = this.pickBlockPeer(entry.triedPeers)
+      if (this.stopped || !this.blockFetch.inflight.has(key)) return
+      let next = this.pickBlockPeer(entry.triedPeers)
       if (!next) {
         entry.triedPeers.clear()
-        const fallback = this.pickBlockPeer(entry.triedPeers)
-        if (!fallback) return
-        entry.triedPeers.add(fallback)
-        console.warn(`[cfilter] block h=${entry.height} retry — no fresh peers, re-asking ${fallback.host}`)
-        fallback.sendMessage(this.M.GetData([{type: Inventory.TYPE.BLOCK, hash: entry.hashWire}]))
-        this.armBlockRequestTimer(key, entry)
-        return
+        next = this.pickBlockPeer(entry.triedPeers)
+        if (!next) return
+        console.warn(`[cfilter] block h=${entry.height} retry — no fresh peers, re-asking ${next.host}`)
+      } else {
+        console.warn(`[cfilter] block h=${entry.height} timeout — retrying via ${next.host} (tried ${entry.triedPeers.size})`)
       }
       entry.triedPeers.add(next)
-      console.warn(`[cfilter] block h=${entry.height} timeout — retrying via ${next.host} (tried ${entry.triedPeers.size})`)
       next.sendMessage(this.M.GetData([{type: Inventory.TYPE.BLOCK, hash: entry.hashWire}]))
       this.armBlockRequestTimer(key, entry)
     }, BLOCK_REQUEST_TIMEOUT_MS)
@@ -824,17 +788,11 @@ export class CFilterSyncWorker extends Worker {
 
       for (let vin = 0; vin < tx.inputs.length; vin++) {
         const input = tx.inputs[vin]!
-        inputs.push({
-          vin,
-          prevTxid: input.txId,
-          prevVout: input.vOut,
-          sequence: input.sequence,
-        })
-        const k = `${input.txId}:${input.vOut}`
-        const u = this.utxos.get(k)
+        inputs.push({vin, prevTxid: input.txId, prevVout: input.vOut, sequence: input.sequence})
+        const u = this.utxos.get(`${input.txId}:${input.vOut}`)
         if (u) {
           spends.push({prevTxid: u.txid, prevVout: u.vout, spentInTxid: txid})
-          this.utxos.delete(k)
+          this.utxos.delete(`${input.txId}:${input.vOut}`)
           isOurs = true
           console.log(`[cfilter] spent ${u.txid.slice(0, 16)}…:${u.vout} -${u.satoshis} h=${height}`)
         }
@@ -844,50 +802,28 @@ export class CFilterSyncWorker extends Worker {
         const output = tx.outputs[vout]!
         const address = output.getAddress(this.network === 'mainnet' ? 'Mainnet' : 'Testnet')
         const isMine = !!(address && this.watchedAddressSet.has(address))
-        outputs.push({
-          vout,
-          address: address ?? null,
-          satoshis: output.satoshis.toString(),
-          isMine,
-        })
+        outputs.push({vout, address: address ?? null, satoshis: output.satoshis.toString(), isMine})
         if (!isMine) continue
         const k = `${txid}:${vout}`
         if (this.utxos.has(k)) continue
-        const u: WalletSyncUtxo = {
-          txid,
-          vout,
-          satoshis: output.satoshis.toString(),
-          address: address!,
-          height,
-        }
+        const u: WalletSyncUtxo = {txid, vout, satoshis: output.satoshis.toString(), address: address!, height}
         this.utxos.set(k, u)
         this.watchedItems.push(bip158Outpoint(txid, vout))
         isOurs = true
         console.log(`[cfilter] received ${txid.slice(0, 16)}…:${vout} +${u.satoshis} h=${height} (${address})`)
       }
 
-      if (isOurs) {
-        oursTxs.push({txid, raw: tx.bytes(), inputs, outputs})
-      }
+      if (isOurs) oursTxs.push({txid, raw: tx.bytes(), inputs, outputs})
     }
 
     if (oursTxs.length === 0 && spends.length === 0) return
-
-    const payload: AppliedBlock = {
+    this.emit('blockApplied', {
       walletId: this.walletId,
       height,
       blockHash: blockHashHex,
       blockTime,
       txs: oursTxs,
       spends,
-    }
-    this.emit('blockApplied', payload)
-  }
-
-  private finishScan(): void {
-    if (this.stopped) return
-    const balance = [...this.utxos.values()].reduce((s, u) => s + BigInt(u.satoshis), 0n)
-    console.log(`[cfilter] scan complete utxos=${this.utxos.size} balance=${balance.toString()} sats`)
-    this.emitStatus('synced')
+    } satisfies AppliedBlock)
   }
 }
