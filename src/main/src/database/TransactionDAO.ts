@@ -1,5 +1,5 @@
 import type {Knex} from 'knex'
-import type {AppliedBlock, WalletSyncUtxo} from '../../p2p/types'
+import type {AppliedBlock, WalletSyncUtxo} from '../../p2p/types/walletSync'
 
 // Re-exported so callers (services, future API handlers) can stay decoupled
 // from the p2p IPC types if/when the protocol drifts.

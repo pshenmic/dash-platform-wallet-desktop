@@ -1,4 +1,4 @@
-import {Network} from '../src/types'
+import {Network} from '../../src/types'
 
 // Domain types for the wallet sync subsystem. These describe the data
 // model — what wallet state looks like, what a status snapshot contains,

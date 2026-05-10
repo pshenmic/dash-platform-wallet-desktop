@@ -1,8 +1,8 @@
 import {Message, Peer} from 'dash-core-p2p'
 import {utils as coreUtils} from 'dash-core-sdk'
 import {ChainStore} from '../ChainStore'
-import {PersistedHeader, ChainTipState} from '../ChainDAO'
-import {PeerPool} from '../PeerPool'
+import {PersistedHeader, ChainTipState} from '../database/ChainDAO'
+import {PoolService} from '../PoolService'
 import {
   bitsToTarget,
   hashHeaderRaw,
@@ -16,7 +16,7 @@ import type {
   HeaderSyncPhase,
   HeaderSyncWorkerOptions,
   HeaderSyncWorkerStatus,
-} from './HeaderSyncWorker.types'
+} from '../types/headerSync'
 
 export type {HeaderSyncPhase, HeaderSyncWorkerOptions, HeaderSyncWorkerStatus}
 
@@ -37,7 +37,7 @@ interface HeaderRace {
 }
 
 // Header chain extension worker. Drives a `getheaders` race against ready
-// peers from the shared PeerPool, validates returned headers (PoW only;
+// peers from the shared PoolService, validates returned headers (PoW only;
 // DGWv3 difficulty is deliberately disabled — see comment in processHeaders),
 // persists them via ChainStore, and exposes:
 //   - 'status' event       — HeaderSyncWorkerStatus, fires on every progress
@@ -48,7 +48,7 @@ export class HeaderSyncWorker extends Worker {
   readonly name = 'HeaderSyncWorker'
 
   private chainStore: ChainStore
-  private peerPool: PeerPool
+  private peerPool: PoolService
 
   private chainTipHeight: number
   private chainTipHash: string

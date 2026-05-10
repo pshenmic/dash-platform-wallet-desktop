@@ -1,6 +1,6 @@
 import {IpcMainInvokeEvent} from 'electron/utility'
 import {WalletSyncService} from '../../services/WalletSyncService'
-import {WalletSyncUtxo} from '../../../p2p/types'
+import {WalletSyncUtxo} from '../../../p2p/types/walletSync'
 
 export class GetUtxosHandler {
   private walletSyncService: WalletSyncService

@@ -1,4 +1,4 @@
-import {ChainDAO, ChainTipState, PersistedHeader} from './ChainDAO'
+import {ChainDAO, ChainTipState, PersistedHeader} from './database/ChainDAO'
 import {Network} from '../src/types'
 
 // Single-owner facade over chain.db. All workers read/write chain state

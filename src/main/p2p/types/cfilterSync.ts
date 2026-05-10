@@ -1,7 +1,7 @@
 import type {Network} from '../../src/types'
 import type {ChainStore} from '../ChainStore'
-import type {PeerPool} from '../PeerPool'
-import type {WalletSyncUtxo} from '../types'
+import type {PoolService} from '../PoolService'
+import type {WalletSyncUtxo} from '../types/walletSync'
 
 export type CFilterPhase =
   | 'connecting'
@@ -24,7 +24,7 @@ export interface CFilterSyncWorkerOptions {
   network: Network
   walletId: string
   chainStore: ChainStore
-  peerPool: PeerPool
+  peerPool: PoolService
   chainTipHeight: number
   chainTipHashDisplayHex: string
   watchAddresses: string[]

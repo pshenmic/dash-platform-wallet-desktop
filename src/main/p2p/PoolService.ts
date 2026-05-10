@@ -12,7 +12,7 @@ import {HEADER_RACE_PEERS, POOL_MAX_SIZE, POOL_REFILL_INTERVAL_MS} from './const
 // peer-state coordination (which peers serve filters, who's the leader)
 // impossible. One pool, many subscribers.
 
-export interface PeerPoolEventMap {
+export interface PoolServiceEventMap {
   peerconnect: (peer: Peer) => void
   peerready: (peer: Peer) => void
   peerdisconnect: (peer: Peer) => void
@@ -26,14 +26,14 @@ export interface PeerPoolEventMap {
   seederror: (err: Error) => void
 }
 
-const FORWARDED_EVENTS: Array<keyof PeerPoolEventMap> = [
+const FORWARDED_EVENTS: Array<keyof PoolServiceEventMap> = [
   'peerconnect', 'peerready', 'peerdisconnect', 'peerversion',
   'peerheaders', 'peerinv', 'peerblock',
   'peercfcheckpt', 'peercfheaders', 'peercfilter',
   'seederror',
 ]
 
-export class PeerPool extends EventEmitter {
+export class PoolService extends EventEmitter {
   readonly network: Network
   readonly messages: Messages
   readonly pool: Pool
@@ -117,10 +117,10 @@ export class PeerPool extends EventEmitter {
   }
 
   // Typed wrappers — fall back to EventEmitter under the hood.
-  override on<K extends keyof PeerPoolEventMap>(event: K, listener: PeerPoolEventMap[K]): this {
+  override on<K extends keyof PoolServiceEventMap>(event: K, listener: PoolServiceEventMap[K]): this {
     return super.on(event, listener as (...args: unknown[]) => void)
   }
-  override off<K extends keyof PeerPoolEventMap>(event: K, listener: PeerPoolEventMap[K]): this {
+  override off<K extends keyof PoolServiceEventMap>(event: K, listener: PoolServiceEventMap[K]): this {
     return super.off(event, listener as (...args: unknown[]) => void)
   }
 }

@@ -1,6 +1,21 @@
-// Protocol & tuning constants for the p2p subsystem. Single source of
-// truth — workers and the peer pool import from here rather than defining
-// their own module-level magic numbers.
+import {Network} from '../src/types'
+
+// position of that block in Dash Core's height numbering.
+export interface ChainAnchor {
+  height: number
+  hash: string
+}
+
+export const GENESIS: Record<Network, ChainAnchor> = {
+  mainnet: {
+    height: 1,
+    hash: '00000ffd590b1485b3caadc19b22e6379c733355108f107a430458cdf3407ab6',
+  },
+  testnet: {
+    height: 1,
+    hash: '0000047d24635e347be3aaaeb66c26be94901a2f962feccd4f95090191f208c1',
+  },
+}
 
 // ── Peer pool ───────────────────────────────────────────────────────────────
 

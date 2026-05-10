@@ -1,6 +1,6 @@
 import {IpcMainInvokeEvent} from 'electron/utility'
 import {WalletSyncService} from '../../services/WalletSyncService'
-import {WalletSyncStatus} from '../../../p2p/types'
+import {WalletSyncStatus} from '../../../p2p/types/walletSync'
 
 export class StartWalletSyncHandler {
   private walletSyncService: WalletSyncService

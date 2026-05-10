@@ -1,5 +1,5 @@
 import type {ChainStore} from '../ChainStore'
-import type {PeerPool} from '../PeerPool'
+import type {PoolService} from '../PoolService'
 
 export type HeaderSyncPhase = 'connecting' | 'syncing-headers' | 'synced' | 'stopped'
 
@@ -13,7 +13,7 @@ export interface HeaderSyncWorkerStatus {
 
 export interface HeaderSyncWorkerOptions {
   chainStore: ChainStore
-  peerPool: PeerPool
+  peerPool: PoolService
   initialTipHeight: number
   initialTipHash: string
 }

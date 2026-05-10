@@ -1,5 +1,5 @@
-import {Network} from '../src/types'
-import {AppliedBlock, WalletSyncStatus, WalletSyncUtxo} from './types'
+import {Network} from '../../src/types'
+import {AppliedBlock, WalletSyncStatus, WalletSyncUtxo} from './walletSync'
 
 // IPC envelopes between the main process and the p2p utility process.
 // This file only describes the wire format — payload shapes (status,

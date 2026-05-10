@@ -5,9 +5,9 @@ import {ChainStorageFilename, HomeFolderName} from '../constants'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {TransactionDAO} from '../database/TransactionDAO'
-import {P2PCommand, P2PEvent} from '../../p2p/messages'
-import {WalletSyncStatus, WalletSyncUtxo} from '../../p2p/types'
-import {GENESIS} from '../../p2p/genesis'
+import {P2PCommand, P2PEvent} from '../../p2p/types/messages'
+import {WalletSyncStatus, WalletSyncUtxo} from '../../p2p/types/walletSync'
+import {GENESIS} from '../../p2p/constants'
 
 // Main-process facade for wallet sync. Forks the p2p utility process,
 // translates wallet-domain calls into the internal P2P protocol, and

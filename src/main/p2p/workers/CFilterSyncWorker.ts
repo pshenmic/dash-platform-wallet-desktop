@@ -28,10 +28,10 @@ import {Block, utils as sdkUtils} from 'dash-core-sdk'
 // @ts-ignore — no bundled types for @dashevo/x11-hash-js
 import x11 from '@dashevo/x11-hash-js'
 import {Network} from '../../src/types'
-import {PersistedHeader} from '../ChainDAO'
+import {PersistedHeader} from '../database/ChainDAO'
 import {ChainStore} from '../ChainStore'
-import {PeerPool} from '../PeerPool'
-import {GENESIS_HASH} from '../genesis'
+import {PoolService} from '../PoolService'
+import {GENESIS} from '../constants'
 import type {
   AppliedBlock,
   AppliedSpend,
@@ -39,12 +39,12 @@ import type {
   AppliedTxInput,
   AppliedTxOutput,
   WalletSyncUtxo,
-} from '../types'
+} from '../types/walletSync'
 import type {
   CFilterPhase,
   CFilterSyncWorkerOptions,
   CFilterSyncWorkerStatus,
-} from './CFilterSyncWorker.types'
+} from '../types/cfilterSync'
 
 export type {CFilterPhase, CFilterSyncWorkerOptions, CFilterSyncWorkerStatus}
 import {
@@ -124,7 +124,7 @@ export class CFilterSyncWorker extends Worker {
   private network: Network
   private walletId: string
   private chainStore: ChainStore
-  private peerPool: PeerPool
+  private peerPool: PoolService
 
   private chainTipHeight: number
   private chainTipWire: Uint8Array
@@ -232,7 +232,7 @@ export class CFilterSyncWorker extends Worker {
     // Seed genesis (height 1) into the index — HeaderSync starts WITH this
     // header as its tip and only persists subsequent ones, so it's not in
     // chain.db.
-    const genesisWire = displayHexToWire(GENESIS_HASH[this.network])
+    const genesisWire = displayHexToWire(GENESIS[this.network].hash)
     this.heightToBlockHash.set(1, genesisWire)
     this.wireHexToHeight.set(bytesToHex(genesisWire), 1)
 

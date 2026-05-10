@@ -1,7 +1,7 @@
-import {ChainDAO, PersistedHeader} from './ChainDAO'
+import {ChainDAO, PersistedHeader} from './database/ChainDAO'
 import {ChainStore} from './ChainStore'
-import {GENESIS_HASH} from './genesis'
-import {PeerPool} from './PeerPool'
+import {GENESIS} from './constants'
+import {PoolService} from './PoolService'
 import {
   HeaderSyncWorker,
   HeaderSyncWorkerStatus,
@@ -10,32 +10,32 @@ import {
   CFilterSyncWorker,
   CFilterSyncWorkerStatus,
 } from './workers/CFilterSyncWorker'
-import {P2PAddWatchAddressesMessage, P2PStartMessage} from './messages'
-import {AppliedBlock, WalletSyncStatus} from './types'
+import {P2PAddWatchAddressesMessage, P2PStartMessage} from './types/messages'
+import {AppliedBlock, WalletSyncStatus} from './types/walletSync'
 
 // Top-level controller for the p2p utility process. Owns the shared
-// infrastructure (ChainStore + PeerPool), spawns workers per session, and
-// aggregates per-worker status updates into the wire WalletSyncStatus.
+// infrastructure (ChainStore + PoolService), spawns workers per session,
+// and aggregates per-worker status updates into the wire WalletSyncStatus.
 //
 // Workers are pure: they don't talk to parentPort, they don't hold a Pool,
-// they don't open chain.db. The Orchestrator wires them to the shared
-// services and forwards their events.
+// they don't open chain.db. SyncService wires them to the shared
+// dependencies and forwards their events.
 //
 // Wallet-scoped state (UTXOs, transactions, cfilter cursor) does NOT pass
 // through chain.db or ChainStore — the start command carries seedUtxos +
 // cfilterCursor from main (sourced from SQL), and per-block effects flow
 // back as blockApplied / cursorAdvanced events for main to persist.
-export interface OrchestratorEvents {
+export interface SyncServiceEvents {
   status: (status: WalletSyncStatus) => void
   blockApplied: (block: AppliedBlock) => void
   cursorAdvanced: (walletId: string, height: number) => void
   error: (message: string) => void
 }
 
-export class Orchestrator {
+export class SyncService {
   private chainDAO: ChainDAO | null = null
   private chainStore: ChainStore | null = null
-  private peerPool: PeerPool | null = null
+  private peerPool: PoolService | null = null
   private headerSyncWorker: HeaderSyncWorker | null = null
   private cfilterSyncWorker: CFilterSyncWorker | null = null
 
@@ -62,7 +62,7 @@ export class Orchestrator {
     updatedAt: Date.now(),
   }
 
-  constructor(private readonly events: OrchestratorEvents) {}
+  constructor(private readonly events: SyncServiceEvents) {}
 
   getStatus = (): WalletSyncStatus => this.status
 
@@ -104,14 +104,14 @@ export class Orchestrator {
     let resumeHash = persisted.tipHash
     console.log(`[p2p] persisted state: height=${resumeHeight} hash=${resumeHash ?? 'null'}`)
     if (!resumeHash) {
-      resumeHash = GENESIS_HASH[cmd.network]
-      resumeHeight = 1
+      resumeHash = GENESIS[cmd.network].hash
+      resumeHeight = GENESIS[cmd.network].height
       console.log(`[p2p] genesis fallback: height=${resumeHeight} hash=${resumeHash}`)
     }
     console.log(`[p2p] starting sync from height=${resumeHeight} hash=${resumeHash} watchAddresses=${this.activeWatchAddresses.length} birthday=${this.activeBirthdayHeight} seedUtxos=${this.activeSeedUtxos.length} cursor=${this.activeCFilterCursor ?? 'null'}`)
 
     // Boot shared peer pool.
-    this.peerPool = new PeerPool(cmd.network)
+    this.peerPool = new PoolService(cmd.network)
     this.peerPool.start()
 
     // Boot HeaderSyncWorker. CFilterSyncWorker is booted lazily once header

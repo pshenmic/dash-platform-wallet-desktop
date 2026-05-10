@@ -1,5 +1,5 @@
 import {ClassicLevel} from 'classic-level'
-import {Network} from '../src/types'
+import {Network} from '../../src/types'
 
 export interface PersistedHeader {
   height: number
