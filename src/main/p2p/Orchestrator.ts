@@ -10,12 +10,8 @@ import {
   CFilterSyncWorker,
   CFilterSyncWorkerStatus,
 } from './workers/CFilterSyncWorker'
-import {
-  P2PAddWatchAddressesMessage,
-  P2PStartMessage,
-  WalletSyncStatus,
-  WalletSyncUtxo,
-} from './messages'
+import {P2PAddWatchAddressesMessage, P2PStartMessage} from './messages'
+import {AppliedBlock, WalletSyncStatus} from './types'
 
 // Top-level controller for the p2p utility process. Owns the shared
 // infrastructure (ChainStore + PeerPool), spawns workers per session, and
@@ -24,9 +20,15 @@ import {
 // Workers are pure: they don't talk to parentPort, they don't hold a Pool,
 // they don't open chain.db. The Orchestrator wires them to the shared
 // services and forwards their events.
+//
+// Wallet-scoped state (UTXOs, transactions, cfilter cursor) does NOT pass
+// through chain.db or ChainStore — the start command carries seedUtxos +
+// cfilterCursor from main (sourced from SQL), and per-block effects flow
+// back as blockApplied / cursorAdvanced events for main to persist.
 export interface OrchestratorEvents {
   status: (status: WalletSyncStatus) => void
-  utxos: (utxos: WalletSyncUtxo[]) => void
+  blockApplied: (block: AppliedBlock) => void
+  cursorAdvanced: (walletId: string, height: number) => void
   error: (message: string) => void
 }
 
@@ -40,6 +42,8 @@ export class Orchestrator {
   private activeWalletId: string | null = null
   private activeWatchAddresses: string[] = []
   private activeBirthdayHeight = 1
+  private activeSeedUtxos: P2PStartMessage['seedUtxos'] = []
+  private activeCFilterCursor: number | null = null
   private cfilterStarted = false
 
   private status: WalletSyncStatus = {
@@ -52,8 +56,6 @@ export class Orchestrator {
     cfheadersHeight: 0,
     cfilterScanHeight: 0,
     matchedBlocksPending: 0,
-    utxoCount: 0,
-    totalBalance: '0',
     peerCount: 0,
     filterCapablePeerCount: 0,
     lastError: null,
@@ -70,6 +72,8 @@ export class Orchestrator {
     this.activeWalletId = cmd.walletId
     this.activeWatchAddresses = cmd.watchAddresses ?? []
     this.activeBirthdayHeight = cmd.birthdayHeight && cmd.birthdayHeight > 0 ? cmd.birthdayHeight : 1
+    this.activeSeedUtxos = cmd.seedUtxos ?? []
+    this.activeCFilterCursor = cmd.cfilterCursor ?? null
     this.cfilterStarted = false
 
     this.emit({
@@ -80,48 +84,31 @@ export class Orchestrator {
       tipHash: null,
       estimatedChainHeight: 0,
       cfheadersHeight: 0,
-      cfilterScanHeight: 0,
+      cfilterScanHeight: this.activeCFilterCursor ?? 0,
       matchedBlocksPending: 0,
-      utxoCount: 0,
-      totalBalance: '0',
       peerCount: 0,
       filterCapablePeerCount: 0,
       lastError: null,
     })
 
-    // Open chain.db (single-owner LevelDB lock).
+    // Open chain.db (single-owner LevelDB lock). Chain.db now holds only
+    // network-scoped data (headers, hash cache, filter headers).
     this.chainDAO = new ChainDAO(cmd.chainDbPath)
     await this.chainDAO.open()
     this.chainStore = new ChainStore(this.chainDAO, cmd.network)
 
     const persisted = await this.chainStore.initSyncState()
 
-    // Seed initial UTXO snapshot from chain.db so the renderer can populate
-    // before sync makes progress.
-    const initialUtxos = await this.chainStore.getAllUtxos(cmd.walletId)
-    if (initialUtxos.length > 0) {
-      this.events.utxos(initialUtxos)
-      let initialBalance = 0n
-      for (const u of initialUtxos) initialBalance += BigInt(u.satoshis)
-      this.emit({utxoCount: initialUtxos.length, totalBalance: initialBalance.toString()})
-    }
-
-    // Resolve resume point: max(persisted, checkpoint) and fall back to
-    // genesis if neither is set.
+    // Resume from persisted tip, or genesis on a fresh chain.db.
     let resumeHeight = persisted.tipHeight
     let resumeHash = persisted.tipHash
     console.log(`[p2p] persisted state: height=${resumeHeight} hash=${resumeHash ?? 'null'}`)
-    if (cmd.startHeight > resumeHeight) {
-      resumeHeight = cmd.startHeight
-      resumeHash = cmd.startHash
-      console.log(`[p2p] checkpoint override: height=${resumeHeight} hash=${resumeHash}`)
-    }
     if (!resumeHash) {
       resumeHash = GENESIS_HASH[cmd.network]
       resumeHeight = 1
       console.log(`[p2p] genesis fallback: height=${resumeHeight} hash=${resumeHash}`)
     }
-    console.log(`[p2p] starting sync from height=${resumeHeight} hash=${resumeHash} watchAddresses=${this.activeWatchAddresses.length} birthday=${this.activeBirthdayHeight}`)
+    console.log(`[p2p] starting sync from height=${resumeHeight} hash=${resumeHash} watchAddresses=${this.activeWatchAddresses.length} birthday=${this.activeBirthdayHeight} seedUtxos=${this.activeSeedUtxos.length} cursor=${this.activeCFilterCursor ?? 'null'}`)
 
     // Boot shared peer pool.
     this.peerPool = new PeerPool(cmd.network)
@@ -151,6 +138,8 @@ export class Orchestrator {
     this.activeWalletId = null
     this.activeWatchAddresses = []
     this.activeBirthdayHeight = 1
+    this.activeSeedUtxos = []
+    this.activeCFilterCursor = null
     this.emit({
       phase: 'stopped',
       network: null,
@@ -161,8 +150,6 @@ export class Orchestrator {
       cfheadersHeight: 0,
       cfilterScanHeight: 0,
       matchedBlocksPending: 0,
-      utxoCount: 0,
-      totalBalance: '0',
       peerCount: 0,
       filterCapablePeerCount: 0,
     })
@@ -173,7 +160,7 @@ export class Orchestrator {
     const merged = new Set(this.activeWatchAddresses)
     for (const a of cmd.addresses) merged.add(a)
     this.activeWatchAddresses = [...merged]
-    this.cfilterSyncWorker?.addWatchAddresses(cmd.addresses)
+    this.cfilterSyncWorker?.addWatchAddresses(cmd.addresses, cmd.rewindToHeight)
   }
 
   // ── private ───────────────────────────────────────────────────────────────
@@ -241,9 +228,14 @@ export class Orchestrator {
       chainTipHashDisplayHex: tipHashDisplayHex,
       watchAddresses: this.activeWatchAddresses,
       birthdayHeight: this.activeBirthdayHeight,
+      seedUtxos: this.activeSeedUtxos,
+      cfilterCursor: this.activeCFilterCursor,
     })
     this.cfilterSyncWorker.on('status', (s: CFilterSyncWorkerStatus) => this.onCFilterStatus(s))
-    this.cfilterSyncWorker.on('utxos', (utxos: WalletSyncUtxo[]) => this.events.utxos(utxos))
+    this.cfilterSyncWorker.on('blockApplied', (block: AppliedBlock) => this.events.blockApplied(block))
+    this.cfilterSyncWorker.on('cursorAdvanced', (msg: {walletId: string; height: number}) =>
+      this.events.cursorAdvanced(msg.walletId, msg.height)
+    )
     this.cfilterSyncWorker.on('error', err =>
       this.handleWorkerError('CFilterSyncWorker', err.message)
     )
@@ -264,8 +256,6 @@ export class Orchestrator {
       cfheadersHeight: s.cfheadersHeight,
       cfilterScanHeight: s.cfilterScanHeight,
       matchedBlocksPending: s.matchedBlocksPending,
-      utxoCount: s.utxoCount,
-      totalBalance: s.totalBalance,
       peerCount: Math.max(this.status.peerCount, s.peerCount),
       filterCapablePeerCount: s.filterCapablePeerCount,
     })

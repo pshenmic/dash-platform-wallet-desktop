@@ -5,10 +5,12 @@ import {HomeFolderName, PBKDF2_DIGEST, PBKDF2_KEY_LENGTH, PBKDF2_SALT_LENGTH} fr
 import knex, {Knex} from 'knex'
 import * as migration0000 from '../migrations/0000_init'
 import * as migration0001 from '../migrations/0001_identities'
+import * as migration0002 from '../migrations/0002_transactions'
 
 const migrations = [
   { name: '0000_init.ts', migration: migration0000 },
   { name: '0001_identities.ts', migration: migration0001 },
+  { name: '0002_transactions.ts', migration: migration0002 },
 ]
 
 const inlineMigrationSource = {

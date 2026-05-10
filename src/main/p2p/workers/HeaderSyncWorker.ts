@@ -12,6 +12,13 @@ import {
 } from '../pow'
 import {Worker} from './Worker'
 import {HEADER_RACE_PEERS, HEADER_SYNC_TIMEOUT_MS} from '../constants'
+import type {
+  HeaderSyncPhase,
+  HeaderSyncWorkerOptions,
+  HeaderSyncWorkerStatus,
+} from './HeaderSyncWorker.types'
+
+export type {HeaderSyncPhase, HeaderSyncWorkerOptions, HeaderSyncWorkerStatus}
 
 const INV_TYPE_NAMES: Record<number, string> = {
   0: 'ERROR', 1: 'TX', 2: 'BLOCK', 3: 'FILTERED_BLOCK',
@@ -20,23 +27,6 @@ const INV_TYPE_NAMES: Record<number, string> = {
 
 function typeName(t: number): string {
   return INV_TYPE_NAMES[t] ?? `UNKNOWN(${t})`
-}
-
-export type HeaderSyncPhase = 'connecting' | 'syncing-headers' | 'synced' | 'stopped'
-
-export interface HeaderSyncWorkerStatus {
-  phase: HeaderSyncPhase
-  tipHeight: number
-  tipHash: string | null
-  estimatedChainHeight: number
-  peerCount: number
-}
-
-export interface HeaderSyncWorkerOptions {
-  chainStore: ChainStore
-  peerPool: PeerPool
-  initialTipHeight: number
-  initialTipHash: string
 }
 
 interface HeaderRace {

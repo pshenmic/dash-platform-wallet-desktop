@@ -1,23 +1,20 @@
 import fs from "fs/promises";
 import {z} from 'zod'
 import {GeneralPreferences, GeneralPreferencesJSON, GeneralPreferencesSchema} from "./general";
-import {ChainPreferences, ChainPreferencesJSON, ChainPreferencesSchema} from "./chain";
 
 export const PreferencesSchema = z.object({
   general: GeneralPreferencesSchema,
-  chain: ChainPreferencesSchema,
 })
 
 export type PreferencesJSON = z.infer<typeof PreferencesSchema> & { version: number }
 
 export class Preferences {
-  static readonly CURRENT_VERSION = 2
+  static readonly CURRENT_VERSION = 3
 
   // =====================================================
   // ANY CHANGES IN PREFERENCES REQUIRE BUMP VERSION ABOVE
   // =====================================================
   general!: GeneralPreferences
-  chain!: ChainPreferences
 
   private path: string | null = null
 
@@ -84,17 +81,12 @@ export class Preferences {
   private static migrate(raw: Record<string, unknown>): Preferences {
     const defaults = Preferences.default()
     const rawGeneral = (raw.general ?? {}) as Partial<GeneralPreferencesJSON>
-    const rawChain = (raw.chain ?? {}) as Partial<ChainPreferencesJSON>
 
     const instance = new Preferences()
     instance.version = Preferences.CURRENT_VERSION
     instance.general = new GeneralPreferences(
       rawGeneral.language ?? defaults.general.language,
       rawGeneral.currency ?? defaults.general.currency,
-    )
-    instance.chain = new ChainPreferences(
-      rawChain.mainnet ?? defaults.chain.mainnet,
-      rawChain.testnet ?? defaults.chain.testnet,
     )
 
     return instance
@@ -112,7 +104,6 @@ export class Preferences {
     return {
       version: this.version,
       general: this.general.toJSON(),
-      chain: this.chain.toJSON(),
     }
   }
 
@@ -121,10 +112,9 @@ export class Preferences {
    * @param value
    */
   async apply(value: unknown): Promise<void> {
-    const {general, chain} = PreferencesSchema.parse(value)
+    const {general} = PreferencesSchema.parse(value)
 
     this.general = GeneralPreferences.fromObject(general)
-    this.chain = ChainPreferences.fromObject(chain)
 
     await this.update()
   }
@@ -143,19 +133,17 @@ export class Preferences {
 
     instance.version = Preferences.CURRENT_VERSION
     instance.general = GeneralPreferences.default()
-    instance.chain = ChainPreferences.default()
 
     return instance
   }
 
   static fromObject(value: unknown): Preferences {
-    const {general, chain} = PreferencesSchema.parse(value)
+    const {general} = PreferencesSchema.parse(value)
 
     const instance = new Preferences()
 
     instance.version = Preferences.CURRENT_VERSION
     instance.general = GeneralPreferences.fromObject(general)
-    instance.chain = ChainPreferences.fromObject(chain)
 
     return instance
   }

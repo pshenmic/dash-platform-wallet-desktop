@@ -23,7 +23,7 @@ export class CreateWalletHandler {
     // calling unconditionally is safe.
     const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
     const addressList = [...grouped.receiving, ...grouped.change].map(a => a.address)
-    this.walletSyncService.addWatchAddresses(walletId, addressList)
+    await this.walletSyncService.addWatchAddresses(walletId, addressList)
     return walletId
   }
 }

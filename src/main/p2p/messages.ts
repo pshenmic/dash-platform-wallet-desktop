@@ -1,18 +1,32 @@
 import {Network} from '../src/types'
+import {AppliedBlock, WalletSyncStatus, WalletSyncUtxo} from './types'
 
-// Internal protocol between main process and the p2p utility process.
-// Commands/envelopes are P2P-named (they describe the wire); the status
-// payload is WalletSync-named (it's the consumer-facing concept).
+// IPC envelopes between the main process and the p2p utility process.
+// This file only describes the wire format — payload shapes (status,
+// utxos, applied blocks) live in p2p/types.ts.
+//
+// Naming: P2P* = an envelope (the thing electron ships across processes).
+// The payload it wraps is named for the consumer concept (WalletSync* /
+// Applied*) since those types are also used by SQL writes and renderer
+// code, not just IPC.
+
+// ── Commands (main -> utility) ──────────────────────────────────────────────
 
 export interface P2PStartMessage {
   type: 'start'
   network: Network
   walletId: string
   chainDbPath: string
-  startHeight: number
-  startHash: string | null
   watchAddresses: string[]
   birthdayHeight?: number
+  // Seed for the cfilter worker's in-memory spend-detection map. SQL is
+  // the source of truth — main process queries TransactionDAO and ships
+  // the unspent outputs in the start command so the utility process never
+  // touches wallet-scoped storage.
+  seedUtxos: WalletSyncUtxo[]
+  // Persisted cfilter scan cursor (null = never synced). Worker resumes
+  // from max(birthday, cfilterCursor + 1).
+  cfilterCursor: number | null
 }
 
 export interface P2PStopMessage {
@@ -23,6 +37,11 @@ export interface P2PAddWatchAddressesMessage {
   type: 'addWatchAddresses'
   walletId: string
   addresses: string[]
+  // When set, the worker rewinds its cfilter cursor to this height so
+  // historical filters get re-matched against the new addresses. The
+  // main process is responsible for choosing the height (lowest birthday
+  // across the new addresses, or 0/genesis if no birthday is tracked yet).
+  rewindToHeight?: number
 }
 
 export type P2PCommand =
@@ -30,72 +49,25 @@ export type P2PCommand =
   | P2PStopMessage
   | P2PAddWatchAddressesMessage
 
-export type WalletSyncPhase =
-  | 'idle'
-  | 'connecting'
-  | 'syncing-headers'
-  | 'synced-headers'
-  | 'syncing-cfcheckpt'
-  | 'syncing-cfheaders'
-  | 'syncing-cfilters'
-  | 'synced'
-  | 'stopped'
-
-export interface WalletSyncStatus {
-  phase: WalletSyncPhase
-  network: Network | null
-  walletId: string | null
-
-  // Headers
-  tipHeight: number
-  tipHash: string | null
-  // Best height advertised by any connected peer — proxy for the live chain
-  // tip. Used by the renderer to compute % progress during header sync.
-  estimatedChainHeight: number
-
-  // CFilter sub-phases
-  // Walk frontier: highest height with a verified filter header (cfheaders
-  // walk). Lags tipHeight during cfheaders phase, equal once walk is done.
-  cfheadersHeight: number
-  // Scan cursor: highest height whose cfilter has been matched against the
-  // wallet's watch set.
-  cfilterScanHeight: number
-  // Matched blocks awaiting full-block fetch (or already fetched, awaiting
-  // application). Useful when scan is "stuck" waiting for a peer to deliver.
-  matchedBlocksPending: number
-
-  // Wallet
-  utxoCount: number
-  // Sum of all UTXOs in satoshis, serialized as a decimal string (bigint
-  // doesn't survive JSON).
-  totalBalance: string
-
-  // Peers
-  peerCount: number
-  // Subset of peers advertising NODE_COMPACT_FILTERS — required for cfilter
-  // requests to succeed.
-  filterCapablePeerCount: number
-
-  lastError: string | null
-  updatedAt: number
-}
-
-export interface WalletSyncUtxo {
-  txid: string
-  vout: number
-  satoshis: string
-  address: string
-  height: number
-}
+// ── Events (utility -> main) ────────────────────────────────────────────────
 
 export interface P2PStatusMessage {
   type: 'status'
   status: WalletSyncStatus
 }
 
-export interface P2PUtxosMessage {
-  type: 'utxos'
-  utxos: WalletSyncUtxo[]
+export interface P2PBlockAppliedMessage {
+  type: 'blockApplied'
+  block: AppliedBlock
+}
+
+// Cursor-only advance — emitted at cfilter scan completion when the scan
+// tip moves past a stretch of unmatched blocks. No tx data, just the
+// resume marker.
+export interface P2PCursorAdvancedMessage {
+  type: 'cursorAdvanced'
+  walletId: string
+  height: number
 }
 
 export interface P2PErrorMessage {
@@ -103,4 +75,8 @@ export interface P2PErrorMessage {
   message: string
 }
 
-export type P2PEvent = P2PStatusMessage | P2PUtxosMessage | P2PErrorMessage
+export type P2PEvent =
+  | P2PStatusMessage
+  | P2PBlockAppliedMessage
+  | P2PCursorAdvancedMessage
+  | P2PErrorMessage

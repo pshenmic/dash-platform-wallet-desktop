@@ -39,8 +39,6 @@ export interface WalletSyncStatus {
   cfheadersHeight: number
   cfilterScanHeight: number
   matchedBlocksPending: number
-  utxoCount: number
-  totalBalance: string
   peerCount: number
   filterCapablePeerCount: number
   lastError: string | null

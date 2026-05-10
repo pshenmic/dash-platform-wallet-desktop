@@ -19,14 +19,6 @@ interface StoredState extends ChainTipState {
   updatedAt: number
 }
 
-export interface PersistedUtxo {
-  txid: string         // display-order hex
-  vout: number
-  satoshis: string     // bigint serialized as decimal string
-  address: string
-  height: number
-}
-
 const HEIGHT_KEY_WIDTH = 12
 
 function headerKey(height: number): string {
@@ -58,21 +50,6 @@ function displayHashToWire(hex: string): Uint8Array {
     out[i] = parseInt(hex.slice(j, j + 2), 16)
   }
   return out
-}
-
-// UTXOs and cfilter scan cursor are scoped per-wallet, not per-network: each
-// wallet has its own watch set / birthday and produces its own UTXO set,
-// even when sharing the same chain.db headers/hashes/filter chain.
-function utxoKey(walletId: string, txid: string, vout: number): string {
-  return `u:${walletId}:${txid}:${vout}`
-}
-
-function utxoPrefix(walletId: string): string {
-  return `u:${walletId}:`
-}
-
-function cfilterCursorKey(walletId: string): string {
-  return `cfcursor:${walletId}`
 }
 
 export class ChainDAO {
@@ -262,68 +239,6 @@ export class ChainDAO {
       await iter.close()
     }
     return out
-  }
-
-  putUtxo = async (walletId: string, utxo: PersistedUtxo): Promise<void> => {
-    await this.db.put(utxoKey(walletId, utxo.txid, utxo.vout), encodeJson(utxo))
-  }
-
-  deleteUtxo = async (walletId: string, txid: string, vout: number): Promise<void> => {
-    try {
-      await this.db.del(utxoKey(walletId, txid, vout))
-    } catch (err) {
-      if ((err as { code?: string }).code === 'LEVEL_NOT_FOUND') return
-      throw err
-    }
-  }
-
-  // Atomic apply: spends + new outputs land together with the cfilter cursor
-  // bump. Without this you can race the writer and emit a UTXO snapshot that
-  // mid-batch reflects a spend without its companion receive.
-  applyBlockUtxos = async (
-    walletId: string,
-    spends: Array<{ txid: string; vout: number }>,
-    received: PersistedUtxo[],
-    cursorHeight: number,
-  ): Promise<void> => {
-    const batch = this.db.batch()
-    for (const s of spends) batch.del(utxoKey(walletId, s.txid, s.vout))
-    for (const u of received) batch.put(utxoKey(walletId, u.txid, u.vout), encodeJson(u))
-    batch.put(cfilterCursorKey(walletId), encodeJson({height: cursorHeight}))
-    await batch.write()
-  }
-
-  getAllUtxos = async (walletId: string): Promise<PersistedUtxo[]> => {
-    const prefix = utxoPrefix(walletId)
-    const out: PersistedUtxo[] = []
-    const iter = this.db.iterator({
-      gte: prefix,
-      lte: prefix + '\xff',
-    })
-    try {
-      for await (const [, value] of iter) {
-        out.push(JSON.parse(Buffer.from(value).toString('utf8')) as PersistedUtxo)
-      }
-    } finally {
-      await iter.close()
-    }
-    return out
-  }
-
-  getCFilterCursor = async (walletId: string): Promise<number | null> => {
-    try {
-      const buf = await this.db.get(cfilterCursorKey(walletId))
-      if (buf == null) return null
-      const parsed = JSON.parse(Buffer.from(buf).toString('utf8')) as { height: number }
-      return parsed.height
-    } catch (err) {
-      if ((err as { code?: string }).code === 'LEVEL_NOT_FOUND') return null
-      throw err
-    }
-  }
-
-  setCFilterCursor = async (walletId: string, height: number): Promise<void> => {
-    await this.db.put(cfilterCursorKey(walletId), encodeJson({height}))
   }
 }
 

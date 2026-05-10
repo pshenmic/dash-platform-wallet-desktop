@@ -15,7 +15,9 @@ declare const process: NodeJS.Process & {
 
 const orchestrator = new Orchestrator({
   status: status => process.parentPort.postMessage({type: 'status', status}),
-  utxos: utxos => process.parentPort.postMessage({type: 'utxos', utxos}),
+  blockApplied: block => process.parentPort.postMessage({type: 'blockApplied', block}),
+  cursorAdvanced: (walletId, height) =>
+    process.parentPort.postMessage({type: 'cursorAdvanced', walletId, height}),
   error: message => process.parentPort.postMessage({type: 'error', message}),
 })
 

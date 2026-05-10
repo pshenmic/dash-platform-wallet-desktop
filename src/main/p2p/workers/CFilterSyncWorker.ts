@@ -3,20 +3,24 @@
 //   2. cfheaders   walk birthday→tip, derive filter headers locally, verify
 //                  against checkpoints; persist to chain.db (network-shared)
 //   3. cfilters    pull GCS payloads, match watched scripts/outpoints, fetch
-//                  matched blocks, apply tx effects to the per-wallet UTXO set
+//                  matched blocks, emit blockApplied events with full tx data
 //
 // Persists to chain.db:
 //   - f:<height>           filter headers (network-scoped, reusable)
 //   - n:<height>           wire-byte block hashes (network-scoped)
-//   - u:<walletId>:…       UTXOs (per-wallet)
-//   - cfcursor:<walletId>  resume marker (per-wallet)
+//
+// Wallet-scoped state (UTXOs, cfilter cursor, transactions) lives in SQL
+// in the main process. The worker emits 'blockApplied' / 'cursorAdvanced'
+// events and main writes them through TransactionDAO. The worker keeps an
+// in-memory UTXO map for spend detection in subsequent blocks; it's seeded
+// from main at start time via the start command.
 
 import {
-  CompactFilter,
-  Inventory,
   type CFCheckptArgs,
   type CFHeadersArgs,
   type CFilterArgs,
+  CompactFilter,
+  Inventory,
   type Message,
   type Peer,
 } from 'dash-core-p2p'
@@ -24,10 +28,25 @@ import {Block, utils as sdkUtils} from 'dash-core-sdk'
 // @ts-ignore — no bundled types for @dashevo/x11-hash-js
 import x11 from '@dashevo/x11-hash-js'
 import {Network} from '../../src/types'
-import {PersistedHeader, PersistedUtxo} from '../ChainDAO'
+import {PersistedHeader} from '../ChainDAO'
 import {ChainStore} from '../ChainStore'
 import {PeerPool} from '../PeerPool'
 import {GENESIS_HASH} from '../genesis'
+import type {
+  AppliedBlock,
+  AppliedSpend,
+  AppliedTx,
+  AppliedTxInput,
+  AppliedTxOutput,
+  WalletSyncUtxo,
+} from '../types'
+import type {
+  CFilterPhase,
+  CFilterSyncWorkerOptions,
+  CFilterSyncWorkerStatus,
+} from './CFilterSyncWorker.types'
+
+export type {CFilterPhase, CFilterSyncWorkerOptions, CFilterSyncWorkerStatus}
 import {
   BLOCK_REQUEST_TIMEOUT_MS,
   CFCHECKPT_RACE_PEERS,
@@ -42,36 +61,6 @@ import {
 import {Worker} from './Worker'
 
 const {doubleSHA256, hexToBytes, bytesToHex, addressToPublicKeyHash} = sdkUtils
-
-export type CFilterPhase =
-  | 'connecting'
-  | 'cfcheckpt'
-  | 'cfheaders'
-  | 'cfilters'
-  | 'synced'
-  | 'stopped'
-
-export interface CFilterSyncWorkerStatus {
-  phase: CFilterPhase
-  cfheadersHeight: number
-  cfilterScanHeight: number
-  utxoCount: number
-  totalBalance: string
-  matchedBlocksPending: number
-  peerCount: number
-  filterCapablePeerCount: number
-}
-
-export interface CFilterSyncWorkerOptions {
-  network: Network
-  walletId: string
-  chainStore: ChainStore
-  peerPool: PeerPool
-  chainTipHeight: number
-  chainTipHashDisplayHex: string
-  watchAddresses: string[]
-  birthdayHeight: number
-}
 
 interface CFilterBatch {
   startHeight: number
@@ -173,8 +162,25 @@ export class CFilterSyncWorker extends Worker {
   private blockRequestsInflight = new Map<string, BlockRequest>()
   private matchedBlocks = new Map<number, Block>()
 
-  private utxos = new Map<string, PersistedUtxo>()
-  private seenOwnOutpoints = new Set<string>()
+  // In-memory UTXO map. Source of truth lives in SQL (main process); this
+  // is a session cache seeded at start time and mutated as blocks apply.
+  // Discarded on stop and re-derived from SQL on next start.
+  //
+  // Why the worker holds this at all (we can't be fully stateless):
+  //
+  //   1. BIP 158 outpoint watching — STRUCTURAL, can't move.
+  //      The cfilter match (cf.matchAny(this.watchedItems)) runs in this
+  //      worker because that's where peer messages arrive. The match set
+  //      must include both our scriptPubKeys AND our outpoints, otherwise
+  //      we'd miss any tx that spends one of our UTXOs without paying any
+  //      of our addresses (i.e. pure outgoing txs). Adding a received
+  //      output's outpoint to watchedItems requires knowing it's ours;
+  //      removing a spent outpoint requires knowing which one matched.
+  //
+  private utxos = new Map<string, WalletSyncUtxo>()
+
+  private readonly seedUtxos: WalletSyncUtxo[]
+  private readonly initialCfilterCursor: number | null
 
   // Bound listener references — kept as fields so stop() can detach.
   private onPeerReady = (peer: Peer): void => this.handlePeerReady(peer)
@@ -197,6 +203,8 @@ export class CFilterSyncWorker extends Worker {
     this.chainTipHeight = opts.chainTipHeight
     this.chainTipWire = displayHexToWire(opts.chainTipHashDisplayHex)
     this.birthdayHeight = Math.max(1, opts.birthdayHeight)
+    this.seedUtxos = opts.seedUtxos
+    this.initialCfilterCursor = opts.cfilterCursor
 
     for (const a of opts.watchAddresses) {
       this.watchedAddressSet.add(a)
@@ -208,19 +216,16 @@ export class CFilterSyncWorker extends Worker {
   }
 
   start = async (): Promise<void> => {
-    // Restore prior progress (per-wallet state).
-    const cursor = await this.chainStore.getCFilterCursor(this.walletId)
-    const persistedUtxos = await this.chainStore.getAllUtxos(this.walletId)
-    for (const u of persistedUtxos) {
+    // Restore prior per-wallet state from seed (sourced from SQL by main).
+    for (const u of this.seedUtxos) {
       const k = `${u.txid}:${u.vout}`
       this.utxos.set(k, u)
-      this.seenOwnOutpoints.add(k)
       this.watchedItems.push(bip158Outpoint(u.txid, u.vout))
     }
-    if (persistedUtxos.length > 0) this.emit('utxos', persistedUtxos)
 
-    const resumeHeight = cursor != null ? Math.max(this.birthdayHeight, cursor + 1) : this.birthdayHeight
-    this.cfilterCursor = resumeHeight
+    this.cfilterCursor = this.initialCfilterCursor != null
+      ? Math.max(this.birthdayHeight, this.initialCfilterCursor + 1)
+      : this.birthdayHeight
 
     await this.buildChainIndex()
 
@@ -289,9 +294,10 @@ export class CFilterSyncWorker extends Worker {
     }
   }
 
-  // Hot-add of newly created wallet addresses. Cursor is rewound to birthday
-  // so historical filters are re-matched against the new addresses.
-  addWatchAddresses = (addresses: string[]): void => {
+  // Hot-add of newly created wallet addresses. Cursor is rewound to the
+  // caller-supplied height (defaults to birthday) so historical filters
+  // are re-matched against the new addresses.
+  addWatchAddresses = (addresses: string[], rewindToHeight?: number): void => {
     if (this.stopped) return
     let added = 0
     for (const a of addresses) {
@@ -301,14 +307,15 @@ export class CFilterSyncWorker extends Worker {
       added++
     }
     if (added === 0) return
-    console.log(`[cfilter] addWatchAddresses +${added} (total ${this.watchedAddressSet.size}); re-scanning from birthday`)
+    const target = Math.max(this.birthdayHeight, rewindToHeight ?? this.birthdayHeight)
+    console.log(`[cfilter] addWatchAddresses +${added} (total ${this.watchedAddressSet.size}); rewinding cursor to h=${target}`)
 
     for (const b of this.inflightBatches.values()) {
       if (b.timer) clearTimeout(b.timer)
     }
     this.inflightBatches.clear()
     this.matchedBlocks.clear()
-    this.cfilterCursor = this.birthdayHeight
+    this.cfilterCursor = target
 
     if (this.phase === 'cfheaders' || this.phase === 'cfcheckpt' || this.phase === 'connecting') {
       return
@@ -326,15 +333,11 @@ export class CFilterSyncWorker extends Worker {
 
   private emitStatus(phase: CFilterPhase): void {
     this.phase = phase
-    let totalBalance = 0n
-    for (const u of this.utxos.values()) totalBalance += BigInt(u.satoshis)
     const matchedBlocksPending = this.matchedBlocks.size + this.blockRequestsInflight.size
     const status: CFilterSyncWorkerStatus = {
       phase,
       cfheadersHeight: Math.max(0, this.cfHeadersWalkStart - 1),
       cfilterScanHeight: Math.max(0, this.cfilterCursor - 1),
-      utxoCount: this.utxos.size,
-      totalBalance: totalBalance.toString(),
       matchedBlocksPending,
       peerCount: this.peerPool.readyPeers.size,
       filterCapablePeerCount: this.peerPool.filterCapablePeers.size,
@@ -723,7 +726,9 @@ export class CFilterSyncWorker extends Worker {
       await this.applyBlock(this.matchedBlocks.get(h)!, h)
     }
     this.matchedBlocks.clear()
-    await this.chainStore.setCFilterCursor(this.walletId, this.effectiveScanTipHeight())
+    // Advance the persisted cursor to the effective scan tip — covers the
+    // run of unmatched blocks that produced no blockApplied events.
+    this.emit('cursorAdvanced', {walletId: this.walletId, height: this.effectiveScanTipHeight()})
     this.finishScan()
   }
 
@@ -805,48 +810,78 @@ export class CFilterSyncWorker extends Worker {
   }
 
   private async applyBlock(block: Block, height: number): Promise<void> {
-    const spends: Array<{ txid: string; vout: number }> = []
-    const received: PersistedUtxo[] = []
-    let mutated = false
+    if (this.stopped) return
+    const blockHashHex = block.hash()
+    const blockTime = block.blockHeader.time
+    const oursTxs: AppliedTx[] = []
+    const spends: AppliedSpend[] = []
 
     for (const tx of block.txs) {
       const txid = tx.hash()
-      for (const input of tx.inputs) {
+      const inputs: AppliedTxInput[] = []
+      const outputs: AppliedTxOutput[] = []
+      let isOurs = false
+
+      for (let vin = 0; vin < tx.inputs.length; vin++) {
+        const input = tx.inputs[vin]!
+        inputs.push({
+          vin,
+          prevTxid: input.txId,
+          prevVout: input.vOut,
+          sequence: input.sequence,
+        })
         const k = `${input.txId}:${input.vOut}`
         const u = this.utxos.get(k)
         if (u) {
-          spends.push({txid: u.txid, vout: u.vout})
+          spends.push({prevTxid: u.txid, prevVout: u.vout, spentInTxid: txid})
           this.utxos.delete(k)
-          mutated = true
+          isOurs = true
           console.log(`[cfilter] spent ${u.txid.slice(0, 16)}…:${u.vout} -${u.satoshis} h=${height}`)
         }
       }
+
       for (let vout = 0; vout < tx.outputs.length; vout++) {
         const output = tx.outputs[vout]!
         const address = output.getAddress(this.network === 'mainnet' ? 'Mainnet' : 'Testnet')
-        if (!address || !this.watchedAddressSet.has(address)) continue
+        const isMine = !!(address && this.watchedAddressSet.has(address))
+        outputs.push({
+          vout,
+          address: address ?? null,
+          satoshis: output.satoshis.toString(),
+          isMine,
+        })
+        if (!isMine) continue
         const k = `${txid}:${vout}`
-        if (this.seenOwnOutpoints.has(k)) continue
-        this.seenOwnOutpoints.add(k)
-        const u: PersistedUtxo = {
+        if (this.utxos.has(k)) continue
+        const u: WalletSyncUtxo = {
           txid,
           vout,
           satoshis: output.satoshis.toString(),
-          address,
+          address: address!,
           height,
         }
         this.utxos.set(k, u)
-        received.push(u)
-        mutated = true
         this.watchedItems.push(bip158Outpoint(txid, vout))
+        isOurs = true
         console.log(`[cfilter] received ${txid.slice(0, 16)}…:${vout} +${u.satoshis} h=${height} (${address})`)
+      }
+
+      if (isOurs) {
+        oursTxs.push({txid, raw: tx.bytes(), inputs, outputs})
       }
     }
 
-    if (mutated) {
-      await this.chainStore.applyBlockUtxos(this.walletId, spends, received, height)
-      this.emit('utxos', [...this.utxos.values()])
+    if (oursTxs.length === 0 && spends.length === 0) return
+
+    const payload: AppliedBlock = {
+      walletId: this.walletId,
+      height,
+      blockHash: blockHashHex,
+      blockTime,
+      txs: oursTxs,
+      spends,
     }
+    this.emit('blockApplied', payload)
   }
 
   private finishScan(): void {

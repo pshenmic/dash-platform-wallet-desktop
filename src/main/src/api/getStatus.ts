@@ -2,7 +2,7 @@ import { IpcMainInvokeEvent } from 'electron/utility'
 import { WalletService } from '../services/WalletService'
 import { ApplicationService } from '../services/ApplicationService'
 import { WalletSyncService } from '../services/WalletSyncService'
-import { WalletSyncStatus } from '../../p2p/messages'
+import { WalletSyncStatus } from '../../p2p/types'
 import {Network} from "../types";
 
 // Aggregated app status. Wallet-sync progress is folded in here rather

@@ -7,6 +7,7 @@ import { ipcMain } from 'electron'
 import { WalletDAO } from './database/WalletDAO'
 import { AddressDAO } from './database/AddressDAO'
 import { IdentityDAO } from './database/IdentityDAO'
+import { TransactionDAO } from './database/TransactionDAO'
 import { WalletService } from './services/WalletService'
 import { AddressesService } from './services/AddressesService'
 import { ApplicationService } from './services/ApplicationService'
@@ -90,6 +91,7 @@ export class WalletBackend {
     const walletDAO = new WalletDAO(knex)
     const addressDAO = new AddressDAO(knex)
     const identityDAO = new IdentityDAO(knex)
+    const transactionDAO = new TransactionDAO(knex)
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
 
@@ -97,7 +99,7 @@ export class WalletBackend {
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, dashPlatformSDK, calibratedIterations)
     this.addressesService = new AddressesService(walletDAO, addressDAO)
     this.preferences = preferences
-    this.walletSyncService = new WalletSyncService(walletDAO, addressDAO)
+    this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
     this.addressDAO = addressDAO
 
     this.initHandlers()
