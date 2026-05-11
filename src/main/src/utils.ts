@@ -192,7 +192,7 @@ export const processProviderTransactions = (txs: TransactionWalletProviderJSON[]
     })
 
     const txVin = tx.vin.map(vin => ({
-      value: vin.value.toString(),
+      value: (vin.value ?? 0).toString(),
       n: vin.n,
       addr: vin.addr ?? '',
       prevTxId: vin.txid,

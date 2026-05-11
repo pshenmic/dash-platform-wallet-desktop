@@ -241,7 +241,7 @@ export class WalletService {
     const provider = this.providerFactory.for(wallet.walletId, wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat()
+    return txArrays.flat().sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
   }
 
   async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
