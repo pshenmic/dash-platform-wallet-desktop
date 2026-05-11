@@ -32,6 +32,7 @@ import {Preferences} from "./preferences";
 import {GetPreferencesHandler} from "./api/getPreferences";
 import {ResetPreferencesHandler} from "./api/resetPreferences";
 import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
+import {SetWalletInfoProviderHandler} from "./api/setWalletInfoProvider";
 import {WalletSyncService} from './services/WalletSyncService'
 import {WalletProviderFactory} from './providers/WalletProviderFactory'
 import {StartWalletSyncHandler} from './api/walletSync/startWalletSync'
@@ -71,6 +72,7 @@ export class WalletBackend {
     ipcMain.handle('getPreferences', new GetPreferencesHandler(this.preferences).handle)
     ipcMain.handle('setLanguage', new SetLanguageHandler(this.preferences).handle)
     ipcMain.handle('setFiatCurrency', new SetFiatCurrencyHandler(this.preferences).handle)
+    ipcMain.handle('setWalletInfoProvider', new SetWalletInfoProviderHandler(this.preferences).handle)
     ipcMain.handle('resetPreferences', new ResetPreferencesHandler(this.preferences).handle)
     ipcMain.handle('startWalletSync', new StartWalletSyncHandler(this.walletSyncService).handle)
     ipcMain.handle('stopWalletSync', new StopWalletSyncHandler(this.walletSyncService).handle)
