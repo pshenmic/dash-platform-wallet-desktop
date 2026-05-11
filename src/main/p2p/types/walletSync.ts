@@ -49,6 +49,9 @@ export interface WalletSyncStatus {
   // requests to succeed.
   filterCapablePeerCount: number
 
+  // Estimated milliseconds remaining until the current phase completes.
+  phaseEtaMs: number | null
+
   lastError: string | null
   updatedAt: number
 }

@@ -37,6 +37,7 @@ export class WalletSyncService {
     matchedBlocksPending: 0,
     peerCount: 0,
     filterCapablePeerCount: 0,
+    phaseEtaMs: null,
     lastError: null,
     updatedAt: Date.now(),
   }
@@ -85,6 +86,7 @@ export class WalletSyncService {
         matchedBlocksPending: 0,
         peerCount: 0,
         filterCapablePeerCount: 0,
+        phaseEtaMs: null,
         lastError: null,
         updatedAt: Date.now(),
       }
@@ -190,6 +192,7 @@ export class WalletSyncService {
         matchedBlocksPending: 0,
         peerCount: 0,
         filterCapablePeerCount: 0,
+        phaseEtaMs: null,
         lastError: null,
         updatedAt: Date.now(),
       }

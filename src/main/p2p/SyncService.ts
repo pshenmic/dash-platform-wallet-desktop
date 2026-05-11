@@ -58,9 +58,12 @@ export class SyncService {
     matchedBlocksPending: 0,
     peerCount: 0,
     filterCapablePeerCount: 0,
+    phaseEtaMs: null,
     lastError: null,
     updatedAt: Date.now(),
   }
+
+  private phaseStart: {phase: WalletSyncStatus['phase']; startedAt: number; startHeight: number} | null = null
 
   constructor(private readonly events: SyncServiceEvents) {}
 
@@ -88,6 +91,7 @@ export class SyncService {
       matchedBlocksPending: 0,
       peerCount: 0,
       filterCapablePeerCount: 0,
+      phaseEtaMs: null,
       lastError: null,
     })
 
@@ -152,6 +156,7 @@ export class SyncService {
       matchedBlocksPending: 0,
       peerCount: 0,
       filterCapablePeerCount: 0,
+      phaseEtaMs: null,
     })
   }
 
@@ -190,8 +195,36 @@ export class SyncService {
   }
 
   private emit(next: Partial<WalletSyncStatus>): void {
-    this.status = {...this.status, ...next, updatedAt: Date.now()}
+    const merged = {...this.status, ...next, updatedAt: Date.now()}
+    merged.phaseEtaMs = this.computePhaseEta(merged)
+    this.status = merged
     this.events.status(this.status)
+  }
+
+  // Returns ms remaining for the active phase, based on the rate of height
+  // progress since the phase started. null for phases with no height target
+  // (idle, connecting, synced-headers, synced, stopped) and while we don't
+  // yet have a usable rate sample.
+  private computePhaseEta(status: WalletSyncStatus): number | null {
+    const target = phaseTargetHeight(status)
+    const current = phaseCurrentHeight(status)
+    if (target == null || current == null) {
+      this.phaseStart = null
+      return null
+    }
+
+    const now = status.updatedAt
+    if (!this.phaseStart || this.phaseStart.phase !== status.phase) {
+      this.phaseStart = {phase: status.phase, startedAt: now, startHeight: current}
+      return null
+    }
+
+    const elapsed = now - this.phaseStart.startedAt
+    const delta = current - this.phaseStart.startHeight
+    const remaining = target - current
+    if (elapsed < 1000 || delta <= 0 || remaining <= 0) return null
+
+    return Math.round((remaining * elapsed) / delta)
   }
 
   private onHeaderStatus(s: HeaderSyncWorkerStatus): void {
@@ -267,5 +300,23 @@ export class SyncService {
     this.status = {...this.status, lastError: err, updatedAt: Date.now()}
     this.events.status(this.status)
     this.events.error(err)
+  }
+}
+
+function phaseCurrentHeight(s: WalletSyncStatus): number | null {
+  switch (s.phase) {
+    case 'syncing-headers': return s.tipHeight
+    case 'syncing-cfheaders': return s.cfheadersHeight
+    case 'syncing-cfilters': return s.cfilterScanHeight
+    default: return null
+  }
+}
+
+function phaseTargetHeight(s: WalletSyncStatus): number | null {
+  switch (s.phase) {
+    case 'syncing-headers': return s.estimatedChainHeight > 0 ? s.estimatedChainHeight : null
+    case 'syncing-cfheaders': return s.tipHeight > 0 ? s.tipHeight : null
+    case 'syncing-cfilters': return s.tipHeight > 0 ? s.tipHeight : null
+    default: return null
   }
 }
