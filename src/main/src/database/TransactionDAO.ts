@@ -162,13 +162,14 @@ export class TransactionDAO {
     }))
   }
 
-  resetAllSyncData = async (): Promise<void> => {
+  resetSyncDataByNetwork = async (network: 'mainnet' | 'testnet'): Promise<void> => {
     await this.knex.transaction(async trx => {
-      await trx('transaction_inputs').delete()
-      await trx('transaction_outputs').delete()
-      await trx('transactions').delete()
-      await trx('wallet_sync_state').delete()
-      await trx('addresses').update({is_used: false})
+      const walletIds = trx('wallet').select('wallet_id').where('network', network)
+      await trx('transaction_inputs').whereIn('wallet_id', walletIds).delete()
+      await trx('transaction_outputs').whereIn('wallet_id', walletIds).delete()
+      await trx('transactions').whereIn('wallet_id', walletIds).delete()
+      await trx('wallet_sync_state').whereIn('wallet_id', walletIds).delete()
+      await trx('addresses').whereIn('wallet_id', walletIds).update({is_used: false})
     })
   }
   getUtxosByAddress = async (walletId: string, address: string): Promise<WalletSyncUtxo[]> => {

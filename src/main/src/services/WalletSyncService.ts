@@ -128,11 +128,14 @@ export class WalletSyncService {
     const seedUtxos = await this.transactionDAO.getUtxos(walletId)
     const cfilterCursor = await this.transactionDAO.getCursor(walletId)
 
+    const chainDbPath = path.join(os.homedir(), HomeFolderName, ChainStorageFilename, network)
+    fs.mkdirSync(chainDbPath, {recursive: true})
+
     this.send({
       type: 'start',
       network,
       walletId,
-      chainDbPath: path.join(os.homedir(), HomeFolderName, ChainStorageFilename),
+      chainDbPath,
       watchAddresses,
       seedUtxos,
       cfilterCursor,
@@ -177,10 +180,10 @@ export class WalletSyncService {
     return this.transactionDAO.getUtxos(this.activeWalletId)
   }
 
-  resetSync = async (): Promise<void> => {
+  resetSync = async (network: 'mainnet' | 'testnet'): Promise<void> => {
     this.shutdown()
-    await this.transactionDAO.resetAllSyncData()
-    const chainDbPath = path.join(os.homedir(), HomeFolderName, ChainStorageFilename)
+    await this.transactionDAO.resetSyncDataByNetwork(network)
+    const chainDbPath = path.join(os.homedir(), HomeFolderName, ChainStorageFilename, network)
     await fs.promises.rm(chainDbPath, {recursive: true, force: true})
   }
   shutdown = (): void => {
