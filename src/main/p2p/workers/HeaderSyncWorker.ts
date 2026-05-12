@@ -1,7 +1,6 @@
 import {Message, Peer} from 'dash-core-p2p'
 import {utils as coreUtils} from 'dash-core-sdk'
-import {ChainStore} from '../ChainStore'
-import {PersistedHeader, ChainTipState} from '../database/ChainDAO'
+import {ChainStore, PersistedHeader, ChainTipState} from '../ChainStore'
 import {PoolService} from '../PoolService'
 import {
   bitsToTarget,

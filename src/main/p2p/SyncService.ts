@@ -1,5 +1,4 @@
-import {ChainDAO, PersistedHeader} from './database/ChainDAO'
-import {ChainStore} from './ChainStore'
+import {ChainStore, PersistedHeader} from './ChainStore'
 import {GENESIS} from './constants'
 import {PoolService} from './PoolService'
 import {
@@ -33,7 +32,6 @@ export interface SyncServiceEvents {
 }
 
 export class SyncService {
-  private chainDAO: ChainDAO | null = null
   private chainStore: ChainStore | null = null
   private peerPool: PoolService | null = null
   private headerSyncWorker: HeaderSyncWorker | null = null
@@ -97,9 +95,8 @@ export class SyncService {
 
     // Open chain.db (single-owner LevelDB lock). Chain.db now holds only
     // network-scoped data (headers, hash cache, filter headers).
-    this.chainDAO = new ChainDAO(cmd.chainDbPath)
-    await this.chainDAO.open()
-    this.chainStore = new ChainStore(this.chainDAO, cmd.network)
+    this.chainStore = new ChainStore(cmd.chainDbPath, cmd.network)
+    await this.chainStore.open()
 
     const persisted = await this.chainStore.initSyncState()
 
@@ -186,9 +183,8 @@ export class SyncService {
       this.peerPool.removeAllListeners()
       this.peerPool = null
     }
-    if (this.chainDAO) {
-      await this.chainDAO.close().catch(() => { /* ignore */ })
-      this.chainDAO = null
+    if (this.chainStore) {
+      await this.chainStore.close().catch(() => { /* ignore */ })
       this.chainStore = null
     }
     this.cfilterStarted = false
