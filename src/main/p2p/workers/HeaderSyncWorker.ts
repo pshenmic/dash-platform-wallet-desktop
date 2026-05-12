@@ -149,6 +149,7 @@ export class HeaderSyncWorker extends Worker {
       if (rawPrevHash(rawHeaders[0]!) !== this.chainTipHash) return
       this.processHeaders(rawHeaders).catch(err => {
         console.error('[p2p] processHeaders (tip-follow) failed:', err)
+        this.reportError(formatChainDbError(err), false)
       })
       return
     }
@@ -192,7 +193,7 @@ export class HeaderSyncWorker extends Worker {
     }).catch(err => {
       console.error('[p2p] processHeaders failed:', err)
       this.endRace(race)
-      if (this.phase === 'syncing-headers') this.startHeaderRace()
+      this.reportError(formatChainDbError(err), false)
     })
   }
 
@@ -324,4 +325,12 @@ export class HeaderSyncWorker extends Worker {
     this.emit('chainExtended', accepted)
     return true
   }
+}
+
+// Include the LevelDB error code (LEVEL_IO_ERROR, LEVEL_CORRUPTION, …) in
+// the message so SyncService.isFatalChainDbError picks it up and tears down.
+function formatChainDbError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err)
+  const code = (err as { code?: string }).code
+  return code ? `${code}: ${message}` : message
 }

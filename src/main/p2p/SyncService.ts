@@ -96,9 +96,20 @@ export class SyncService {
     // Open chain.db (single-owner LevelDB lock). Chain.db now holds only
     // network-scoped data (headers, hash cache, filter headers).
     this.chainStore = new ChainStore(cmd.chainDbPath, cmd.network)
-    await this.chainStore.open()
-
-    const persisted = await this.chainStore.initSyncState()
+    let persisted
+    try {
+      await this.chainStore.open()
+      persisted = await this.chainStore.initSyncState()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const code = (err as { code?: string }).code ?? 'unknown'
+      const labelled = `chain.db unusable (${code}): ${message}. Call resetWalletSync to recover.`
+      await this.chainStore.close().catch(() => { /* ignore */ })
+      this.chainStore = null
+      this.emit({phase: 'stopped', lastError: labelled})
+      this.events.error(labelled)
+      return
+    }
 
     // Resume from persisted tip, or genesis on a fresh chain.db.
     let resumeHeight = persisted.tipHeight
@@ -291,12 +302,27 @@ export class SyncService {
   }
 
   private handleWorkerError(workerName: string, message: string): void {
-    const err = `[${workerName}] ${message}`
+    const fatal = isFatalChainDbError(message)
+    const err = fatal
+      ? `[${workerName}] chain.db unusable: ${message}. Call resetWalletSync to recover.`
+      : `[${workerName}] ${message}`
     console.error(err)
     this.status = {...this.status, lastError: err, updatedAt: Date.now()}
     this.events.status(this.status)
     this.events.error(err)
+    if (fatal) {
+      this.teardown()
+        .catch(() => { /* ignore */ })
+        .finally(() => this.emit({phase: 'stopped'}))
+    }
   }
+}
+
+// Errors that mean chain.db is no longer usable — corruption, IO errors,
+// or the folder being unlinked under us mid-sync. Once we hit one, we can't
+// safely keep workers running; main process must resetSync to recover.
+function isFatalChainDbError(message: string): boolean {
+  return /LEVEL_(CORRUPTION|IO_ERROR|DATABASE_NOT_OPEN|NOT_FOUND)|ENOENT|EBADF/i.test(message)
 }
 
 function phaseCurrentHeight(s: WalletSyncStatus): number | null {

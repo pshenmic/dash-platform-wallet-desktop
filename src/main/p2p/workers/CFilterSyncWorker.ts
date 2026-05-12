@@ -435,9 +435,15 @@ export class CFilterSyncWorker extends Worker {
     console.log(`[cfilter] peerblock h=${height} from ${peer.host}  inflight-blocks=${this.blockFetch.inflight.size}`)
     if (this.phase === 'cfilters') {
       this.blockFetch.matched.set(height, block)
-      this.maybeDrainAndFinish().catch(err => console.error('[cfilter] drain failed:', err))
+      this.maybeDrainAndFinish().catch(err => {
+        console.error('[cfilter] drain failed:', err)
+        this.reportError(formatChainDbError(err), false)
+      })
     } else {
-      this.applyBlock(block, height).catch(err => console.error('[cfilter] applyBlock failed:', err))
+      this.applyBlock(block, height).catch(err => {
+        console.error('[cfilter] applyBlock failed:', err)
+        this.reportError(formatChainDbError(err), false)
+      })
     }
   }
 
@@ -505,9 +511,10 @@ export class CFilterSyncWorker extends Worker {
       for (const h of [...this.heightToFilterHeader.keys()]) {
         if (h >= firstBadCheckpoint) this.heightToFilterHeader.delete(h)
       }
-      this.chainStore.deleteFilterHeadersFrom(firstBadCheckpoint).catch(err =>
+      this.chainStore.deleteFilterHeadersFrom(firstBadCheckpoint).catch(err => {
         console.error('[cfilter] failed to drop stale filter headers:', err)
-      )
+        this.reportError(formatChainDbError(err), false)
+      })
     }
 
     const start = Math.max(this.birthdayHeight, this.cfilter.cursor)
@@ -613,9 +620,10 @@ export class CFilterSyncWorker extends Worker {
     }
 
     for (const e of derived) this.heightToFilterHeader.set(e.height, e.header)
-    this.chainStore.writeFilterHeaders(derived).catch(err =>
+    this.chainStore.writeFilterHeaders(derived).catch(err => {
       console.error('[cfilter] failed to persist filter headers:', err)
-    )
+      this.reportError(formatChainDbError(err), false)
+    })
 
     console.log(`[cfheaders] processed checkpoint until: ${pending.startHeight}`)
 
@@ -671,7 +679,10 @@ export class CFilterSyncWorker extends Worker {
       this.cfilter.cursor = stopHeight + 1
     }
     if (this.cfilter.cursor > effectiveTip && this.cfilter.inflightBatches.size === 0) {
-      this.maybeDrainAndFinish().catch(err => console.error('[cfilter] drain failed:', err))
+      this.maybeDrainAndFinish().catch(err => {
+        console.error('[cfilter] drain failed:', err)
+        this.reportError(formatChainDbError(err), false)
+      })
     }
   }
 
@@ -816,4 +827,12 @@ export class CFilterSyncWorker extends Worker {
       spends,
     } satisfies AppliedBlock)
   }
+}
+
+// Include the LevelDB error code (LEVEL_IO_ERROR, LEVEL_CORRUPTION, …) in
+// the message so SyncService.isFatalChainDbError picks it up and tears down.
+function formatChainDbError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err)
+  const code = (err as { code?: string }).code
+  return code ? `${code}: ${message}` : message
 }

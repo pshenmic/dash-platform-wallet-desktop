@@ -129,7 +129,12 @@ export class WalletSyncService {
     const cfilterCursor = await this.transactionDAO.getCursor(walletId)
 
     const chainDbPath = path.join(os.homedir(), HomeFolderName, ChainStorageFilename, network)
-    fs.mkdirSync(chainDbPath, {recursive: true})
+    try {
+      fs.mkdirSync(chainDbPath, {recursive: true})
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return {success: false, errorMessage: `Failed to create chain.db directory: ${message}`}
+    }
 
     this.send({
       type: 'start',
