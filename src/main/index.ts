@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, nativeTheme, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/logo.png?asset'
@@ -65,13 +65,21 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  createWindow()
-
-  backend.start().catch(console.error)
+  backend.start()
+    .then(createWindow)
+    .catch((err) => {
+      console.error(err)
+      dialog.showErrorBox('Startup failed', String(err))
+    })
 
   app.on('activate', () => {
     if (mainWindow === null) {
-      createWindow()
+      backend.start()
+        .then(createWindow)
+        .catch((err) => {
+          console.error(err)
+          dialog.showErrorBox('Startup failed', String(err))
+        })
     }
   })
 })
