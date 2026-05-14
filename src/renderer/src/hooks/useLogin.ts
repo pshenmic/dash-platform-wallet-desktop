@@ -52,8 +52,9 @@ export function useLogin(): UseLoginReturn {
       return false
     }
 
-    const MOCK_PASSWORD = '1234'
-    const isValid = password === MOCK_PASSWORD
+    const isValid = await API.verifyWalletPassword(selectedWalletId, password).catch(error => {
+      console.log('Password failed to verify', error)
+    })
 
     if (!isValid) {
       setHasError(true)
