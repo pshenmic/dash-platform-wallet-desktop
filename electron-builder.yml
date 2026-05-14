@@ -19,7 +19,7 @@ win:
       arch:
         - x64
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -30,7 +30,7 @@ mac:
         - arm64
         - x64
 dmg:
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 linux:
   target:
     - target: AppImage
@@ -42,7 +42,9 @@ linux:
   maintainer: pshenmic.dev
   category: Office;Finance;
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
+deb:
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 #  entitlementsInherit: build/entitlements.mac.plist
 #  extendInfo:
 #    - NSCameraUsageDescription: Application requests access to the device's camera.
