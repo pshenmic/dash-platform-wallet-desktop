@@ -38,4 +38,8 @@ export class API {
   static async getWalletBalance(walletId: string) {
     return this.api.getWalletBalance(walletId)
   }
+
+  static async verifyWalletPassword(walletId: string, password: string) {
+    return this.api.verifyWalletPassword(walletId, password)
+  }
 }
