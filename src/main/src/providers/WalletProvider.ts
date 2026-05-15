@@ -9,4 +9,8 @@ export interface WalletProvider {
   getBlockByHash(hash: string): Promise<Block>
   getUTXOs(address: string): Promise<UTXO[]>
   broadcastTx(tx: SDKTransaction): Promise<string>
+  // Returns the first address from the given set that has no on-chain history
+  // — used by Receive (next unused receiving address) and change-output
+  // selection. Determined by the provider, not by local DB state.
+  nextUnusedAddress(addresses: string[]): Promise<string>
 }

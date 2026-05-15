@@ -244,6 +244,15 @@ export class WalletService {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }
 
+  async getReceiveAddress(walletId: string): Promise<string> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+    if (wallet == null) throw new Error('Wallet not found')
+
+    const { receiving } = await this.addressDAO.getAddressesByWalletId(walletId)
+    const provider = this.getProvider(wallet.walletId, wallet.network)
+    return provider.nextUnusedAddress(receiving.map(a => a.address))
+  }
+
   async getAddressesByWalletId(walletId: string): Promise<GroupedAddresses> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 

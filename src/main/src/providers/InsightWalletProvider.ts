@@ -1,4 +1,5 @@
 import {Block, Script, Transaction as SDKTransaction} from 'dash-core-sdk'
+import { net } from 'electron'
 import {UTXO} from '../types/UTXO'
 import {WalletProvider} from './WalletProvider'
 import {Network} from '../types'
@@ -34,7 +35,7 @@ export class InsightWalletProvider implements WalletProvider {
   }
 
   async sendRequest(url: string, params?: RequestInit): Promise<Response> {
-    const response = await fetch(url, params)
+    const response = await net.fetch(url, params as RequestInit)
 
     if (!response.ok) {
       throw new Error(`Insight API error: ${response.status}`)
@@ -104,6 +105,11 @@ export class InsightWalletProvider implements WalletProvider {
     const data = await response.json() as { txid: string }
 
     return data.txid
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async nextUnusedAddress(_addresses: string[]): Promise<string> {
+    throw new Error('Not implemented')
   }
 
   private async allWalletAddresses() {

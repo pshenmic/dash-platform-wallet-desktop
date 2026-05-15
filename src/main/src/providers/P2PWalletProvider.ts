@@ -51,6 +51,11 @@ export class P2PWalletProvider implements WalletProvider {
     throw new Error('Unimplemented: getBlockByHash is not available in p2p mode')
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async nextUnusedAddress(_addresses: string[]): Promise<string> {
+    throw new Error('Not implemented')
+  }
+
   private p2pkhScript(address: string): Script {
     const s = new Script()
     s.pushOpCode('OP_DUP')
