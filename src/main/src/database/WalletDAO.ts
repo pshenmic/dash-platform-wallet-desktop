@@ -77,6 +77,17 @@ export class WalletDAO {
     return fromRow(rows[0])
   }
 
+  setWalletLabel = async (walletId: string, label: string | null): Promise<QueryStatus> => {
+    const result = await this.knex('wallet')
+      .where('wallet_id', walletId)
+      .update({label})
+
+    if (result > 0) {
+      return {success: true, errorMessage: null}
+    }
+    return {success: false, errorMessage: 'Wallet not found'}
+  }
+
   setSelectedWallet = async (walletId: string): Promise<QueryStatus> => {
     await this.knex('wallet')
       .where('selected', true)

@@ -244,6 +244,10 @@ export class WalletService {
     return this.addressDAO.setAddressLabel(walletId, address, label)
   }
 
+  async setWalletLabel(walletId: string, label: string | null): Promise<QueryStatus> {
+    return this.walletDAO.setWalletLabel(walletId, label)
+  }
+
   async getReceiveAddress(walletId: string): Promise<string> {
     const wallet = await this.walletDAO.getWalletById(walletId)
     if (wallet == null) throw new Error('Wallet not found')
