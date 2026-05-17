@@ -10,6 +10,7 @@ import { IdentityDAO } from './database/IdentityDAO'
 import { TransactionDAO } from './database/TransactionDAO'
 import { WalletService } from './services/WalletService'
 import { ApplicationService } from './services/ApplicationService'
+import { RatesService } from './services/RatesService'
 import {Preferences} from "./preferences";
 import { CreateWalletHandler } from './api/wallet/createWallet'
 import { GetWalletAddressesHandler } from './api/wallet/getAddresses'
@@ -98,9 +99,11 @@ export class WalletBackend {
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
 
+    const ratesService = new RatesService()
+
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, dashPlatformSDK, calibratedIterations)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, ratesService, dashPlatformSDK, calibratedIterations)
     this.addressDAO = addressDAO
 
     this.initHandlers()
