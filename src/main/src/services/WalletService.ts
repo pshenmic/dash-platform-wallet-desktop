@@ -210,6 +210,19 @@ export class WalletService {
     return this.walletDAO.setSelectedWallet(walletId)
   }
 
+  async exportMnemonic(walletId: string, password: string): Promise<string> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+    if (wallet == null) {
+      throw new Error('Wallet not found')
+    }
+
+    try {
+      return decryptMnemonic(wallet.encryptedMnemonic, password)
+    } catch {
+      throw new Error('Invalid password')
+    }
+  }
+
   async verifyWalletPassword(walletId: string, password: string): Promise<boolean> {
     const wallet = await this.walletDAO.getWalletById(walletId)
 
