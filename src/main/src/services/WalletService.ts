@@ -14,12 +14,27 @@ import {GroupedAddresses} from '../types/GroupedAddresses'
 import {Identity, IdentityInfo} from '../types/Identity'
 import {Wallet} from '../types/Wallet'
 import {PrivateKeyWASM} from 'pshenmic-dpp'
+import {
+  Input,
+  Output,
+  PrivateKey,
+  Transaction as SDKTransaction,
+  utils as sdkUtils,
+} from 'dash-core-sdk'
 import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
+import {UTXO} from "../types/UTXO";
 import {deriveKeyFromPassword} from "../utils";
 import {createDecipheriv} from "node:crypto";
+
+const {addressToPublicKeyHash, publicKeyHashToAddress} = sdkUtils
+
+const SEQUENCE_FINAL = 0xffffffff
+// dash-core-sdk's NetworkLike uses capitalized enum keys; our app-wide
+// Network is lowercase. Map at the boundary instead of widening Network.
+const SDK_NETWORK: Record<Network, 'Mainnet' | 'Testnet'> = {mainnet: 'Mainnet', testnet: 'Testnet'}
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -296,7 +311,16 @@ export class WalletService {
     const provider = this.getProvider(wallet.walletId, wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat().sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
+    // Dedup by txid: a tx touching N of our addresses (input, change, self-send
+    // recipient) comes back N times since provider.getTransactions runs per
+    // address. Each duplicate is bit-for-bit identical — processProviderTransactions
+    // aggregates against the full wallet address set, not the queried one — so
+    // keeping the first occurrence loses nothing.
+    const seen = new Set<string>()
+    return txArrays
+      .flat()
+      .filter(tx => (seen.has(tx.txid) ? false : (seen.add(tx.txid), true)))
+      .sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
   }
 
   async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
@@ -427,4 +451,174 @@ export class WalletService {
   async getIdentityNonce(identifier: string): Promise<bigint> {
     return this.sdk.identities.getIdentityNonce(identifier)
   }
+
+  // Build, sign and broadcast a P2PKH transaction spending the wallet's
+  // UTXOs to `toAddress`. amountSatoshis crosses IPC as a string because
+  // BigInt is not IPC-serializable. Returns the broadcast txid.
+  //
+  // UTXOs are sourced through the connection-mode provider (P2P → SQL,
+  // RPC → Insight). Broadcast always goes through Insight regardless of
+  // mode — P2PWalletProvider.broadcastTx is not implemented yet.
+  async sendCoins(
+    walletId: string,
+    toAddress: string,
+    amountSatoshis: string,
+    password: string,
+  ): Promise<string> {
+    const amount = BigInt(amountSatoshis)
+    if (amount <= 0n) {
+      throw new Error('Amount must be greater than 0')
+    }
+
+    const wallet = await this.walletDAO.getWalletById(walletId)
+    if (wallet == null) {
+      throw new Error('Wallet not found')
+    }
+
+    this.assertAddressOnNetwork(toAddress, wallet.network)
+
+    let mnemonic: string
+    try {
+      mnemonic = decryptMnemonic(wallet.encryptedMnemonic, password)
+    } catch {
+      throw new Error('Invalid password')
+    }
+
+    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
+    const allAddresses = [...grouped.receiving, ...grouped.change]
+    if (allAddresses.length === 0) {
+      throw new Error('Wallet has no addresses')
+    }
+
+    const provider = this.getProvider(wallet.walletId, wallet.network)
+
+    const utxosWithMeta = await this.collectUtxos(provider, allAddresses)
+    if (utxosWithMeta.length === 0) {
+      throw new Error('Insufficient funds')
+    }
+
+    const selected = this.selectUtxosGreedy(utxosWithMeta, amount)
+    if (selected.totalIn < amount) {
+      throw new Error('Insufficient funds')
+    }
+
+    const changeAddress = this.pickChangeAddress(grouped.change)
+
+    const tx = this.buildTransaction(selected.utxos, toAddress, amount, changeAddress, selected.totalIn)
+
+    const seed = this.sdk.keyPair.mnemonicToSeed(mnemonic)
+    const hdKey = this.sdk.keyPair.seedToHdKey(seed, wallet.network)
+
+    const privateKeys = await Promise.all(
+      selected.utxos.map(async u => {
+        const derived = await this.sdk.keyPair.derivePath(hdKey, u.address.derivationPath)
+        if (!derived.privateKey) {
+          throw new Error(`Failed to derive private key for ${u.address.address}`)
+        }
+        return PrivateKey.fromBytes(derived.privateKey, SDK_NETWORK[wallet.network], true)
+      })
+    )
+
+    this.signTransactionMultiKey(tx, privateKeys)
+
+    const broadcaster = new InsightWalletProvider(wallet.network, wallet.walletId, this.addressDAO)
+    return broadcaster.broadcastTx(tx)
+  }
+
+  private assertAddressOnNetwork(address: string, network: Network): void {
+    let pkh: Uint8Array
+    try {
+      pkh = addressToPublicKeyHash(address)
+    } catch {
+      throw new Error('Invalid recipient address')
+    }
+    const roundTrip = publicKeyHashToAddress(pkh, SDK_NETWORK[network])
+    if (roundTrip !== address) {
+      throw new Error(`Recipient address is not a valid ${network} address`)
+    }
+  }
+
+  private async collectUtxos(
+    provider: WalletProvider,
+    addresses: Address[],
+  ): Promise<{utxo: UTXO; address: Address}[]> {
+    const perAddress = await Promise.all(
+      addresses.map(async addr => ({
+        addr,
+        utxos: await provider.getUTXOs(addr.address),
+      }))
+    )
+    return perAddress.flatMap(({addr, utxos}) =>
+      utxos.map(utxo => ({utxo, address: addr}))
+    )
+  }
+
+  // Greedy largest-first. Stops once the accumulated input amount covers
+  // `target + a generous fee headroom`. Fee math is deferred to
+  // SDKTransaction.generateChange, which throws on real shortfall.
+  private selectUtxosGreedy(
+    candidates: {utxo: UTXO; address: Address}[],
+    target: bigint,
+  ): {utxos: {utxo: UTXO; address: Address}[]; totalIn: bigint} {
+    const sorted = [...candidates].sort((a, b) =>
+      a.utxo.satoshis > b.utxo.satoshis ? -1 : a.utxo.satoshis < b.utxo.satoshis ? 1 : 0
+    )
+    const picked: {utxo: UTXO; address: Address}[] = []
+    let totalIn = 0n
+    // Headroom: covers signed inputs + change output + recipient output + tx overhead at FEE_PER_BYTE=1.
+    const feeHeadroom = (n: number): bigint => BigInt(n * 150 + 100)
+    for (const c of sorted) {
+      picked.push(c)
+      totalIn += c.utxo.satoshis
+      if (totalIn >= target + feeHeadroom(picked.length)) break
+    }
+    return {utxos: picked, totalIn}
+  }
+
+  private pickChangeAddress(change: Address[]): string {
+    if (change.length === 0) {
+      throw new Error('Wallet has no change addresses')
+    }
+    const unused = change.find(a => !a.isUsed)
+    return (unused ?? change[0]).address
+  }
+
+  private buildTransaction(
+    selected: {utxo: UTXO; address: Address}[],
+    toAddress: string,
+    amount: bigint,
+    changeAddress: string,
+    totalIn: bigint,
+  ): SDKTransaction {
+    const inputs = selected.map(({utxo}) => new Input(utxo.txId, utxo.vOut, utxo.script, SEQUENCE_FINAL))
+
+    const recipientOutput = new Output(amount)
+    recipientOutput.generateP2PKH(toAddress)
+
+    const tx = new SDKTransaction(inputs, [recipientOutput])
+    // generateChange computes fee internally (FEE_PER_BYTE) and only appends
+    // a change output when worthwhile. Throws if totalIn < amount.
+    tx.generateChange(changeAddress, totalIn)
+    return tx
+  }
+
+  // Multi-key P2PKH signing. The SDK's tx.sign(privateKey) signs every input
+  // with the same key — useless for an HD wallet whose UTXOs come from
+  // different addresses. For each input i we clone the unsigned tx, call
+  // sign(privKey[i]) on the clone (which produces a correct signature for
+  // input i with the right key, wrong for others), then splice clone.inputs[i]
+  // .scriptSig into the final tx. This delegates the secp256k1 / sighash
+  // crypto to the SDK while still producing per-input correct signatures.
+  private signTransactionMultiKey(tx: SDKTransaction, privateKeys: PrivateKey[]): void {
+    if (tx.inputs.length !== privateKeys.length) {
+      throw new Error('Input/key count mismatch')
+    }
+    const unsignedBytes = tx.bytes()
+    for (let i = 0; i < tx.inputs.length; i++) {
+      const clone = SDKTransaction.fromBytes(unsignedBytes)
+      clone.sign(privateKeys[i])
+      tx.inputs[i].scriptSig = clone.inputs[i].scriptSig
+    }
+  }
 }
+
