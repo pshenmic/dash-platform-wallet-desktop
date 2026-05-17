@@ -311,7 +311,16 @@ export class WalletService {
     const provider = this.getProvider(wallet.walletId, wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat().sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
+    // Dedup by txid: a tx touching N of our addresses (input, change, self-send
+    // recipient) comes back N times since provider.getTransactions runs per
+    // address. Each duplicate is bit-for-bit identical — processProviderTransactions
+    // aggregates against the full wallet address set, not the queried one — so
+    // keeping the first occurrence loses nothing.
+    const seen = new Set<string>()
+    return txArrays
+      .flat()
+      .filter(tx => (seen.has(tx.txid) ? false : (seen.add(tx.txid), true)))
+      .sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
   }
 
   async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
