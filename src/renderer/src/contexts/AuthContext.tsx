@@ -1,7 +1,31 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { API } from '@renderer/api'
 import { useNavigate } from 'react-router-dom'
-import { AppStatus } from '@renderer/api/types'
+import { AppStatus, WalletSyncStatus } from '@renderer/api/types'
+
+function isSameSync(a: WalletSyncStatus, b: WalletSyncStatus): boolean {
+  return a.phase === b.phase
+    && a.network === b.network
+    && a.walletId === b.walletId
+    && a.tipHeight === b.tipHeight
+    && a.tipHash === b.tipHash
+    && a.estimatedChainHeight === b.estimatedChainHeight
+    && a.cfheadersHeight === b.cfheadersHeight
+    && a.cfilterScanHeight === b.cfilterScanHeight
+    && a.matchedBlocksPending === b.matchedBlocksPending
+    && a.peerCount === b.peerCount
+    && a.filterCapablePeerCount === b.filterCapablePeerCount
+    && a.phaseEtaMs === b.phaseEtaMs
+    && a.lastError === b.lastError
+}
+
+function isSameStatus(a: AppStatus | null, b: AppStatus): boolean {
+  if (a === null) return false
+  return a.ready === b.ready
+    && a.selectedWalletId === b.selectedWalletId
+    && a.network === b.network
+    && isSameSync(a.walletSync, b.walletSync)
+}
 
 interface AuthContextValue {
   bootstrapped: boolean
@@ -25,13 +49,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
 
   const refreshStatus = useCallback(async () => {
     const next = await API.getStatus() as AppStatus
-    setStatus(next)
+    setStatus(prev => isSameStatus(prev, next) ? prev : next)
   }, [])
 
   useEffect(() => {
     refreshStatus()
       .catch(() => setStatus(null))
       .finally(() => setBootstrapped(true))
+  }, [refreshStatus])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      refreshStatus().catch(() => {})
+    }, 1000)
+    return () => clearInterval(id)
   }, [refreshStatus])
 
   const loginSuccess = useCallback(async () => {
