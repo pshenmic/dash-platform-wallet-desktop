@@ -21,6 +21,10 @@ export class API {
     return this.api.stopWalletSync()
   }
 
+  static async resetWalletSync(network: 'mainnet' | 'testnet'): Promise<void> {
+    await this.api.resetWalletSync(network)
+  }
+
   static async createWallet(seedphrase: string, network: string, password: string) {
     return this.api.createWallet(seedphrase, network, password)
   }

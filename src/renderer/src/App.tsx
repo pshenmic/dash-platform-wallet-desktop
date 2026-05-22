@@ -8,6 +8,7 @@ import CreateWalletWrapper from "./pages/auth/CreateWalletWrapper"
 import ReceivePage from "./pages/Receive"
 import IdentitiesPage from "./pages/Identities"
 import AddressesPage from "./pages/Addresses"
+import SettingsPage from "./pages/Settings"
 import { useAuth } from "./contexts/AuthContext"
 
 function App(): React.JSX.Element {
@@ -32,6 +33,7 @@ function App(): React.JSX.Element {
           <Route path={"/receive"} element={<ReceivePage />} />
           <Route path={"/addresses"} element={<AddressesPage />} />
           <Route path={"/identities"} element={<IdentitiesPage />} />
+          <Route path={"/settings"} element={<SettingsPage />} />
         </Routes>
       </Layout>
     </div>
