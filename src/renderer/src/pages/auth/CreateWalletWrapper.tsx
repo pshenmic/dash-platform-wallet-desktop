@@ -41,7 +41,8 @@ export default function CreateWalletWrapper(): React.JSX.Element {
     goToImportSeedPhrase,
     submitImportSeedPhrase,
     createImportedWallet,
-    path
+    path,
+    createdWalletId
   } = useCreateWallet()
   const hoverAnimation = useRipple()
   const { isAuthenticated } = useAuth()
@@ -76,7 +77,7 @@ export default function CreateWalletWrapper(): React.JSX.Element {
 
   const wave = step === 'welcome' ? authBgFlower : waveAuth
 
-  if (step === 'success') return <Success data={path === 'create' ? success : successImport} />
+  if (step === 'success') return <Success data={path === 'create' ? success : successImport} walletId={createdWalletId} />
 
   return (
     <div className={"relative flex min-h-screen items-end"}>

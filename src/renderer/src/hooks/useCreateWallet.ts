@@ -49,6 +49,7 @@ export interface TypeUseCreateWallet {
   wordCount: WordCount
   network: Network
   path: Path
+  createdWalletId: string | null
   setPassword: (password: string) => void
   setWordCount: (count: WordCount) => void
   generateSeedPhrase: () => Promise<void>
@@ -80,6 +81,7 @@ export function useCreateWallet(): TypeUseCreateWallet {
   const { createWallet: { invalidPhrase, phraseDoesNotMatch, couldNotCreateWallet } } = messages
   const [path, setPath] = useState<Path>(null)
   const [importedSeedPhrase, setImportedSeedPhrase] = useState<string[]>([])
+  const [createdWalletId, setCreatedWalletId] = useState<string | null>(null)
 
   const setPassword = useCallback((newPassword: string) => {
     setPasswordState(newPassword)
@@ -125,7 +127,8 @@ export function useCreateWallet(): TypeUseCreateWallet {
       }
 
       try {
-        await API.createWallet(seedPhrase.join(' '), network, password)
+        const walletId = await API.createWallet(seedPhrase.join(' '), network, password)
+        setCreatedWalletId(walletId)
         setStep('success')
       } catch (err) {
         console.error('createWallet failed:', err)
@@ -169,7 +172,10 @@ export function useCreateWallet(): TypeUseCreateWallet {
 
   const createImportedWallet = useCallback((): Promise<void> => {
     return API.createWallet(importedSeedPhrase.join(' '), network, password)
-      .then(() => setStep('success'))
+      .then((walletId) => {
+        setCreatedWalletId(walletId)
+        setStep('success')
+      })
       .catch((err) => {
         console.error('createWallet failed:', err)
         const message = err instanceof Error ? err.message : couldNotCreateWallet
@@ -204,6 +210,7 @@ export function useCreateWallet(): TypeUseCreateWallet {
     goToImportSeedPhrase,
     submitImportSeedPhrase,
     createImportedWallet,
-    path
+    path,
+    createdWalletId
   }
 }
