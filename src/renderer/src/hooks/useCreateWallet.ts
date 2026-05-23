@@ -52,7 +52,7 @@ export interface TypeUseCreateWallet {
   setPassword: (password: string) => void
   setWordCount: (count: WordCount) => void
   generateSeedPhrase: () => Promise<void>
-  verifyMissingWords: (words: string[]) => void
+  verifyMissingWords: (words: string[]) => Promise<void>
   verifySeedPhrase: () => void
   goBack: () => void
   setNetwork: (network: Network) => void
@@ -111,7 +111,7 @@ export function useCreateWallet(): TypeUseCreateWallet {
   }, [seedPhrase])
 
   const verifyMissingWords = useCallback(
-    (words: string[]) => {
+    async (words: string[]): Promise<void> => {
       if (words.length !== seedPhrase.length) {
         toast.error(invalidPhrase)
         return
@@ -124,13 +124,14 @@ export function useCreateWallet(): TypeUseCreateWallet {
         return
       }
 
-      API.createWallet(seedPhrase.join(' '), network, password)
-        .then(() => setStep('success'))
-        .catch((err) => {
-          console.error('createWallet failed:', err)
-          const message = err instanceof Error ? err.message : couldNotCreateWallet
-          toast.error(couldNotCreateWallet + " " + message)
-        })
+      try {
+        await API.createWallet(seedPhrase.join(' '), network, password)
+        setStep('success')
+      } catch (err) {
+        console.error('createWallet failed:', err)
+        const message = err instanceof Error ? err.message : couldNotCreateWallet
+        toast.error(couldNotCreateWallet + " " + message)
+      }
     },
     [seedPhrase, network, password]
   )
