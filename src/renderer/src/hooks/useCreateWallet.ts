@@ -80,7 +80,6 @@ export function useCreateWallet(): TypeUseCreateWallet {
   const [verifyPhrase, setVerifyPhrase] = useState<string[]>([])
   const [wordCount, setWordCountState] = useState<WordCount>(12)
   const [network, setNetwork] = useState<Network>('mainnet')
-  const [importSeedPhrase, setImportSeedPhrase] = useState(false)
   const { createWallet: { invalidPhrase, phraseDoesNotMatch, couldNotCreateWallet } } = messages
   const [path, setPath] = useState<Path>(null)
   const [importedSeedPhrase, setImportedSeedPhrase] = useState<string[]>([])
@@ -98,14 +97,10 @@ export function useCreateWallet(): TypeUseCreateWallet {
   }, [])
 
   const generateSeedPhrase = useCallback(async () => {
-    if (importSeedPhrase) {
-      setStep('import-seed-phrase')
-    } else {
     const words = generateMnemonicWords(wordCount)
     setSeedPhrase(words)
     setStep('seed-phrase')
-    }
-  }, [wordCount, importSeedPhrase])
+  }, [wordCount])
 
   const getVerifyPhrase = useCallback(() => {
     const n = seedPhrase.length
@@ -176,8 +171,7 @@ export function useCreateWallet(): TypeUseCreateWallet {
   const goToImportSeedPhrase = useCallback(() => {
     setPath('import')
     setStep('import-seed-phrase')
-    setImportSeedPhrase(true)
-  }, [setImportSeedPhrase])
+  }, [])
 
   const createImportedWallet = useCallback((): Promise<void> => {
     return API.createWallet(importedSeedPhrase.join(' '), network, password)
