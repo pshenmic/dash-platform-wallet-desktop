@@ -12,7 +12,7 @@ export class SendCoinsHandler {
     _event: IpcMainInvokeEvent,
     walletId: string,
     toAddress: string,
-    amountSatoshis: string,
+    amountSatoshis: bigint,
     password: string,
   ): Promise<string> => {
     return this.transactionService.sendCoins(walletId, toAddress, amountSatoshis, password)

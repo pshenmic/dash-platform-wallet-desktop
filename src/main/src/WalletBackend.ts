@@ -11,7 +11,6 @@ import { TransactionDAO } from './database/TransactionDAO'
 import { WalletService } from './services/WalletService'
 import { TransactionService } from './services/TransactionService'
 import { ApplicationService } from './services/ApplicationService'
-import { makeWalletProvider, ProviderResolver } from './providers/makeWalletProvider'
 import {Preferences} from "./preferences";
 import { CreateWalletHandler } from './api/wallet/createWallet'
 import { GetWalletAddressesHandler } from './api/wallet/getAddresses'
@@ -105,11 +104,8 @@ export class WalletBackend {
 
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
-    const applicationService = this.applicationService
-    const getProvider: ProviderResolver = (walletId, network) =>
-      makeWalletProvider(applicationService, addressDAO, transactionDAO, walletId, network)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, getProvider, dashPlatformSDK, calibratedIterations)
-    this.transactionService = new TransactionService(walletDAO, addressDAO, dashPlatformSDK, getProvider)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, dashPlatformSDK, calibratedIterations)
+    this.transactionService = new TransactionService(walletDAO, addressDAO, dashPlatformSDK, this.walletService)
     this.addressDAO = addressDAO
 
     this.initHandlers()

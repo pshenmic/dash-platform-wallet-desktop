@@ -19,3 +19,5 @@ export const SUPPORTED_CURRENCIES = [
   "btc",
   "rub"
 ]
+
+export const SEQUENCE_FINAL = 0xffffffff

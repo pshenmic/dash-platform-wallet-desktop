@@ -27,7 +27,7 @@ import {Transaction} from "./types/Transaction";
 import {IdentityWASM, PrivateKeyWASM} from "pshenmic-dpp";
 import {DashPlatformSDK} from "dash-platform-sdk";
 import {Network} from "./types";
-import {createDecipheriv, pbkdf2Sync, randomBytes} from "node:crypto";
+import {createCipheriv, createDecipheriv, pbkdf2Sync, randomBytes} from "node:crypto";
 
 export function calibratePBKDF2Iterations(targetMs: number): number {
   const testPassword = 'benchmark';
@@ -59,10 +59,27 @@ export function deriveKeyFromPassword(password: string, iterations: number, salt
   )
 }
 
-// Reverse of WalletService.encryptMnemonic: AES-256-GCM with the PBKDF2-derived
-// key. Layout: iv(12) | salt(32) | iterations(u32 BE) | ciphertext | tag(16).
-// Throws if the password is wrong (GCM auth tag mismatch) or the blob is shorter
-// than the fixed header — callers translate to user-facing errors.
+// AES-256-GCM with a PBKDF2-derived key. Layout written to storage:
+//   iv(12) | salt(32) | iterations(u32 BE) | ciphertext | tag(16)
+// Returns a hex-encoded blob ready for SQL persistence.
+export function encryptMnemonic(mnemonic: string, password: string, iterations: number): string {
+  const salt = randomBytes(32)
+  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
+
+  const iv = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
+  const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
+  const tag = cipher.getAuthTag()
+
+  const iterBuf = Buffer.alloc(4)
+  iterBuf.writeUInt32BE(iterations)
+
+  return Buffer.concat([iv, salt, iterBuf, ciphertext, tag]).toString('hex')
+}
+
+// Reverse of encryptMnemonic. Throws if the password is wrong (GCM auth
+// tag mismatch) or the blob is shorter than the fixed header — callers
+// translate to user-facing errors.
 export function decryptMnemonic(encryptedHex: string, password: string): string {
   const data = Buffer.from(encryptedHex, 'hex')
 

@@ -9,41 +9,33 @@ import {
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {WalletProvider} from '../providers/WalletProvider'
-import {ProviderResolver} from '../providers/makeWalletProvider'
+import {WalletService} from './WalletService'
 import {Network} from '../types'
 import {Address} from '../types/Address'
 import {UTXO} from '../types/UTXO'
 import {decryptMnemonic} from '../utils'
-
-const {addressToPublicKeyHash, publicKeyHashToAddress} = sdkUtils
-
-const SEQUENCE_FINAL = 0xffffffff
-// dash-core-sdk's NetworkLike uses capitalized enum keys; our app-wide
-// Network is lowercase. Map at the boundary instead of widening Network.
-const SDK_NETWORK: Record<Network, 'Mainnet' | 'Testnet'> = {mainnet: 'Mainnet', testnet: 'Testnet'}
+import {SEQUENCE_FINAL} from '../constants'
 
 export class TransactionService {
   constructor(
     private readonly walletDAO: WalletDAO,
     private readonly addressDAO: AddressDAO,
     private readonly sdk: DashPlatformSDK,
-    private readonly getProvider: ProviderResolver,
+    private readonly walletService: WalletService,
   ) {}
 
   // Build, sign and broadcast a P2PKH transaction spending the wallet's
-  // UTXOs to `toAddress`. amountSatoshis crosses IPC as a string because
-  // BigInt is not IPC-serializable. Returns the broadcast txid.
+  // UTXOs to `toAddress`. Returns the broadcast txid.
   //
   // UTXOs and broadcast are both routed through the connection-mode
   // provider (P2P → SQL + Insight fallback for broadcast; RPC → Insight).
   async sendCoins(
     walletId: string,
     toAddress: string,
-    amountSatoshis: string,
+    amountSatoshis: bigint,
     password: string,
   ): Promise<string> {
-    const amount = BigInt(amountSatoshis)
-    if (amount <= 0n) {
+    if (amountSatoshis <= 0n) {
       throw new Error('Amount must be greater than 0')
     }
 
@@ -67,21 +59,21 @@ export class TransactionService {
       throw new Error('Wallet has no addresses')
     }
 
-    const provider = this.getProvider(wallet.walletId, wallet.network)
+    const provider = this.walletService.getProvider(wallet.walletId, wallet.network)
 
     const utxosWithMeta = await this.collectUtxos(provider, allAddresses)
     if (utxosWithMeta.length === 0) {
       throw new Error('Insufficient funds')
     }
 
-    const selected = this.selectUtxosGreedy(utxosWithMeta, amount)
-    if (selected.totalIn < amount) {
+    const selected = this.selectUtxosGreedy(utxosWithMeta, amountSatoshis)
+    if (selected.totalIn < amountSatoshis) {
       throw new Error('Insufficient funds')
     }
 
     const changeAddress = this.pickChangeAddress(grouped.change)
 
-    const tx = this.buildTransaction(selected.utxos, toAddress, amount, changeAddress, selected.totalIn)
+    const tx = this.buildTransaction(selected.utxos, toAddress, amountSatoshis, changeAddress, selected.totalIn)
 
     const seed = this.sdk.keyPair.mnemonicToSeed(mnemonic)
     const hdKey = this.sdk.keyPair.seedToHdKey(seed, wallet.network)
@@ -92,11 +84,11 @@ export class TransactionService {
         if (!derived.privateKey) {
           throw new Error(`Failed to derive private key for ${u.address.address}`)
         }
-        return PrivateKey.fromBytes(derived.privateKey, SDK_NETWORK[wallet.network], true)
+        return PrivateKey.fromBytes(derived.privateKey, wallet.network, true)
       })
     )
 
-    this.signTransactionMultiKey(tx, privateKeys)
+    tx.sign(privateKeys)
 
     return provider.broadcastTx(tx)
   }
@@ -104,11 +96,11 @@ export class TransactionService {
   private assertAddressOnNetwork(address: string, network: Network): void {
     let pkh: Uint8Array
     try {
-      pkh = addressToPublicKeyHash(address)
+      pkh = sdkUtils.addressToPublicKeyHash(address)
     } catch {
       throw new Error('Invalid recipient address')
     }
-    const roundTrip = publicKeyHashToAddress(pkh, SDK_NETWORK[network])
+    const roundTrip = sdkUtils.publicKeyHashToAddress(pkh, network)
     if (roundTrip !== address) {
       throw new Error(`Recipient address is not a valid ${network} address`)
     }
@@ -178,22 +170,4 @@ export class TransactionService {
     return tx
   }
 
-  // Multi-key P2PKH signing. The SDK's tx.sign(privateKey) signs every input
-  // with the same key — useless for an HD wallet whose UTXOs come from
-  // different addresses. For each input i we clone the unsigned tx, call
-  // sign(privKey[i]) on the clone (which produces a correct signature for
-  // input i with the right key, wrong for others), then splice clone.inputs[i]
-  // .scriptSig into the final tx. This delegates the secp256k1 / sighash
-  // crypto to the SDK while still producing per-input correct signatures.
-  private signTransactionMultiKey(tx: SDKTransaction, privateKeys: PrivateKey[]): void {
-    if (tx.inputs.length !== privateKeys.length) {
-      throw new Error('Input/key count mismatch')
-    }
-    const unsignedBytes = tx.bytes()
-    for (let i = 0; i < tx.inputs.length; i++) {
-      const clone = SDKTransaction.fromBytes(unsignedBytes)
-      clone.sign(privateKeys[i])
-      tx.inputs[i].scriptSig = clone.inputs[i].scriptSig
-    }
-  }
 }

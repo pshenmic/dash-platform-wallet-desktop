@@ -1,9 +1,13 @@
-import {createCipheriv, randomBytes} from 'crypto'
+import {randomBytes} from 'crypto'
 import {DashPlatformSDK} from 'dash-platform-sdk'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {IdentityDAO} from '../database/IdentityDAO'
-import {ProviderResolver} from '../providers/makeWalletProvider'
+import {TransactionDAO} from '../database/TransactionDAO'
+import {ApplicationService} from './ApplicationService'
+import {WalletProvider} from '../providers/WalletProvider'
+import {InsightWalletProvider} from '../providers/InsightWalletProvider'
+import {P2PWalletProvider} from '../providers/P2PWalletProvider'
 import {Network} from '../types'
 import {Address} from '../types/Address'
 import {GroupedAddresses} from '../types/GroupedAddresses'
@@ -14,32 +18,18 @@ import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
-import {decryptMnemonic, deriveKeyFromPassword} from "../utils";
+import {decryptMnemonic, encryptMnemonic} from "../utils";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
 
-function encryptMnemonic(mnemonic: string, password: string, iterations: number): string {
-  const salt = randomBytes(32)
-  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
-
-  const iv = randomBytes(12)
-  const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
-  const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
-  const tag = cipher.getAuthTag()
-
-  const iterBuf = Buffer.alloc(4)
-  iterBuf.writeUInt32BE(iterations)
-
-  return Buffer.concat([iv, salt, iterBuf, ciphertext, tag]).toString('hex')
-}
-
 export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
-  private getProvider: ProviderResolver
+  private transactionDAO: TransactionDAO
+  private applicationService: ApplicationService
   private sdk: DashPlatformSDK
   private pbkdf2Iterations: number
 
@@ -47,7 +37,8 @@ export class WalletService {
     walletDAO: WalletDAO,
     addressDAO: AddressDAO,
     identityDAO: IdentityDAO,
-    getProvider: ProviderResolver,
+    transactionDAO: TransactionDAO,
+    applicationService: ApplicationService,
     sdk: DashPlatformSDK,
     pbkdf2Iterations: number,
   ) {
@@ -55,8 +46,20 @@ export class WalletService {
     this.walletDAO = walletDAO
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
-    this.getProvider = getProvider
+    this.transactionDAO = transactionDAO
+    this.applicationService = applicationService
     this.sdk = sdk
+  }
+
+  // Picks the WalletProvider for a wallet at call time, honouring the user's
+  // connection-type preference. P2PWalletProvider receives an Insight
+  // broadcastFallback until native P2P inv/tx broadcast is implemented.
+  getProvider(walletId: string, network: Network): WalletProvider {
+    const insight = new InsightWalletProvider(network, walletId, this.addressDAO)
+    if (this.applicationService.preferences.general.connectionType === 'p2p') {
+      return new P2PWalletProvider(this.transactionDAO, walletId, insight)
+    }
+    return insight
   }
 
   async createWallet(seedphrase: string, network: Network, password: string): Promise<string> {
