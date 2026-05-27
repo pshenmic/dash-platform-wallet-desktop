@@ -54,37 +54,54 @@ export class RatesService {
 
   async getRate(currency: FiatCurrency): Promise<number> {
     const rate = (await this.getRates())[currency]
+
     if (rate == null) {
       throw new Error(`Rate for ${currency} unavailable`)
     }
+
     return rate
   }
 
   async getRates(): Promise<Rates> {
-    const cached = this.cache
-    if (cached != null && Date.now() - cached.fetchedAt < this.ttlMs) {
-      return cached.rates
+    // Fresh cache — serve immediately, without hitting the network.
+    if (this.cache != null && this.isFresh(this.cache)) {
+      return this.cache.rates
     }
+
+    // Stale cache — refresh (parallel callers collapse onto a single request).
     return (await this.refresh()).rates
   }
 
-  private async refresh(): Promise<RateCache> {
-    if (this.inflight != null) return this.inflight
-    this.inflight = this.fetchFromProviders().finally(() => {
-      this.inflight = null
-    })
+  private isFresh(cache: RateCache): boolean {
+    return Date.now() - cache.fetchedAt < this.ttlMs
+  }
+
+  private refresh(): Promise<RateCache> {
+    // Single-flight: if a refresh is already running, join it instead of
+    // firing a second network request.
+    if (this.inflight != null) {
+      return this.inflight
+    }
+
+    this.inflight = this.fetchFromProviders()
+    this.inflight.finally(() => { this.inflight = null })
+
     return this.inflight
   }
 
   private async fetchFromProviders(): Promise<RateCache> {
     const errors: string[] = []
+
+    // Try providers in order, take the first one with a non-empty response.
     for (const provider of this.providers) {
       try {
         const rates = await provider.fetchRates()
+
         if (Object.keys(rates).length === 0) {
           errors.push(`${provider.name}: empty rates`)
           continue
         }
+
         this.cache = {rates, fetchedAt: Date.now()}
         return this.cache
       } catch (err) {
@@ -92,6 +109,8 @@ export class RatesService {
         errors.push(`${provider.name}: ${msg}`)
       }
     }
+
+    // Reached only when every provider failed or returned empty rates.
     throw new Error(`All rate providers failed: ${errors.join('; ')}`)
   }
 }
