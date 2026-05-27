@@ -1,3 +1,4 @@
+import {BroadcastService} from './BroadcastService'
 import {ChainStore, PersistedHeader} from './ChainStore'
 import {GENESIS} from './constants'
 import {PoolService} from './PoolService'
@@ -9,7 +10,8 @@ import {
   CFilterSyncWorker,
   CFilterSyncWorkerStatus,
 } from './workers/CFilterSyncWorker'
-import {P2PAddWatchAddressesMessage, P2PStartMessage} from './types/messages'
+import {P2PAddWatchAddressesMessage, P2PBroadcastMessage, P2PStartMessage} from './types/messages'
+import {BroadcastResult} from './types/broadcast'
 import {AppliedBlock, WalletSyncStatus} from './types/walletSync'
 
 // Top-level controller for the p2p utility process. Owns the shared
@@ -29,6 +31,12 @@ export interface SyncServiceEvents {
   blockApplied: (block: AppliedBlock) => void
   cursorAdvanced: (walletId: string, height: number) => void
   error: (message: string) => void
+  broadcastResult: (
+    requestId: string,
+    ok: boolean,
+    result: BroadcastResult,
+    errorMessage: string | null,
+  ) => void
 }
 
 export class SyncService {
@@ -165,6 +173,30 @@ export class SyncService {
       peerCount: 0,
       filterCapablePeerCount: 0,
       phaseEtaMs: null,
+    })
+  }
+
+  broadcast = (cmd: P2PBroadcastMessage): void => {
+    const emptyResult: BroadcastResult = {
+      txid: '',
+      peersInvited: 0,
+      peersAcked: [],
+      peersPropagated: [],
+      instantLocked: false,
+      rejections: [],
+      durationMs: 0,
+    }
+    if (!this.peerPool) {
+      this.events.broadcastResult(cmd.requestId, false, emptyResult, 'broadcast: peer pool not started — call startSync first')
+      return
+    }
+    const service = new BroadcastService(this.peerPool)
+    service.broadcast(cmd.txHex).then(result => {
+      this.events.broadcastResult(cmd.requestId, true, result, null)
+    }).catch(err => {
+      const message = err instanceof Error ? err.message : String(err)
+      const result = (err as {result?: BroadcastResult}).result ?? emptyResult
+      this.events.broadcastResult(cmd.requestId, false, result, message)
     })
   }
 

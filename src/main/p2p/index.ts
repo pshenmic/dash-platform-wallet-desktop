@@ -19,6 +19,8 @@ const sync = new SyncService({
   cursorAdvanced: (walletId, height) =>
     process.parentPort.postMessage({type: 'cursorAdvanced', walletId, height}),
   error: message => process.parentPort.postMessage({type: 'error', message}),
+  broadcastResult: (requestId, ok, result, errorMessage) =>
+    process.parentPort.postMessage({type: 'broadcastResult', requestId, ok, result, errorMessage}),
 })
 
 process.parentPort.on('message', ({data}) => {
@@ -39,6 +41,9 @@ process.parentPort.on('message', ({data}) => {
       return
     case 'addWatchAddresses':
       sync.addWatchAddresses(data)
+      return
+    case 'broadcast':
+      sync.broadcast(data)
       return
   }
 })
