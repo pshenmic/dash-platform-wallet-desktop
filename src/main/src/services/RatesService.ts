@@ -23,15 +23,50 @@ export class CoinGeckoRateProvider implements RateProvider {
 
   async fetchRates(): Promise<Rates> {
     const response = await net.fetch(this.url)
+
     if (!response.ok) {
       throw new Error(`CoinGecko HTTP ${response.status}`)
     }
+
     const data = await response.json() as {dash?: Partial<Record<string, number>>}
     const rates: Rates = {}
+
     for (const c of SUPPORTED_CURRENCIES) {
       const v = data.dash?.[c]
       if (typeof v === 'number') rates[c] = v
     }
+
+    return rates
+  }
+}
+
+// Fallback provider. CryptoCompare uses uppercase ticker symbols and may
+// return 200 OK with {Response: "Error", ...} on failure, so we have to
+// detect that explicitly.
+export class CryptoCompareRateProvider implements RateProvider {
+  readonly name = 'cryptocompare'
+  private readonly url = `https://min-api.cryptocompare.com/data/price?fsym=DASH&tsyms=${SUPPORTED_CURRENCIES.map(c => c.toUpperCase()).join(',')}`
+
+  async fetchRates(): Promise<Rates> {
+    const response = await net.fetch(this.url)
+
+    if (!response.ok) {
+      throw new Error(`CryptoCompare HTTP ${response.status}`)
+    }
+
+    const data = await response.json() as Partial<Record<string, number>> & {Response?: string, Message?: string}
+
+    if (data.Response === 'Error') {
+      throw new Error(`CryptoCompare: ${data.Message ?? 'unknown error'}`)
+    }
+
+    const rates: Rates = {}
+
+    for (const c of SUPPORTED_CURRENCIES) {
+      const v = data[c.toUpperCase()]
+      if (typeof v === 'number') rates[c] = v
+    }
+
     return rates
   }
 }
@@ -48,7 +83,7 @@ export class RatesService {
   constructor(providers?: RateProvider[], ttlMs: number = DEFAULT_TTL_MS) {
     this.providers = providers != null && providers.length > 0
       ? providers
-      : [new CoinGeckoRateProvider()]
+      : [new CoinGeckoRateProvider(), new CryptoCompareRateProvider()]
     this.ttlMs = ttlMs
   }
 
