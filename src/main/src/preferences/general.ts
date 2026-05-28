@@ -11,13 +11,15 @@ export const GeneralPreferencesSchema = z.object({
 })
 
 export type GeneralPreferencesJSON = z.infer<typeof GeneralPreferencesSchema>
+export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number]
+export type SupportedCurrency = typeof SUPPORTED_CURRENCIES[number]
 
 export class GeneralPreferences {
-  language: string
-  currency: string
+  language: SupportedLanguage
+  currency: SupportedCurrency
   connectionType: ConnectionType
 
-  constructor(language: string, currency: string, connectionType: ConnectionType) {
+  constructor(language: SupportedLanguage, currency: SupportedCurrency, connectionType: ConnectionType) {
     this.language = language
     this.currency = currency
     this.connectionType = connectionType

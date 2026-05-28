@@ -5,6 +5,7 @@ import {AddressDAO} from '../database/AddressDAO'
 import {IdentityDAO} from '../database/IdentityDAO'
 import {TransactionDAO} from '../database/TransactionDAO'
 import {ApplicationService} from './ApplicationService'
+import {RatesService, FiatCurrency} from './RatesService'
 import {WalletProvider} from '../providers/WalletProvider'
 import {InsightWalletProvider} from '../providers/InsightWalletProvider'
 import {P2PWalletProvider} from '../providers/P2PWalletProvider'
@@ -64,6 +65,7 @@ export class WalletService {
   private identityDAO: IdentityDAO
   private transactionDAO: TransactionDAO
   private applicationService: ApplicationService
+  private ratesService: RatesService
   private sdk: DashPlatformSDK
   private pbkdf2Iterations: number
 
@@ -73,6 +75,7 @@ export class WalletService {
     identityDAO: IdentityDAO,
     transactionDAO: TransactionDAO,
     applicationService: ApplicationService,
+    ratesService: RatesService,
     sdk: DashPlatformSDK,
     pbkdf2Iterations: number,
   ) {
@@ -82,7 +85,38 @@ export class WalletService {
     this.identityDAO = identityDAO
     this.transactionDAO = transactionDAO
     this.applicationService = applicationService
+    this.ratesService = ratesService
     this.sdk = sdk
+  }
+
+  // DASH satoshis (1 satoshi = 1 duff = 1e-8 DASH) → fiat string with 2
+  // decimals. Returns '0.0' if rate fetch fails so balance display never
+  // breaks on network blips.
+  private async satoshisToFiat(satoshis: bigint, currency: FiatCurrency): Promise<string> {
+    try {
+      const rate = await this.ratesService.getRate(currency)
+      return (Number(satoshis) / 1e8 * rate).toFixed(2)
+    } catch (err) {
+      console.warn(`[rates] failed to fetch DASH/${currency.toUpperCase()} rate:`, err)
+      return '0.0'
+    }
+  }
+
+  // Platform credits: 1 duff = 1000 credits, so 1 credit = 1e-11 DASH.
+  private async creditsToFiat(credits: bigint, currency: FiatCurrency): Promise<string> {
+    try {
+      const rate = await this.ratesService.getRate(currency)
+      return (Number(credits) / 1e11 * rate).toFixed(2)
+    } catch (err) {
+      console.warn(`[rates] failed to fetch DASH/${currency.toUpperCase()} rate:`, err)
+      return '0.0'
+    }
+  }
+
+  // User's selected fiat currency from preferences — single source of truth
+  // for which fiat to convert DASH balances into.
+  private get fiatCurrency(): FiatCurrency {
+    return this.applicationService.preferences.general.currency
   }
 
   private getProvider(walletId: string, network: Network): WalletProvider {
@@ -263,20 +297,23 @@ export class WalletService {
 
     const provider = this.getProvider(wallet.walletId, wallet.network)
 
-    // TODO: add real usd balance
-    const receivingAddressesWithBalance = await Promise.all(addresses.receiving.map(async (address) => ({
+    const receivingAddressesWithBalance = await Promise.all(addresses.receiving.map(async (address) => {
+      const balance = await provider.getBalance(address.address)
+      return {
         ...address,
-        balance: await provider.getBalance(address.address),
-        usdBalance: '0.0'
-      })
-    ))
+        balance,
+        usdBalance: await this.satoshisToFiat(balance, this.fiatCurrency),
+      }
+    }))
 
-    const changeAddressesWithBalance = await Promise.all(addresses.change.map(async (address) => ({
+    const changeAddressesWithBalance = await Promise.all(addresses.change.map(async (address) => {
+      const balance = await provider.getBalance(address.address)
+      return {
         ...address,
-        balance: await provider.getBalance(address.address),
-        usdBalance: '0.0'
-      })
-    ))
+        balance,
+        usdBalance: await this.satoshisToFiat(balance, this.fiatCurrency),
+      }
+    }))
 
     return {
       receiving: receivingAddressesWithBalance,
@@ -354,11 +391,11 @@ export class WalletService {
     return {
       dash: {
         amount: addressesBalance,
-        usdAmount: '0.0'
+        usdAmount: await this.satoshisToFiat(addressesBalance, this.fiatCurrency),
       },
       credits: {
         amount: identitiesBalance,
-        usdAmount: '0.0'
+        usdAmount: await this.creditsToFiat(identitiesBalance, this.fiatCurrency),
       }
     }
   }
@@ -401,14 +438,14 @@ export class WalletService {
           alias = `${label}.${parentDomainName}`
         }
 
-        // TODO: Implement read usd amount
+        const balance = BigInt(identity.balance)
         results.push({
           identityIndex: entry.identityIndex,
           identifier: identity.id.base58(),
           alias,
           balance: {
-            amount: BigInt(identity.balance),
-            usdAmount: '0.0'
+            amount: balance,
+            usdAmount: await this.creditsToFiat(balance, this.fiatCurrency),
           },
           derivationPath: entry.derivationPath
         })

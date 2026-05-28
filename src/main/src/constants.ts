@@ -12,10 +12,9 @@ export const PBKDF2_TARGET_MS = 200
 
 export const SUPPORTED_LANGUAGES = [
   "en",
-]
+] as const
 
 export const SUPPORTED_CURRENCIES = [
   "usd",
-  "btc",
   "rub"
-]
+] as const
