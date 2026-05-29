@@ -1,4 +1,5 @@
 import {Network} from '../../src/types'
+import {BroadcastResult} from './broadcast'
 import {AppliedBlock, WalletSyncStatus, WalletSyncUtxo} from './walletSync'
 
 // IPC envelopes between the main process and the p2p utility process.
@@ -44,10 +45,21 @@ export interface P2PAddWatchAddressesMessage {
   rewindToHeight?: number
 }
 
+// Broadcast a signed transaction over the active peer pool. requestId is
+// echoed in the matching P2PBroadcastResultMessage so the main-process
+// service can correlate concurrent broadcasts. Policy is not on the wire
+// — the utility process reads BROADCAST_POLICY from constants.
+export interface P2PBroadcastMessage {
+  type: 'broadcast'
+  requestId: string
+  txHex: string
+}
+
 export type P2PCommand =
   | P2PStartMessage
   | P2PStopMessage
   | P2PAddWatchAddressesMessage
+  | P2PBroadcastMessage
 
 // ── Events (utility -> main) ────────────────────────────────────────────────
 
@@ -75,8 +87,20 @@ export interface P2PErrorMessage {
   message: string
 }
 
+// Response to a P2PBroadcastMessage. ok=true carries the final result;
+// ok=false carries the failure reason plus whatever partial state the
+// session accumulated before giving up (peers invited, acks, etc).
+export interface P2PBroadcastResultMessage {
+  type: 'broadcastResult'
+  requestId: string
+  ok: boolean
+  result: BroadcastResult
+  errorMessage: string | null
+}
+
 export type P2PEvent =
   | P2PStatusMessage
   | P2PBlockAppliedMessage
   | P2PCursorAdvancedMessage
   | P2PErrorMessage
+  | P2PBroadcastResultMessage

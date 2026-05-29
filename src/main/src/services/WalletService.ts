@@ -5,6 +5,7 @@ import {AddressDAO} from '../database/AddressDAO'
 import {IdentityDAO} from '../database/IdentityDAO'
 import {TransactionDAO} from '../database/TransactionDAO'
 import {ApplicationService} from './ApplicationService'
+import {WalletSyncService} from './WalletSyncService'
 import {WalletProvider} from '../providers/WalletProvider'
 import {InsightWalletProvider} from '../providers/InsightWalletProvider'
 import {P2PWalletProvider} from '../providers/P2PWalletProvider'
@@ -30,6 +31,7 @@ export class WalletService {
   private identityDAO: IdentityDAO
   private transactionDAO: TransactionDAO
   private applicationService: ApplicationService
+  private walletSyncService: WalletSyncService
   private sdk: DashPlatformSDK
   private pbkdf2Iterations: number
 
@@ -39,6 +41,7 @@ export class WalletService {
     identityDAO: IdentityDAO,
     transactionDAO: TransactionDAO,
     applicationService: ApplicationService,
+    walletSyncService: WalletSyncService,
     sdk: DashPlatformSDK,
     pbkdf2Iterations: number,
   ) {
@@ -48,18 +51,19 @@ export class WalletService {
     this.identityDAO = identityDAO
     this.transactionDAO = transactionDAO
     this.applicationService = applicationService
+    this.walletSyncService = walletSyncService
     this.sdk = sdk
   }
 
   // Picks the WalletProvider for a wallet at call time, honouring the user's
-  // connection-type preference. P2PWalletProvider receives an Insight
-  // broadcastFallback until native P2P inv/tx broadcast is implemented.
+  // connection-type preference. In p2p mode broadcast is routed through
+  // WalletSyncService (the p2p utility process); in rpc mode everything
+  // (including broadcast) goes through Insight.
   getProvider(walletId: string, network: Network): WalletProvider {
-    const insight = new InsightWalletProvider(network, walletId, this.addressDAO)
     if (this.applicationService.preferences.general.connectionType === 'p2p') {
-      return new P2PWalletProvider(this.transactionDAO, walletId, insight)
+      return new P2PWalletProvider(this.transactionDAO, walletId, this.walletSyncService)
     }
-    return insight
+    return new InsightWalletProvider(network, walletId, this.addressDAO)
   }
 
   async createWallet(seedphrase: string, network: Network, password: string): Promise<string> {

@@ -1,6 +1,16 @@
 import {SyncService} from './SyncService'
 import {P2PCommand, P2PEvent} from './types/messages'
 
+// Diagnostic: surface anything that would otherwise silently kill the
+// utility process. Without these the parent only sees `exit code=1`
+// with no clue about the cause.
+process.on('uncaughtException', (err) => {
+  console.error('[p2p] uncaughtException:', err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[p2p] unhandledRejection:', reason)
+})
+
 // Utility-process entry. Pure IPC adapter — every concern (chain.db,
 // peer pool, header/cfilter workers, status aggregation) lives in
 // SyncService and below. This file exists only to bridge parentPort
@@ -19,6 +29,8 @@ const sync = new SyncService({
   cursorAdvanced: (walletId, height) =>
     process.parentPort.postMessage({type: 'cursorAdvanced', walletId, height}),
   error: message => process.parentPort.postMessage({type: 'error', message}),
+  broadcastResult: (requestId, ok, result, errorMessage) =>
+    process.parentPort.postMessage({type: 'broadcastResult', requestId, ok, result, errorMessage}),
 })
 
 process.parentPort.on('message', ({data}) => {
@@ -39,6 +51,9 @@ process.parentPort.on('message', ({data}) => {
       return
     case 'addWatchAddresses':
       sync.addWatchAddresses(data)
+      return
+    case 'broadcast':
+      sync.broadcast(data)
       return
   }
 })

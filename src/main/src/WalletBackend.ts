@@ -40,6 +40,7 @@ import {StartWalletSyncHandler} from './api/walletSync/startWalletSync'
 import {StopWalletSyncHandler} from './api/walletSync/stopWalletSync'
 import {ResetWalletSyncHandler} from './api/walletSync/resetWalletSync'
 import {GetUtxosHandler} from './api/walletSync/getUtxos'
+import {BroadcastTransactionHandler} from './api/walletSync/broadcastTransaction'
 
 export class WalletBackend {
   private walletService?: WalletService
@@ -81,6 +82,7 @@ export class WalletBackend {
     ipcMain.handle('stopWalletSync', new StopWalletSyncHandler(this.walletSyncService).handle)
     ipcMain.handle('resetWalletSync', new ResetWalletSyncHandler(this.walletSyncService).handle)
     ipcMain.handle('getUtxos', new GetUtxosHandler(this.walletSyncService).handle)
+    ipcMain.handle('broadcastTransaction', new BroadcastTransactionHandler(this.walletSyncService).handle)
   }
 
   async start(): Promise<void> {
@@ -104,7 +106,7 @@ export class WalletBackend {
 
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, dashPlatformSDK, calibratedIterations)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, this.walletSyncService, dashPlatformSDK, calibratedIterations)
     this.transactionService = new TransactionService(walletDAO, addressDAO, dashPlatformSDK, this.walletService)
     this.addressDAO = addressDAO
 

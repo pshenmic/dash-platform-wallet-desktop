@@ -7,7 +7,9 @@ import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {TransactionDAO} from '../database/TransactionDAO'
 import {P2PCommand, P2PEvent} from '../../p2p/types/messages'
+import {BroadcastResult} from '../../p2p/types/broadcast'
 import {WalletSyncStatus, WalletSyncUtxo} from '../../p2p/types/walletSync'
+import {randomUUID} from 'crypto'
 import {GENESIS} from '../../p2p/constants'
 import {QueryStatus} from '../types/QueryStatus'
 
@@ -43,6 +45,10 @@ export class WalletSyncService {
     updatedAt: Date.now(),
   }
   private activeWalletId: string | null = null
+  // Outstanding broadcastTransaction calls keyed by requestId. The utility
+  // process echoes the requestId back in P2PBroadcastResultMessage so we
+  // can resolve the right promise when multiple broadcasts overlap.
+  private pendingBroadcasts = new Map<string, (event: {ok: boolean; result: BroadcastResult; errorMessage: string | null}) => void>()
 
   constructor(walletDAO: WalletDAO, addressDAO: AddressDAO, transactionDAO: TransactionDAO) {
     this.walletDAO = walletDAO
@@ -67,6 +73,12 @@ export class WalletSyncService {
         this.transactionDAO.advanceCursor(data.walletId, data.height).catch(err =>
           console.error('[walletSync] advanceCursor failed:', err)
         )
+      } else if (data.type === 'broadcastResult') {
+        const resolve = this.pendingBroadcasts.get(data.requestId)
+        if (resolve) {
+          this.pendingBroadcasts.delete(data.requestId)
+          resolve({ok: data.ok, result: data.result, errorMessage: data.errorMessage})
+        }
       } else if (data.type === 'error') {
         console.error('[p2p] utility process error:', data.message)
       }
@@ -75,6 +87,20 @@ export class WalletSyncService {
     child.on('exit', code => {
       console.log(`[p2p] utility process exited code=${code}`)
       this.child = null
+      // Fail any in-flight broadcasts — the utility process can no longer
+      // answer them. The pendingBroadcasts entries would otherwise leak
+      // and the caller's promise would hang forever.
+      for (const [requestId, resolve] of this.pendingBroadcasts) {
+        resolve({
+          ok: false,
+          result: {
+            txid: '', peersInvited: 0, peersAcked: [], peersPropagated: [],
+            instantLocked: false, rejections: [], durationMs: 0,
+          },
+          errorMessage: `p2p utility process exited (code=${code}) before broadcast ${requestId} completed`,
+        })
+      }
+      this.pendingBroadcasts.clear()
       this.status = {
         phase: 'stopped',
         network: null,
@@ -176,6 +202,29 @@ export class WalletSyncService {
 
   getStatus = (): WalletSyncStatus => {
     return this.status
+  }
+
+  // Broadcast a signed transaction over the active peer pool. Requires
+  // startSync to have been called (the utility process owns the pool).
+  // The retry / timeout / ack policy is hardcoded in
+  // p2p/constants.BROADCAST_POLICY — callers pass only the tx hex.
+  broadcastTransaction = (txHex: string): Promise<BroadcastResult> => {
+    if (!this.child) {
+      return Promise.reject(new Error('broadcastTransaction: p2p utility process not started — call startWalletSync first'))
+    }
+    const requestId = randomUUID()
+    return new Promise<BroadcastResult>((resolve, reject) => {
+      this.pendingBroadcasts.set(requestId, ({ok, result, errorMessage}) => {
+        if (ok) {
+          resolve(result)
+        } else {
+          const err = new Error(errorMessage ?? 'broadcastTransaction failed') as Error & {result: BroadcastResult}
+          err.result = result
+          reject(err)
+        }
+      })
+      this.send({type: 'broadcast', requestId, txHex})
+    })
   }
 
   // Always sourced from SQL — no main-process cache. Returns [] when no
