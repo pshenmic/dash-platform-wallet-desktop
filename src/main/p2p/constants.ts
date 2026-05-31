@@ -56,6 +56,11 @@ export const MAX_INFLIGHT_BATCHES = 4
 // only against the +CF subset of the pool.
 export const CFCHECKPT_RACE_PEERS = 12
 
+// Number of +CF peers raced per cfheaders checkpoint range. On a bad or
+// missing response the range rotates to the next untried subset, so this is
+// the redundancy per attempt, not a hard cap on peers tried.
+export const CFHEADERS_RACE_PEERS = 12
+
 export const CFCHECKPT_RACE_TIMEOUT_MS = 15_000
 export const CFHEADERS_RACE_TIMEOUT_MS = 15_000
 export const CFILTER_BATCH_TIMEOUT_MS = 15_000
