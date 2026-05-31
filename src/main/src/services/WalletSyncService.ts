@@ -13,6 +13,11 @@ import {randomUUID} from 'crypto'
 import {GENESIS} from '../../p2p/constants'
 import {QueryStatus} from '../types/QueryStatus'
 
+// Cap on the per-child output we retain. The tail is attached to broadcast
+// errors and logged on exit so a worker crash carries its own cause instead
+// of just "code=1".
+const CHILD_OUTPUT_TAIL_LIMIT = 8192
+
 // Main-process facade for wallet sync. Forks the p2p utility process,
 // translates wallet-domain calls into the internal P2P protocol, and
 // persists per-block effects (transactions, outputs, inputs, cfilter
@@ -45,6 +50,10 @@ export class WalletSyncService {
     updatedAt: Date.now(),
   }
   private activeWalletId: string | null = null
+  // Rolling tail of the utility process' stdout+stderr. Captured so a crash
+  // surfaces its actual cause (uncaughtException stack, V8 fatal, etc.) to the
+  // caller and the main-process log, not just the bare exit code.
+  private childOutputTail = ''
   // Outstanding broadcastTransaction calls keyed by requestId. The utility
   // process echoes the requestId back in P2PBroadcastResultMessage so we
   // can resolve the right promise when multiple broadcasts overlap.
@@ -60,7 +69,21 @@ export class WalletSyncService {
     if (this.child) return this.child
 
     const scriptPath = path.join(__dirname, 'p2p.js')
-    const child = utilityProcess.fork(scriptPath, [], { serviceName: 'p2p' })
+    this.childOutputTail = ''
+    const child = utilityProcess.fork(scriptPath, [], { serviceName: 'p2p', stdio: ['ignore', 'pipe', 'pipe'] })
+
+    // Mirror the worker's output to the main-process streams (preserving the
+    // previous 'inherit' visibility) while retaining a tail for crash reports.
+    child.stdout?.on('data', (chunk: Buffer) => {
+      const text = chunk.toString()
+      this.childOutputTail = (this.childOutputTail + text).slice(-CHILD_OUTPUT_TAIL_LIMIT)
+      process.stdout.write(text)
+    })
+    child.stderr?.on('data', (chunk: Buffer) => {
+      const text = chunk.toString()
+      this.childOutputTail = (this.childOutputTail + text).slice(-CHILD_OUTPUT_TAIL_LIMIT)
+      process.stderr.write(text)
+    })
 
     child.on('message', (data: P2PEvent) => {
       if (data.type === 'status') {
@@ -85,11 +108,15 @@ export class WalletSyncService {
     })
 
     child.on('exit', code => {
+      const tail = this.childOutputTail.trim()
       console.log(`[p2p] utility process exited code=${code}`)
+      if (tail) console.error(`[p2p] last output before exit:\n${tail}`)
       this.child = null
       // Fail any in-flight broadcasts — the utility process can no longer
       // answer them. The pendingBroadcasts entries would otherwise leak
-      // and the caller's promise would hang forever.
+      // and the caller's promise would hang forever. The captured output tail
+      // is appended so the crash cause travels with the rejection.
+      const crashDetail = tail ? `\n--- p2p output (tail) ---\n${tail}` : ''
       for (const [requestId, resolve] of this.pendingBroadcasts) {
         resolve({
           ok: false,
@@ -97,7 +124,7 @@ export class WalletSyncService {
             txid: '', peersInvited: 0, peersAcked: [], peersPropagated: [],
             instantLocked: false, rejections: [], durationMs: 0,
           },
-          errorMessage: `p2p utility process exited (code=${code}) before broadcast ${requestId} completed`,
+          errorMessage: `p2p utility process exited (code=${code}) before broadcast ${requestId} completed${crashDetail}`,
         })
       }
       this.pendingBroadcasts.clear()

@@ -3005,28 +3005,10 @@ csstype@^3.2.2:
     dash-core-sdk "1.1.3-dev.3"
     eventemitter3 "^5.0.1"
 
-dash-core-sdk@1.1.2:
-  version "1.1.2"
-  resolved "https://registry.yarnpkg.com/dash-core-sdk/-/dash-core-sdk-1.1.2.tgz#0e95769608d922158cb80db1bf9c093c90e27b74"
-  integrity sha512-xVvhf3phH1WIbgHPCiDNlpUSdLkjo4wkpGF3zOHpoB86Vsphv89VN5Ri8u5S3iiQ2koO+nNMcGlAgi+XgUIZqw==
-  dependencies:
-    "@dashevo/x11-hash-js" "^1.0.2"
-    "@noble/curves" "^2.0.1"
-    "@noble/hashes" "^2.0.1"
-    "@noble/secp256k1" "^3.0.0"
-    "@protobuf-ts/grpcweb-transport" "^2.11.1"
-    "@scure/base" "^2.0.0"
-    "@scure/btc-signer" "^2.0.1"
-    bloom-filter "^0.2.0"
-    imurmurhash "^0.1.4"
-    protoc "^32.1.0"
-    typescript "^5.9.2"
-    ws "^8.18.3"
-
-dash-core-sdk@1.1.3-dev.3:
-  version "1.1.3-dev.3"
-  resolved "https://registry.yarnpkg.com/dash-core-sdk/-/dash-core-sdk-1.1.3-dev.3.tgz#5a302450b142b8f03d8865f578beb02b4d325ed0"
-  integrity sha512-ShsF1m/zIPzammZ/smCc/Y2Bclv3azn5IBdVzhVwJY59tQWMFANtKGoI+t7bfHMbRNu18vMQ3x5IASeWSTErJw==
+dash-core-sdk@1.1.3-dev.3, dash-core-sdk@1.1.3-dev.4:
+  version "1.1.3-dev.4"
+  resolved "https://registry.yarnpkg.com/dash-core-sdk/-/dash-core-sdk-1.1.3-dev.4.tgz#1c7ca4f624fe78f158cf9d8d7cbe865a0aa44f25"
+  integrity sha512-n5stGrjgeYXkPGeNr3V8DWxn6lThHAy3x+PScDne047/iECuvqbYJR3LCCp9O6MvFYAa3onSIRjBmmP5sjkxIA==
   dependencies:
     "@dashevo/x11-hash-js" "^1.0.2"
     "@noble/curves" "^2.0.1"
