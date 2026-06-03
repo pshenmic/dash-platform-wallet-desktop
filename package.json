@@ -25,9 +25,6 @@
   "bugs": {
     "url": "https://github.com/pshenmic/electron-desktop-wallet/issues"
   },
-  "resolutions": {
-    "dash-core-sdk": "1.1.3-dev.4"
-  },
   "dependencies": {
     "@electron-toolkit/preload": "3.0.2",
     "@electron-toolkit/utils": "4.0.0",
@@ -36,7 +33,7 @@
     "class-variance-authority": "0.7.1",
     "classic-level": "^3.0.0",
     "dash-core-p2p": "https://github.com/pshenmic/dash-core-p2p#c0f671e2b1b511905f52e7c212f9f98bcbbfb0a5",
-    "dash-core-sdk": "1.1.2",
+    "dash-core-sdk": "1.1.3-dev.4",
     "dash-platform-sdk": "1.3.2-dev.2",
     "dash-ui-kit": "1.0.94",
     "knex": "^3.1.0",
