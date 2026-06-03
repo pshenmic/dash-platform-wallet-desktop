@@ -11,6 +11,10 @@ export class API {
     return this.api.getAddresses(walletId)
   }
 
+  static async getReceiveAddress(walletId: string): Promise<string | null> {
+    return this.api.getReceiveAddress(walletId)
+  }
+
   static async getStatus() {
     return this.api.getStatus()
   }
@@ -37,5 +41,9 @@ export class API {
 
   static async getWalletBalance(walletId: string) {
     return this.api.getWalletBalance(walletId)
+  }
+
+  static async verifyWalletPassword(walletId: string, password: string) {
+    return this.api.verifyWalletPassword(walletId, password)
   }
 }
