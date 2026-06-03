@@ -3,12 +3,23 @@ import {P2PCommand, P2PEvent} from './types/messages'
 
 // Diagnostic: surface anything that would otherwise silently kill the
 // utility process. Without these the parent only sees `exit code=1`
-// with no clue about the cause.
+// with no clue about the cause. We log (captured by the parent's stderr
+// tail) AND forward to the parent as an `error` event so the cause is
+// recorded centrally even when no one is watching the terminal.
+function reportFatal(label: string, value: unknown): void {
+  const detail = value instanceof Error ? (value.stack ?? value.message) : String(value)
+  console.error(`[p2p] ${label}:`, value)
+  try {
+    process.parentPort.postMessage({type: 'error', message: `${label}: ${detail}`})
+  } catch {
+    // parentPort may already be torn down during shutdown — the console.error above still lands.
+  }
+}
 process.on('uncaughtException', (err) => {
-  console.error('[p2p] uncaughtException:', err)
+  reportFatal('uncaughtException', err)
 })
 process.on('unhandledRejection', (reason) => {
-  console.error('[p2p] unhandledRejection:', reason)
+  reportFatal('unhandledRejection', reason)
 })
 
 // Utility-process entry. Pure IPC adapter — every concern (chain.db,

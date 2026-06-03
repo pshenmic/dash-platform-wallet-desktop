@@ -43,12 +43,7 @@ export class BroadcastService {
     } = BROADCAST_POLICY
 
     const pool = this.peerPool.pool
-    // dash-core-p2p ships its own pinned copy of dash-core-sdk under
-    // node_modules/dash-core-p2p/node_modules/dash-core-sdk, so its
-    // TxBroadcast signature wants a Transaction from a structurally
-    // identical but nominally distinct class. Bridge across the
-    // duplicated type with an unknown cast.
-    const session = new TxBroadcast(pool, tx as unknown as ConstructorParameters<typeof TxBroadcast>[1])
+    const session = new TxBroadcast(pool, tx)
     const startedAt = Date.now()
 
     return new Promise<BroadcastResult>((resolve, reject) => {
