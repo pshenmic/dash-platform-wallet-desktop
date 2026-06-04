@@ -82,7 +82,7 @@ export const SCAN_TIP_DEPTH = 10
 // mainnet/testnet today; both flags stay false.
 export const BROADCAST_POLICY = {
   minPeerAcks: 1,
-  waitForInstantLock: true,
+  waitForInstantLock: false,
   requireInstantLock: false,
   peerWaitMs: 10_000,
   timeoutMs: 30_000,
