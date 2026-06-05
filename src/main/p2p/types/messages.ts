@@ -1,4 +1,5 @@
 import {Network} from '../../src/types'
+import {BroadcastResult} from './broadcast'
 import {AppliedBlock, WalletSyncStatus, WalletSyncUtxo} from './walletSync'
 
 // IPC envelopes between the main process and the p2p utility process.
@@ -44,10 +45,32 @@ export interface P2PAddWatchAddressesMessage {
   rewindToHeight?: number
 }
 
+// Broadcast a signed transaction over the active peer pool. requestId is
+// echoed in the matching P2PBroadcastResultMessage so the main-process
+// service can correlate concurrent broadcasts. Policy is not on the wire
+// — the utility process reads BROADCAST_POLICY from constants.
+export interface P2PBroadcastMessage {
+  type: 'broadcast'
+  requestId: string
+  txHex: string
+}
+
+// Tell the utility process which locally-broadcast txids to watch for an
+// InstantSend (isdlock) confirmation. The worker only fetches isdlock objects
+// while this set is non-empty (they're high-volume to over-fetch), and emits
+// P2PTxInstantLockedMessage when one matches. Empty list = stop watching.
+export interface P2PWatchTxsMessage {
+  type: 'watchTxs'
+  walletId: string
+  txids: string[]
+}
+
 export type P2PCommand =
   | P2PStartMessage
   | P2PStopMessage
   | P2PAddWatchAddressesMessage
+  | P2PBroadcastMessage
+  | P2PWatchTxsMessage
 
 // ── Events (utility -> main) ────────────────────────────────────────────────
 
@@ -75,8 +98,38 @@ export interface P2PErrorMessage {
   message: string
 }
 
+// Response to a P2PBroadcastMessage. ok=true carries the final result;
+// ok=false carries the failure reason plus whatever partial state the
+// session accumulated before giving up (peers invited, acks, etc).
+export interface P2PBroadcastResultMessage {
+  type: 'broadcastResult'
+  requestId: string
+  ok: boolean
+  result: BroadcastResult
+  errorMessage: string | null
+}
+
+// A watched local tx received a DIP-24 InstantSend lock — irreversibly final
+// before it's even mined. Main flags it instant_locked.
+export interface P2PTxInstantLockedMessage {
+  type: 'txInstantLocked'
+  walletId: string
+  txid: string
+}
+
+// A ChainLock (clsig) was observed for `height` — every tx in blocks at or
+// below it is irreversible. Main flags those txs chainlocked.
+export interface P2PChainLockedMessage {
+  type: 'chainLocked'
+  walletId: string
+  height: number
+}
+
 export type P2PEvent =
   | P2PStatusMessage
   | P2PBlockAppliedMessage
   | P2PCursorAdvancedMessage
   | P2PErrorMessage
+  | P2PBroadcastResultMessage
+  | P2PTxInstantLockedMessage
+  | P2PChainLockedMessage
