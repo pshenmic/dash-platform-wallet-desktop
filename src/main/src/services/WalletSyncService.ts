@@ -255,6 +255,9 @@ export class WalletSyncService {
     return this.status
   }
 
+  hasSyncProgress = async (walletId: string): Promise<boolean> => {
+    const cursor = await this.transactionDAO.getCursor(walletId)
+    return cursor !== null
   // Broadcast a signed transaction over the active peer pool. Requires
   // startSync to have been called (the utility process owns the pool).
   // The retry / timeout / ack policy is hardcoded in
@@ -386,32 +389,51 @@ export class WalletSyncService {
   }
 
   resetSync = async (network: 'mainnet' | 'testnet'): Promise<void> => {
-    this.shutdown()
-    await this.transactionDAO.resetSyncDataByNetwork(network)
+    await this.shutdown()
     const chainDbPath = path.join(os.homedir(), HomeFolderName, ChainStorageFilename, network)
-    await fs.promises.rm(chainDbPath, {recursive: true, force: true})
+    await rmWithRetry(chainDbPath)
+    await this.transactionDAO.resetSyncDataByNetwork(network)
   }
-  shutdown = (): void => {
-    if (this.child) {
-      this.child.kill()
-      this.child = null
-      this.status = {
-        phase: 'stopped',
-        network: null,
-        walletId: null,
-        tipHeight: 0,
-        tipHash: null,
-        estimatedChainHeight: 0,
-        cfheadersHeight: 0,
-        cfilterScanHeight: 0,
-        matchedBlocksPending: 0,
-        peerCount: 0,
-        filterCapablePeerCount: 0,
-        phaseEtaMs: null,
-        lastError: null,
-        updatedAt: Date.now(),
-      }
-      this.activeWalletId = null
+
+  shutdown = async (): Promise<void> => {
+    if (!this.child) return
+    const child = this.child
+    const exited = new Promise<void>((resolve) => {
+      child.once('exit', () => resolve())
+    })
+    child.kill()
+    await exited
+    this.child = null
+    this.activeWalletId = null
+    this.status = {
+      phase: 'stopped',
+      network: null,
+      walletId: null,
+      tipHeight: 0,
+      tipHash: null,
+      estimatedChainHeight: 0,
+      cfheadersHeight: 0,
+      cfilterScanHeight: 0,
+      matchedBlocksPending: 0,
+      peerCount: 0,
+      filterCapablePeerCount: 0,
+      phaseEtaMs: null,
+      lastError: null,
+      updatedAt: Date.now(),
     }
   }
+}
+
+async function rmWithRetry(target: string, attempts = 6, delayMs = 250): Promise<void> {
+  let lastError: unknown
+  for (let i = 0; i < attempts; i++) {
+    try {
+      await fs.promises.rm(target, { recursive: true, force: true })
+      return
+    } catch (err) {
+      lastError = err
+      if (i < attempts - 1) await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+  }
+  throw lastError
 }
