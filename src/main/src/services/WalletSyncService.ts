@@ -258,6 +258,8 @@ export class WalletSyncService {
   hasSyncProgress = async (walletId: string): Promise<boolean> => {
     const cursor = await this.transactionDAO.getCursor(walletId)
     return cursor !== null
+  }
+
   // Broadcast a signed transaction over the active peer pool. Requires
   // startSync to have been called (the utility process owns the pool).
   // The retry / timeout / ack policy is hardcoded in
