@@ -50,6 +50,7 @@ import {
   BLOCK_REQUEST_TIMEOUT_MS,
   CFCHECKPT_RACE_PEERS,
   CFCHECKPT_RACE_TIMEOUT_MS,
+  CFHEADERS_RACE_PEERS,
   CFHEADERS_RACE_TIMEOUT_MS,
   CFILTER_BATCH,
   CFILTER_BATCH_TIMEOUT_MS,
@@ -79,6 +80,7 @@ interface BlockRequest {
 interface PendingCFHeaders {
   startHeight: number
   stopHeight: number
+  triedPeers: Set<Peer>
   raceTimer: ReturnType<typeof setTimeout> | null
 }
 
@@ -553,31 +555,48 @@ export class CFilterSyncWorker extends Worker {
       this.startCFilterScan()
       return
     }
-    this.phase = 'cfheaders'
+    this.emitStatus('cfheaders')
     const startHeight = this.cfHeaders.walkStart
     const nextCkpt = (Math.floor((startHeight - 1) / 1000) + 1) * 1000
     const stopHeight = Math.min(nextCkpt, effectiveTip)
-    const stopHashWire = this.heightToBlockHash.get(stopHeight)
-    if (!stopHashWire) {
+    if (!this.heightToBlockHash.has(stopHeight)) {
       console.warn(`[cfilter] cfheaders: no hash for h=${stopHeight}; stopping`)
       return
     }
     if (this.cfHeaders.pending.has(stopHeight)) return
-
-    const racers = [...this.peerPool.filterCapablePeers]
-    if (racers.length === 0) {
+    if (this.peerPool.filterCapablePeers.size === 0) {
       console.warn('[cfilter] cfheaders: no +CF peers — waiting')
       return
     }
-    const entry: PendingCFHeaders = {startHeight, stopHeight, raceTimer: null}
+    const entry: PendingCFHeaders = {startHeight, stopHeight, triedPeers: new Set(), raceTimer: null}
     this.cfHeaders.pending.set(stopHeight, entry)
-    const msg = this.M.GetCFHeaders({filterType: FILTER_TYPE, startHeight, stopHash: stopHashWire})
-    for (const p of racers) p.sendMessage(msg)
+    this.dispatchCFHeaders(entry)
+    this.armCFHeadersTimer(entry)
+  }
+
+  private dispatchCFHeaders(entry: PendingCFHeaders): void {
+    const stopHashWire = this.heightToBlockHash.get(entry.stopHeight)
+    if (!stopHashWire) return
+    let candidates = [...this.peerPool.filterCapablePeers].filter(p => !entry.triedPeers.has(p))
+    if (candidates.length === 0) {
+      entry.triedPeers.clear()
+      candidates = [...this.peerPool.filterCapablePeers]
+    }
+    const picks = candidates.slice(0, CFHEADERS_RACE_PEERS)
+    const msg = this.M.GetCFHeaders({filterType: FILTER_TYPE, startHeight: entry.startHeight, stopHash: stopHashWire})
+    for (const p of picks) {
+      entry.triedPeers.add(p)
+      p.sendMessage(msg)
+    }
+  }
+
+  private armCFHeadersTimer(entry: PendingCFHeaders): void {
+    if (entry.raceTimer) clearTimeout(entry.raceTimer)
     entry.raceTimer = setTimeout(() => {
-      if (!this.cfHeaders.pending.has(stopHeight) || this.stopped) return
-      console.warn(`[cfilter] cfheaders ${startHeight}..${stopHeight} timeout — re-racing`)
-      this.cfHeaders.pending.delete(stopHeight)
-      this.walkCFHeadersNext()
+      if (!this.cfHeaders.pending.has(entry.stopHeight) || this.stopped) return
+      console.warn(`[cfilter] cfheaders ${entry.startHeight}..${entry.stopHeight} timeout — re-racing`)
+      this.dispatchCFHeaders(entry)
+      this.armCFHeadersTimer(entry)
     }, CFHEADERS_RACE_TIMEOUT_MS)
   }
 
@@ -587,21 +606,22 @@ export class CFilterSyncWorker extends Worker {
     const stopHeight = this.wireHexToHeight.get(bytesToHex(stopHashWire)) ?? -1
     const pending = stopHeight >= 0 ? this.cfHeaders.pending.get(stopHeight) : undefined
     if (!pending) return
-    if (pending.raceTimer) clearTimeout(pending.raceTimer)
-    this.cfHeaders.pending.delete(stopHeight)
-    this.leader = fromPeer
 
     const filterHashes = msg.filterHashes ?? []
     const expectedCount = pending.stopHeight - pending.startHeight + 1
     if (filterHashes.length !== expectedCount) {
-      console.warn(`[cfilter] cfheaders count mismatch: got ${filterHashes.length} expected ${expectedCount}`)
+      console.warn(`[cfilter] cfheaders count mismatch ${pending.startHeight}..${pending.stopHeight}: got ${filterHashes.length} expected ${expectedCount} from ${fromPeer.host} — re-racing`)
+      this.dispatchCFHeaders(pending)
+      this.armCFHeadersTimer(pending)
       return
     }
 
     let prev = msg.previousFilterHeader ?? new Uint8Array(32)
     const prevExpected = this.heightToFilterHeader.get(pending.startHeight - 1)
     if (prevExpected && !equalBytes(prevExpected, prev)) {
-      console.warn(`[cfilter] cfheaders prev mismatch at h=${pending.startHeight - 1}`)
+      console.warn(`[cfilter] cfheaders prev mismatch at h=${pending.startHeight - 1} from ${fromPeer.host} — re-racing`)
+      this.dispatchCFHeaders(pending)
+      this.armCFHeadersTimer(pending)
       return
     }
     const derived: Array<{height: number; header: Uint8Array}> = []
@@ -615,9 +635,15 @@ export class CFilterSyncWorker extends Worker {
     }
     const ckpt = this.checkpointHeaders.get(pending.stopHeight)
     if (ckpt && !equalBytes(ckpt, prev)) {
-      console.warn(`[cfilter] cfheaders checkpoint mismatch at h=${pending.stopHeight} — peer dishonest`)
+      console.warn(`[cfilter] cfheaders checkpoint mismatch at h=${pending.stopHeight} from ${fromPeer.host} — peer dishonest, re-racing`)
+      this.dispatchCFHeaders(pending)
+      this.armCFHeadersTimer(pending)
       return
     }
+
+    if (pending.raceTimer) clearTimeout(pending.raceTimer)
+    this.cfHeaders.pending.delete(pending.stopHeight)
+    this.leader = fromPeer
 
     for (const e of derived) this.heightToFilterHeader.set(e.height, e.header)
     this.chainStore.writeFilterHeaders(derived).catch(err => {
@@ -628,6 +654,7 @@ export class CFilterSyncWorker extends Worker {
     console.log(`[cfheaders] processed checkpoint until: ${pending.startHeight}`)
 
     this.cfHeaders.walkStart = pending.stopHeight + 1
+    this.emitStatus('cfheaders')
     this.walkCFHeadersNext()
   }
 

@@ -56,6 +56,11 @@ export const MAX_INFLIGHT_BATCHES = 4
 // only against the +CF subset of the pool.
 export const CFCHECKPT_RACE_PEERS = 12
 
+// Number of +CF peers raced per cfheaders checkpoint range. On a bad or
+// missing response the range rotates to the next untried subset, so this is
+// the redundancy per attempt, not a hard cap on peers tried.
+export const CFHEADERS_RACE_PEERS = 12
+
 export const CFCHECKPT_RACE_TIMEOUT_MS = 15_000
 export const CFHEADERS_RACE_TIMEOUT_MS = 15_000
 export const CFILTER_BATCH_TIMEOUT_MS = 15_000
@@ -66,4 +71,23 @@ export const BLOCK_REQUEST_TIMEOUT_MS = 15_000
 // (reorgs / peer lag), so anything closer than this fails intermittently.
 // Trade-off: larger value = more reliable cfilter requests but longer
 // confirmation latency before a wallet sees a new UTXO.
-export const SCAN_TIP_DEPTH = 100
+export const SCAN_TIP_DEPTH = 10
+
+// ── Broadcast ───────────────────────────────────────────────────────────────
+
+// Fixed broadcast policy. The wallet does not expose any of these knobs to
+// callers — broadcastTransaction takes only a tx hex. Notes on the
+// instant-lock fields: current Dash Core ships isdlock (DIP-24) which
+// dash-core-p2p doesn't parse yet, so islock can't be a success signal on
+// mainnet/testnet today; both flags stay false.
+export const BROADCAST_POLICY = {
+  minPeerAcks: 1,
+  waitForInstantLock: false,
+  requireInstantLock: false,
+  peerWaitMs: 10_000,
+  timeoutMs: 30_000,
+  rebroadcastIntervalMs: 15_000,
+  maxRebroadcasts: 2,
+  unsolicitedPushAfterMs: 5_000,
+  failOnReject: true,
+} as const
