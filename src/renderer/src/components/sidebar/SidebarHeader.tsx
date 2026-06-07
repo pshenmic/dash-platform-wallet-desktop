@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { API } from "@renderer/api";
 import { useAuth } from "@renderer/contexts/AuthContext";
 import { davToDash, formatCompactCredits } from "@renderer/utils/balance";
+import { useFiat } from "@renderer/hooks/useFiat";
 
 type AssetWithUsdValue = {
   amount: bigint
@@ -27,6 +28,7 @@ export default function SidebarHeader(): React.JSX.Element {
   })
   const { status } = useAuth()
   const [balance, setBalance] = useState<BalanceType | undefined>()
+  const { format: formatFiat, rateReady } = useFiat()
 
   const toggleBalanceVisibility = (): void => {
     setIsBalanceVisible((prev) => {
@@ -76,8 +78,8 @@ export default function SidebarHeader(): React.JSX.Element {
         </button>
       </div>
       <div className={"flex flex-col gap-[.75rem]"}>
-        <Balance variant="dash" balance={davToDash(balance?.dash.amount ?? 0n).toString()} isVisible={isBalanceVisible} usdAmount={balance?.dash.usdAmount ?? undefined}/>
-        <Balance variant="credits" balance={formatCompactCredits(balance?.credits.amount ?? 0n).toString()} isVisible={isBalanceVisible} usdAmount={balance?.credits.usdAmount ?? undefined}/>
+        <Balance variant="dash" balance={davToDash(balance?.dash.amount ?? 0n).toString()} isVisible={isBalanceVisible} fiat={rateReady ? formatFiat(balance?.dash.amount ?? 0n) : undefined}/>
+        <Balance variant="credits" balance={formatCompactCredits(balance?.credits.amount ?? 0n).toString()} isVisible={isBalanceVisible}/>
       </div>
     </div>
   )

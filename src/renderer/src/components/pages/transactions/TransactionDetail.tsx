@@ -14,6 +14,7 @@ import { WalletTxItem } from '@renderer/hooks/useWalletTransactions'
 import { formatCreationDate, timePart } from '@renderer/utils/date'
 import { useRipple } from '@renderer/hooks/useRipple'
 import { davToDash } from '@renderer/utils/balance'
+import { useFiat } from '@renderer/hooks/useFiat'
 import QrButton from '@renderer/components/ui/QrButton'
 
 const cardStyles = cva(
@@ -71,6 +72,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
   const { theme } = useTheme()
   const isIncoming = transaction.direction === 'in'
   const hoverNotification = useRipple()
+  const { format: formatFiat, rateReady } = useFiat()
 
   function trimTrailingZeros(value: string): string {
     return value
@@ -153,7 +155,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
                   {' Dash'}
                 </Text>
               }
-              subValue={`~ $${transaction.usdAmount}`}
+              subValue={rateReady ? `~ ${formatFiat(transaction.amount)}` : undefined}
             />
           </div>
           <div className={"flex gap-3 min-h-17"}>
