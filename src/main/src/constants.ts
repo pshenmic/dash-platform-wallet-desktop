@@ -16,6 +16,14 @@ export const SUPPORTED_LANGUAGES = [
 
 export const SUPPORTED_CURRENCIES = [
   "usd",
+  "eur",
+  "btc",
+  "rub"
+]
+
+export const SUPPORTED_RATE_CURRENCIES = [
+  "usd",
+  "eur",
   "btc",
   "rub"
 ]

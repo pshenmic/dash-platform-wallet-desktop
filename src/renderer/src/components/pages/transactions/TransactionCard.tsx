@@ -7,6 +7,7 @@ import { cva } from "class-variance-authority"
 import { Text } from "@renderer/components/dash-ui-kit-enxtended"
 import { WalletTxItem } from "@renderer/hooks/useWalletTransactions"
 import { davToDash } from "@renderer/utils/balance"
+import { useFiat } from "@renderer/hooks/useFiat"
 
 const transactionCardStyles = cva(
   `
@@ -38,12 +39,12 @@ export default function TransactionCard({
   subtitleLabel,
   labelValue,
   amount,
-  usdAmount,
   date,
   direction
 } : WalletTxItem): React.JSX.Element {
   const variantAmountSummary = status === 'failed' ? 'error' : kind === 'core' ? 'default' : 'muted'
   const isIncoming = direction === 'in'
+  const { format: formatFiat, rateReady } = useFiat()
 
   return (
     <div className={transactionCardStyles({ status })} >
@@ -67,7 +68,7 @@ export default function TransactionCard({
             {isIncoming ? '+' : '-'}<BigNumber className={"text-inherit"}>{davToDash(amount).toString()}</BigNumber>
           </span>
         }
-        textBadge={`~ $${usdAmount}`}
+        textBadge={rateReady ? `~ ${formatFiat(amount)}` : ''}
         variant={variantAmountSummary}
         date={
           <>
