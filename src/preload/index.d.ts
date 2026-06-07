@@ -32,6 +32,11 @@ declare global {
       resetWalletSync: (network: 'mainnet' | 'testnet') => Promise<unknown>
       getUtxos: () => Promise<unknown>
       hasSyncProgress: (walletId: string) => Promise<boolean>
+      getExchangeRates: () => Promise<unknown>
+      saveTextFile: (defaultFileName: string, content: string) => Promise<{ success: boolean; errorMessage: string | null }>
+      getContacts: (network?: 'mainnet' | 'testnet') => Promise<unknown>
+      addContact: (label: string, address: string, network: 'mainnet' | 'testnet') => Promise<unknown>
+      deleteContact: (id: number) => Promise<unknown>
     }
     darkMode: {
       get: () => Promise<boolean>
