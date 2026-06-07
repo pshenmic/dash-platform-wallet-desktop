@@ -29,4 +29,12 @@ export const apiDefinitions = (ipcRenderer) => ({
   getUtxos: () => ipcRenderer.invoke('getUtxos'),
   hasSyncProgress: (walletId: string) => ipcRenderer.invoke('hasSyncProgress', walletId),
   broadcastTransaction: (txHex: string) => ipcRenderer.invoke('broadcastTransaction', txHex),
+
+  getExchangeRates: () => ipcRenderer.invoke('getExchangeRates'),
+
+  saveTextFile: (defaultFileName: string, content: string) => ipcRenderer.invoke('saveTextFile', defaultFileName, content),
+
+  getContacts: (network?: 'mainnet' | 'testnet') => ipcRenderer.invoke('getContacts', network),
+  addContact: (label: string, address: string, network: 'mainnet' | 'testnet') => ipcRenderer.invoke('addContact', label, address, network),
+  deleteContact: (id: number) => ipcRenderer.invoke('deleteContact', id),
 })

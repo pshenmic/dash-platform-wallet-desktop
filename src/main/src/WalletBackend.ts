@@ -8,6 +8,7 @@ import { WalletDAO } from './database/WalletDAO'
 import { AddressDAO } from './database/AddressDAO'
 import { IdentityDAO } from './database/IdentityDAO'
 import { TransactionDAO } from './database/TransactionDAO'
+import { ContactDAO } from './database/ContactDAO'
 import { WalletService } from './services/WalletService'
 import { ApplicationService } from './services/ApplicationService'
 import {Preferences} from "./preferences";
@@ -34,6 +35,12 @@ import {ResetPreferencesHandler} from "./api/resetPreferences";
 import {SetFiatCurrencyHandler} from "./api/setFiatCurrency";
 import {SetConnectionTypeHandler} from "./api/setConnectionType";
 import {WalletSyncService} from './services/WalletSyncService'
+import {RatesService} from './services/RatesService'
+import {GetExchangeRatesHandler} from './api/getExchangeRates'
+import {ContactService} from './services/ContactService'
+import {GetContactsHandler} from './api/contacts/getContacts'
+import {AddContactHandler} from './api/contacts/addContact'
+import {DeleteContactHandler} from './api/contacts/deleteContact'
 import {StartWalletSyncHandler} from './api/walletSync/startWalletSync'
 import {StopWalletSyncHandler} from './api/walletSync/stopWalletSync'
 import {ResetWalletSyncHandler} from './api/walletSync/resetWalletSync'
@@ -46,11 +53,13 @@ export class WalletBackend {
   private walletService?: WalletService
   private applicationService?: ApplicationService
   private walletSyncService?: WalletSyncService
+  private ratesService?: RatesService
+  private contactService?: ContactService
 
   private addressDAO?: AddressDAO
 
   private initHandlers(): void {
-    if (!this.walletService || !this.applicationService || !this.walletSyncService || !this.addressDAO) {
+    if (!this.walletService || !this.applicationService || !this.walletSyncService || !this.ratesService || !this.contactService || !this.addressDAO) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
@@ -82,6 +91,10 @@ export class WalletBackend {
     ipcMain.handle('getUtxos', new GetUtxosHandler(this.walletSyncService).handle)
     ipcMain.handle('hasSyncProgress', new HasSyncProgressHandler(this.walletSyncService).handle)
     ipcMain.handle('broadcastTransaction', new BroadcastTransactionHandler(this.walletSyncService).handle)
+    ipcMain.handle('getExchangeRates', new GetExchangeRatesHandler(this.ratesService).handle)
+    ipcMain.handle('getContacts', new GetContactsHandler(this.contactService).handle)
+    ipcMain.handle('addContact', new AddContactHandler(this.contactService).handle)
+    ipcMain.handle('deleteContact', new DeleteContactHandler(this.contactService).handle)
   }
 
   async start(): Promise<void> {
@@ -100,11 +113,14 @@ export class WalletBackend {
     const addressDAO = new AddressDAO(knex)
     const identityDAO = new IdentityDAO(knex)
     const transactionDAO = new TransactionDAO(knex)
+    const contactDAO = new ContactDAO(knex)
     const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
 
 
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
+    this.ratesService = new RatesService()
+    this.contactService = new ContactService(contactDAO)
     this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.walletSyncService, this.applicationService, dashPlatformSDK, calibratedIterations)
     this.addressDAO = addressDAO
 
