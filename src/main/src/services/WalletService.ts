@@ -19,6 +19,14 @@ import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
+import {SendResult} from "../types/SendResult";
+import {selectCoins, SelectableUtxo} from "./coinSelection";
+import {
+  Transaction as SDKTransaction,
+  Input as SDKInput,
+  Output as SDKOutput,
+  PrivateKey as SDKPrivateKey,
+} from 'dash-core-sdk'
 import {deriveKeyFromPassword} from "../utils";
 import {createDecipheriv} from "node:crypto";
 
@@ -380,6 +388,106 @@ export class WalletService {
     const provider = this.getProvider(wallet.walletId, network)
 
     return await provider.getBalance(address)
+  }
+
+  async sendTransaction(
+    walletId: string,
+    toAddress: string,
+    amountDuffs: bigint,
+    password: string,
+  ): Promise<SendResult> {
+    if (amountDuffs <= 0n) {
+      throw new Error('Send amount must be greater than zero')
+    }
+
+    const wallet = await this.walletDAO.getWalletById(walletId)
+    if (wallet == null) {
+      throw new Error('Wallet not found')
+    }
+    const network = wallet.network
+
+    let decryptedMnemonic: string
+    try {
+      decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password)
+    } catch {
+      throw new Error('Invalid wallet password')
+    }
+
+    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
+    const allAddresses = [...grouped.receiving, ...grouped.change]
+    const pathByAddress = new Map(allAddresses.map(a => [a.address, a.derivationPath]))
+
+    const provider = this.getProvider(wallet.walletId, network)
+
+    const utxoLists = await Promise.all(
+      allAddresses.map(async (a) => {
+        const utxos = await provider.getUTXOs(a.address)
+        return utxos.map(u => ({utxo: u, address: a.address}))
+      }),
+    )
+    const ownedUtxos = utxoLists.flat()
+
+    if (ownedUtxos.length === 0) {
+      throw new Error('No spendable funds in this wallet')
+    }
+
+    const selectable: SelectableUtxo[] = ownedUtxos.map(({utxo, address}) => ({
+      txid: utxo.txId,
+      vout: utxo.vOut,
+      satoshis: utxo.satoshis,
+      address,
+    }))
+
+    const selection = selectCoins(selectable, amountDuffs)
+
+    const utxoByKey = new Map(ownedUtxos.map(o => [`${o.utxo.txId}:${o.utxo.vOut}`, o]))
+
+    const changeAddress = this.pickChangeAddress(grouped)
+
+    const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
+    const hdKey = this.sdk.keyPair.seedToHdKey(seed, network)
+
+    const tx = new SDKTransaction()
+    const privateKeys: SDKPrivateKey[] = []
+
+    for (const input of selection.inputs) {
+      const owned = utxoByKey.get(`${input.txid}:${input.vout}`)
+      if (!owned) throw new Error('Selected UTXO no longer available')
+
+      tx.addInput(new SDKInput(owned.utxo.txId, owned.utxo.vOut, owned.utxo.script, 0xffffffff))
+
+      const path = pathByAddress.get(input.address)
+      if (path == null) throw new Error(`No derivation path for address ${input.address}`)
+      const key = await this.sdk.keyPair.derivePath(hdKey, path)
+      if (!key.privateKey) throw new Error(`Failed to derive private key for ${input.address}`)
+      privateKeys.push(SDKPrivateKey.fromBytes(key.privateKey as Uint8Array, network, true))
+    }
+
+    tx.addOutput(SDKOutput.createP2PKH(amountDuffs, toAddress))
+    tx.generateChange(changeAddress, selection.inputTotal)
+    tx.sign(privateKeys)
+
+    const txid = await provider.broadcastTx(tx)
+
+    return {
+      txid,
+      amount: amountDuffs.toString(),
+      fee: selection.fee.toString(),
+      toAddress,
+      changeAddress: selection.change > 0n ? changeAddress : null,
+      peersAcked: 0,
+    }
+  }
+
+  // Next unused change address, falling back to the first change address (or
+  // the recipient-less wallet's first receiving address) so change never
+  // leaves the wallet.
+  private pickChangeAddress(grouped: GroupedAddresses): string {
+    const unusedChange = grouped.change.find(a => !a.isUsed)
+    if (unusedChange) return unusedChange.address
+    if (grouped.change.length > 0) return grouped.change[grouped.change.length - 1].address
+    if (grouped.receiving.length > 0) return grouped.receiving[0].address
+    throw new Error('Wallet has no change address')
   }
 
   async getIdentities(walletId: string): Promise<IdentityInfo[]> {

@@ -9,6 +9,7 @@ import { isValidDashAddress } from "@renderer/utils/address";
 import { WalletBalanceDto } from "@renderer/api/types";
 import Header from "./Header";
 import AssetSelectorModal from "@renderer/components/modal/AssetSelectorModal";
+import SendConfirmModal from "@renderer/components/modal/SendConfirmModal";
 import AmountInput from "./AmountInput";
 import RecipientInput from "./RecipientInput";
 import AmountSummary from "./AmountSummary";
@@ -25,11 +26,12 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
   const { format: formatFiat, rateReady } = useFiat()
 
   const [balanceDuffs, setBalanceDuffs] = useState<bigint>(0n)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
-  useEffect(() => {
+  const loadBalance = (): (() => void) => {
     if (!walletId) {
       setBalanceDuffs(0n)
-      return
+      return () => {}
     }
     let cancelled = false
     API.getWalletBalance(walletId)
@@ -40,7 +42,9 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
       })
       .catch((e) => console.error('getWalletBalance failed', e))
     return () => { cancelled = true }
-  }, [walletId])
+  }
+
+  useEffect(loadBalance, [walletId])
 
   const amountDuffs = useMemo(() => dashToDuffs(amount), [amount])
 
@@ -92,6 +96,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
         amountDuffs={amountDuffs}
         amountFiat={amountFiat}
         canProceed={canProceed}
+        onSubmit={() => setConfirmOpen(true)}
       />
     </div>
     <AssetSelectorModal
@@ -102,6 +107,19 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
         onSelectAsset={selectAsset}
         data={assetSelector}
         balances={{ dash: davToDash(balanceDuffs) }}
+      />
+    <SendConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        walletId={walletId}
+        toAddress={recipient.trim()}
+        amountDuffs={amountDuffs}
+        amountFiat={amountFiat}
+        onSuccess={() => {
+          setRecipient('')
+          setAmount('')
+          loadBalance()
+        }}
       />
     </>
   )
