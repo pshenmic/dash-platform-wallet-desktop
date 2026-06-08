@@ -222,9 +222,9 @@ export default function Settings(): React.JSX.Element {
             onClick={handleRestart}
           />
           <SettingsRow
-            title="Clear sync cache"
+            title="Clear sync data"
             description="Delete downloaded headers, filters, and transaction history for the current network. The wallet is preserved."
-            actionLabel="Clear cache"
+            actionLabel="Clear sync data"
             pendingLabel="Clearing…"
             pending={clearPending}
             disabled={network === null}
