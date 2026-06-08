@@ -21,6 +21,7 @@ import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
 import {SendResult} from "../types/SendResult";
 import {selectCoins, SelectableUtxo} from "./coinSelection";
+import {dedupeTransactions} from "./dedupeTransactions";
 import {CoreTransactionService, TransferInput} from "./CoreTransactionService";
 import {decryptMnemonic, encryptMnemonic} from "../utils";
 
@@ -280,7 +281,7 @@ export class WalletService {
     const provider = this.getProvider(wallet.walletId, wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat().sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
+    return dedupeTransactions(txArrays.flat())
   }
 
   async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
