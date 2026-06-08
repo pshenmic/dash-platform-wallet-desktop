@@ -8,5 +8,4 @@ export const CONNECTION_LABELS: Record<ConnectionType, string> = {
 export const SYNC_ACTION_LABELS = {
   start: 'Start sync',
   stop: 'Stop sync',
-  restart: 'Restart sync',
 } as const
