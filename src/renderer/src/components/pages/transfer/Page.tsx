@@ -52,14 +52,11 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
     setAmount(davToDash(balanceDuffs))
   }
 
-  const recipientValid = recipient.trim().length === 0 || isValidDashAddress(recipient, network ?? undefined)
+  const addressValid = isValidDashAddress(recipient, network ?? undefined)
+  const recipientValid = recipient.trim().length === 0 || addressValid
   const amountPositive = amountDuffs > 0n
   const amountWithinBalance = amountDuffs <= balanceDuffs
-  const canProceed =
-    recipient.trim().length > 0 &&
-    isValidDashAddress(recipient, network ?? undefined) &&
-    amountPositive &&
-    amountWithinBalance
+  const canProceed = addressValid && amountPositive && amountWithinBalance
 
   const amountFiat = rateReady && amountPositive ? formatFiat(amountDuffs) : undefined
 

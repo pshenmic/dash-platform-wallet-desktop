@@ -8,6 +8,8 @@ import { Text, ExternalLinkIcon } from "@renderer/components/dash-ui-kit-enxtend
 import { WalletTxItem } from "@renderer/hooks/useWalletTransactions"
 import { davToDash } from "@renderer/utils/balance"
 import { useFiat } from "@renderer/hooks/useFiat"
+import { useAuth } from "@renderer/contexts/AuthContext"
+import { transactionUrl, openExternal } from "@renderer/utils/explorer"
 
 const transactionCardStyles = cva(
   `
@@ -32,11 +34,8 @@ const transactionCardStyles = cva(
   },
 )
 
-type TransactionCardProps = WalletTxItem & {
-  onOpenExplorer?: () => void
-}
-
 export default function TransactionCard({
+  id,
   status,
   kind,
   title,
@@ -44,12 +43,13 @@ export default function TransactionCard({
   labelValue,
   amount,
   date,
-  direction,
-  onOpenExplorer
-} : TransactionCardProps): React.JSX.Element {
+  direction
+} : WalletTxItem): React.JSX.Element {
   const variantAmountSummary = status === 'failed' ? 'error' : kind === 'core' ? 'default' : 'muted'
   const isIncoming = direction === 'in'
   const { format: formatFiat, rateReady } = useFiat()
+  const { status: appStatus } = useAuth()
+  const network = appStatus?.network ?? null
 
   return (
     <div className={transactionCardStyles({ status })} >
@@ -82,7 +82,7 @@ export default function TransactionCard({
         }
       />
 
-      {onOpenExplorer && (
+      {network && (
         <div
           className={`
             shrink-0 overflow-hidden
@@ -92,7 +92,7 @@ export default function TransactionCard({
           `}
         >
           <button
-            onClick={(e) => { e.stopPropagation(); onOpenExplorer() }}
+            onClick={(e) => { e.stopPropagation(); openExternal(transactionUrl(id, network)) }}
             title={"Open in explorer"}
             className={`
               size-7 rounded-[.5rem] flex items-center justify-center
