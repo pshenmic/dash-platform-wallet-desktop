@@ -1,20 +1,16 @@
 import { Button, Text } from "@renderer/components/dash-ui-kit-enxtended";
 import { TransferPageType } from "@renderer/constants";
 import { davToDash } from "@renderer/utils/balance";
-import { toast } from "@renderer/components/ui/Toast";
 
 interface AmountSummaryProps {
   data: TransferPageType['amountSummary']
   amountDuffs: bigint
   amountFiat?: string
   canProceed: boolean
+  onSubmit: () => void
 }
 
-export default function AmountSummary({data, amountDuffs, amountFiat, canProceed}: AmountSummaryProps): React.JSX.Element {
-  const handleNext = (): void => {
-    toast.error('**Sending is not available yet** Transaction signing & broadcast are coming in a follow-up.')
-  }
-
+export default function AmountSummary({data, amountDuffs, amountFiat, canProceed, onSubmit}: AmountSummaryProps): React.JSX.Element {
   return (
     <div className={"px-12"}>
     <div className={"flex flex-col gap-[.75rem]"}>
@@ -34,7 +30,7 @@ export default function AmountSummary({data, amountDuffs, amountFiat, canProceed
         className={"w-full rounded-[.9375rem]"}
         size={"md"}
         disabled={!canProceed}
-        onClick={handleNext}
+        onClick={onSubmit}
       >
         {data.button}
       </Button>

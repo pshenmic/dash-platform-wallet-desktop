@@ -1,4 +1,4 @@
-import { ConnectionType, Contact, ExchangeRatesResult, Network, PreferencesJSON, QueryStatus } from './types'
+import { ConnectionType, Contact, ExchangeRatesResult, Network, PreferencesJSON, QueryStatus, SendResult } from './types'
 
 export class API {
   private static get api() {
@@ -95,5 +95,9 @@ export class API {
 
   static async deleteContact(id: number): Promise<QueryStatus> {
     return this.api.deleteContact(id) as Promise<QueryStatus>
+  }
+
+  static async sendTransaction(walletId: string, toAddress: string, amountDuffs: string, password: string): Promise<SendResult> {
+    return this.api.sendTransaction(walletId, toAddress, amountDuffs, password) as Promise<SendResult>
   }
 }
