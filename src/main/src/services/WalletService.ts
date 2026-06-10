@@ -1,4 +1,4 @@
-import {createCipheriv, randomBytes} from 'crypto'
+import {randomBytes} from 'crypto'
 import {DashPlatformSDK} from 'dash-platform-sdk'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
@@ -21,69 +21,31 @@ import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
 import {SendResult} from "../types/SendResult";
 import {selectCoins, SelectableUtxo} from "./coinSelection";
-import {
-  Transaction as SDKTransaction,
-  Input as SDKInput,
-  Output as SDKOutput,
-  PrivateKey as SDKPrivateKey,
-} from 'dash-core-sdk'
-import {deriveKeyFromPassword} from "../utils";
-import {createDecipheriv} from "node:crypto";
+import {CoreTransactionService, TransferInput} from "./CoreTransactionService";
+import {decryptMnemonic, encryptMnemonic} from "../utils";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
-
-function encryptMnemonic(mnemonic: string, password: string, iterations: number): string {
-  const salt = randomBytes(32)
-  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
-
-  const iv = randomBytes(12)
-  const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
-  const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
-  const tag = cipher.getAuthTag()
-
-  const iterBuf = Buffer.alloc(4)
-  iterBuf.writeUInt32BE(iterations)
-
-  return Buffer.concat([iv, salt, iterBuf, ciphertext, tag]).toString('hex')
-}
-
-function decryptMnemonic(encryptedHex: string, password: string): string {
-  const data = Buffer.from(encryptedHex, 'hex')
-
-  const iv = data.slice(0, 12)
-  const salt = data.slice(12, 44)
-  const iterations = data.readUInt32BE(44)
-  const tag = data.slice(data.length - 16)
-  const ciphertext = data.slice(48, data.length - 16)
-
-  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
-
-  const decipher = createDecipheriv('aes-256-gcm', passwordKey, iv)
-  decipher.setAuthTag(tag)
-
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-  return decrypted.toString('utf8')
-}
 
 export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
   private transactionDAO: TransactionDAO
-  private walletSyncService: WalletSyncService
   private applicationService: ApplicationService
+  private walletSyncService: WalletSyncService
   private sdk: DashPlatformSDK
   private pbkdf2Iterations: number
+  private coreTransactionService: CoreTransactionService
 
   constructor(
     walletDAO: WalletDAO,
     addressDAO: AddressDAO,
     identityDAO: IdentityDAO,
     transactionDAO: TransactionDAO,
-    walletSyncService: WalletSyncService,
     applicationService: ApplicationService,
+    walletSyncService: WalletSyncService,
     sdk: DashPlatformSDK,
     pbkdf2Iterations: number,
   ) {
@@ -92,12 +54,17 @@ export class WalletService {
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
     this.transactionDAO = transactionDAO
-    this.walletSyncService = walletSyncService
     this.applicationService = applicationService
+    this.walletSyncService = walletSyncService
     this.sdk = sdk
+    this.coreTransactionService = new CoreTransactionService(sdk)
   }
 
-  private getProvider(walletId: string, network: Network): WalletProvider {
+  // Picks the WalletProvider for a wallet at call time, honouring the user's
+  // connection-type preference. In p2p mode broadcast is routed through
+  // WalletSyncService (the p2p utility process); in rpc mode everything
+  // (including broadcast) goes through Insight.
+  getProvider(walletId: string, network: Network): WalletProvider {
     if (this.applicationService.preferences.general.connectionType === 'p2p') {
       return new P2PWalletProvider(this.transactionDAO, walletId, this.walletSyncService, this.addressDAO)
     }
@@ -406,6 +373,8 @@ export class WalletService {
     }
     const network = wallet.network
 
+    this.coreTransactionService.assertRecipientAddress(toAddress, network)
+
     let decryptedMnemonic: string
     try {
       decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password)
@@ -444,28 +413,31 @@ export class WalletService {
 
     const changeAddress = this.pickChangeAddress(grouped)
 
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
-    const hdKey = this.sdk.keyPair.seedToHdKey(seed, network)
-
-    const tx = new SDKTransaction()
-    const privateKeys: SDKPrivateKey[] = []
-
-    for (const input of selection.inputs) {
+    const transferInputs: TransferInput[] = selection.inputs.map(input => {
       const owned = utxoByKey.get(`${input.txid}:${input.vout}`)
       if (!owned) throw new Error('Selected UTXO no longer available')
 
-      tx.addInput(new SDKInput(owned.utxo.txId, owned.utxo.vOut, owned.utxo.script, 0xffffffff))
+      const derivationPath = pathByAddress.get(input.address)
+      if (derivationPath == null) throw new Error(`No derivation path for address ${input.address}`)
 
-      const path = pathByAddress.get(input.address)
-      if (path == null) throw new Error(`No derivation path for address ${input.address}`)
-      const key = await this.sdk.keyPair.derivePath(hdKey, path)
-      if (!key.privateKey) throw new Error(`Failed to derive private key for ${input.address}`)
-      privateKeys.push(SDKPrivateKey.fromBytes(key.privateKey as Uint8Array, network, true))
-    }
+      return {
+        txId: owned.utxo.txId,
+        vOut: owned.utxo.vOut,
+        script: owned.utxo.script,
+        derivationPath,
+        address: input.address,
+      }
+    })
 
-    tx.addOutput(SDKOutput.createP2PKH(amountDuffs, toAddress))
-    tx.generateChange(changeAddress, selection.inputTotal)
-    tx.sign(privateKeys)
+    const tx = await this.coreTransactionService.buildSignedTransfer({
+      inputs: transferInputs,
+      toAddress,
+      amount: amountDuffs,
+      changeAddress,
+      inputTotal: selection.inputTotal,
+      mnemonic: decryptedMnemonic,
+      network,
+    })
 
     const txid = await provider.broadcastTx(tx)
 
@@ -541,3 +513,4 @@ export class WalletService {
     return this.sdk.identities.getIdentityNonce(identifier)
   }
 }
+

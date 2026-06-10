@@ -123,7 +123,7 @@ export class WalletBackend {
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
     this.ratesService = new RatesService()
     this.contactService = new ContactService(contactDAO)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.walletSyncService, this.applicationService, dashPlatformSDK, calibratedIterations)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, this.walletSyncService, dashPlatformSDK, calibratedIterations)
     this.addressDAO = addressDAO
 
     this.initHandlers()

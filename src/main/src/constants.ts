@@ -27,3 +27,5 @@ export const SUPPORTED_RATE_CURRENCIES = [
   "btc",
   "rub"
 ]
+
+export const SEQUENCE_FINAL = 0xffffffff
