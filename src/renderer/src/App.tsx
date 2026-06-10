@@ -1,4 +1,5 @@
 import { Route, Routes, useLocation } from "react-router-dom"
+import DashboardPage from "./pages/Dashboard"
 import TransactionsPage from "./pages/Transactions"
 import SendPage from "./pages/Send"
 import Sidebar from "./components/sidebar"
@@ -39,7 +40,8 @@ function App(): React.JSX.Element {
       <Sidebar />
       <Layout>
         <Routes>
-          <Route path={"/"} element={<TransactionsPage />} />
+          <Route path={"/"} element={<DashboardPage />} />
+          <Route path={"/transactions"} element={<TransactionsPage />} />
           <Route path={"/send"} element={<SendPage />} />
           <Route path={"/receive"} element={<ReceivePage />} />
           <Route path={"/addresses"} element={<AddressesPage />} />

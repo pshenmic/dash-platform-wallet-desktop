@@ -1,6 +1,6 @@
 import { API } from '@renderer/api'
 import { formatCreationDate } from '@renderer/utils/date'
-import { prefetchAsyncCache, useAsyncWithCache } from './useAsyncWithCache'
+import { invalidateAsyncCache, prefetchAsyncCache, useAsyncWithCache } from './useAsyncWithCache'
 
 export type WalletTxDto = {
   walletId: string
@@ -100,4 +100,9 @@ export function useWalletTransactions(walletId: string | undefined) {
 
 export function prefetchTransactions(walletId: string): Promise<void> {
   return prefetchAsyncCache('transactions', walletId, () => fetchTransactionGroups(walletId))
+}
+
+export function refreshTransactions(walletId: string): Promise<void> {
+  invalidateAsyncCache('transactions', walletId)
+  return prefetchTransactions(walletId)
 }
