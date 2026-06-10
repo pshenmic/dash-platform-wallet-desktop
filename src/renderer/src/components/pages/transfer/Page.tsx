@@ -1,12 +1,12 @@
 import { useAssetSelector } from "@renderer/hooks/useAssetSelector";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { selectAssetData, TransferPageType } from "@renderer/constants";
-import { API } from "@renderer/api";
 import { useAuth } from "@renderer/contexts/AuthContext";
 import { useFiat } from "@renderer/hooks/useFiat";
+import { useWalletBalance, refreshBalance } from "@renderer/hooks/useWalletBalance";
+import { refreshTransactions } from "@renderer/hooks/useWalletTransactions";
 import { davToDash, dashToDuffs } from "@renderer/utils/balance";
 import { isValidDashAddress } from "@renderer/utils/address";
-import { WalletBalanceDto } from "@renderer/api/types";
 import Header from "./Header";
 import AssetSelectorModal from "@renderer/components/modal/AssetSelectorModal";
 import SendConfirmModal from "@renderer/components/modal/SendConfirmModal";
@@ -25,26 +25,9 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
   const network = status?.network ?? null
   const { format: formatFiat, rateReady } = useFiat()
 
-  const [balanceDuffs, setBalanceDuffs] = useState<bigint>(0n)
+  const { balance } = useWalletBalance(walletId ?? undefined)
+  const balanceDuffs = balance.dash.amount
   const [confirmOpen, setConfirmOpen] = useState(false)
-
-  const loadBalance = (): (() => void) => {
-    if (!walletId) {
-      setBalanceDuffs(0n)
-      return () => {}
-    }
-    let cancelled = false
-    API.getWalletBalance(walletId)
-      .then((data) => {
-        if (cancelled) return
-        const balance = data as WalletBalanceDto
-        setBalanceDuffs(BigInt(balance?.dash?.amount ?? 0n))
-      })
-      .catch((e) => console.error('getWalletBalance failed', e))
-    return () => { cancelled = true }
-  }
-
-  useEffect(loadBalance, [walletId])
 
   const amountDuffs = useMemo(() => dashToDuffs(amount), [amount])
 
@@ -116,7 +99,10 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
         onSuccess={() => {
           setRecipient('')
           setAmount('')
-          loadBalance()
+          if (walletId) {
+            refreshBalance(walletId)
+            refreshTransactions(walletId)
+          }
         }}
       />
     </>

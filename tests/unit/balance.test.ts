@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { davToDash, dashToDuffs, formatCompactCredits } from '../../src/renderer/src/utils/balance'
+import { davToDash, davToDashCompact, dashToDuffs, formatCompactCredits } from '../../src/renderer/src/utils/balance'
 
 const ONE_DASH = 100_000_000n
 
@@ -45,6 +45,27 @@ describe('dashToDuffs', () => {
     for (const v of [ONE_DASH, 150_000_000n, 1n, 0n, 123_456_789n]) {
       expect(dashToDuffs(davToDash(v))).toBe(v)
     }
+  })
+})
+
+describe('davToDashCompact', () => {
+  it('truncates to four fraction digits and trims zeros', () => {
+    expect(davToDashCompact(ONE_DASH)).toBe('1')
+    expect(davToDashCompact(150_000_000n)).toBe('1.5')
+    expect(davToDashCompact(112_345_678n)).toBe('1.1234')
+    expect(davToDashCompact(100_100_000n)).toBe('1.001')
+  })
+
+  it('marks dust below the displayable precision', () => {
+    expect(davToDashCompact(1n)).toBe('<0.0001')
+    expect(davToDashCompact(9_999n)).toBe('<0.0001')
+    expect(davToDashCompact(10_000n)).toBe('0.0001')
+    expect(davToDashCompact(0n)).toBe('0')
+  })
+
+  it('keeps the sign for negative amounts', () => {
+    expect(davToDashCompact(-150_000_000n)).toBe('-1.5')
+    expect(davToDashCompact(-1n)).toBe('-<0.0001')
   })
 })
 

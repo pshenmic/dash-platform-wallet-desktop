@@ -15,9 +15,14 @@ export const navGroups: NavGroup[] = [
     id: 'main',
     items: [
       {
+        id: 'dashboard',
+        label: 'Dashboard',
+        to: '/'
+      },
+      {
         id: 'transactions',
         label: 'Transactions',
-        to: '/'
+        to: '/transactions'
       },
       {
         id: 'send',
