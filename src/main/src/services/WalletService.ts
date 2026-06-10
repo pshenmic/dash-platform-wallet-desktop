@@ -328,8 +328,8 @@ export class WalletService {
 
     const addressesBalance = await provider.getBalance(addresses.map(addr => addr.address))
 
-    const identitiesBalances = await Promise.all(identities.map(async identity => this.getIdentityBalance(identity.identifier)))
-    const identitiesBalance = identitiesBalances.reduce((acc, curr) => acc + curr, BigInt(0))
+    const identitiesBalances = await Promise.allSettled(identities.map(async identity => this.getIdentityBalance(identity.identifier)))
+    const identitiesBalance = identitiesBalances.reduce((acc, result) => acc + (result.status === 'fulfilled' ? result.value : 0n), 0n)
 
     return {
       dash: {
