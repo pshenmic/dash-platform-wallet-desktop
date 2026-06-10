@@ -7,17 +7,12 @@ import { useWallets, refreshWallets } from '@renderer/hooks/useWallets'
 import DeleteWallet from './modal/DeleteWallet'
 import DropdownSelect from './ui/DropdownSelect'
 import ConnectionSelect from './ui/ConnectionSelect'
-import NetworkSelect from './ui/NetworkSelect'
 import SyncProgressBar from './ui/SyncProgressBar'
 import SyncControlButton from './ui/SyncControlButton'
 import { useResolvedTheme, setThemePreference } from '@renderer/hooks/useThemeController'
 import { useConnectionMode } from '@renderer/hooks/useConnectionMode'
-import type { ConnectionType, Network } from '@renderer/api/types'
-import {
-  CONNECTION_LABELS,
-  CONNECTION_DESCRIPTIONS,
-  P2P_FALLBACK_DESCRIPTION,
-} from '@renderer/constants/connection'
+import type { ConnectionType } from '@renderer/api/types'
+import { CONNECTION_LABELS } from '@renderer/constants/connection'
 
 interface LayoutProps {
   children: ReactNode
@@ -36,6 +31,11 @@ const headerButtonClass = `
   dash-black-border
   group
 `
+
+const connectionOptions = [
+  { value: 'p2p', label: CONNECTION_LABELS.p2p },
+  { value: 'rpc', label: CONNECTION_LABELS.rpc },
+]
 
 export default function Layout({ children }: LayoutProps): React.JSX.Element {
   const [selectedWallet, setSelectedWallet] = useState('')
@@ -63,44 +63,12 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
     }
   }, [status?.selectedWalletId, wallets, selectedWallet])
 
-  const walletCounts = useMemo<Record<Network, number>>(() => ({
-    mainnet: wallets.filter((w) => w.network === 'mainnet').length,
-    testnet: wallets.filter((w) => w.network === 'testnet').length,
-  }), [wallets])
-
-  const currentNetwork: Network = (
-    status?.network
-      ?? wallets.find((w) => w.walletId === selectedWallet)?.network
-      ?? 'mainnet'
-  )
-
   const walletOptions = useMemo(
-    () => toDropdownOptions(wallets, (w) => w.network === currentNetwork),
-    [wallets, currentNetwork]
+    () => toDropdownOptions(wallets),
+    [wallets]
   )
 
-  const handleNetworkSelect = (network: Network): void => {
-    const target = wallets.find((w) => w.network === network && w.walletId !== selectedWallet)
-      ?? wallets.find((w) => w.network === network)
-    if (!target) return
-    setSelectedWallet(target.walletId)
-    switchWallet(target.walletId)
-  }
-
-  const { desired, showSyncUI, fallbackActive, setDesired } = useConnectionMode()
-
-  const connectionOptions = useMemo(() => [
-    {
-      value: 'p2p',
-      label: CONNECTION_LABELS.p2p,
-      description: fallbackActive ? P2P_FALLBACK_DESCRIPTION : CONNECTION_DESCRIPTIONS.p2p,
-    },
-    {
-      value: 'rpc',
-      label: CONNECTION_LABELS.rpc,
-      description: CONNECTION_DESCRIPTIONS.rpc,
-    },
-  ], [fallbackActive])
+  const { desired, showSyncUI, setDesired } = useConnectionMode()
 
   const handleWalletChange = (walletId: string): void => {
     if (!walletId || walletId === selectedWallet) return
@@ -121,12 +89,6 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
             onItemAction={openDeleteModal}
             onAdd={goToCreateWallet}
             addLabel={"Add wallet"}
-          />
-          <NetworkSelect
-            value={currentNetwork}
-            walletCounts={walletCounts}
-            onSelectNetwork={handleNetworkSelect}
-            onCreateOnNetwork={() => goToCreateWallet()}
           />
         </div>
 
