@@ -47,6 +47,17 @@ export class P2PWalletProvider implements WalletProvider {
     }))
   }
 
+  // The local SQL store only reflects blocks the SPV sync has already
+  // scanned. Spending before sync completes risks building a tx from a
+  // partial UTXO view (missed inputs, stale change). Gate on a fully synced
+  // status for this exact wallet.
+  async ensureReady(): Promise<void> {
+    const status = this.walletSyncService.getStatus()
+    if (status.phase !== 'synced' || status.walletId !== this.walletId) {
+      throw new Error('Wallet sync is not complete — wait for sync to finish before sending')
+    }
+  }
+
   async broadcastTx(tx: SDKTransaction): Promise<string> {
     const result = await this.walletSyncService.broadcastTransaction(tx.hex())
     return result.txid

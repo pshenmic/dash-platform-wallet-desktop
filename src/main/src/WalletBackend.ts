@@ -9,6 +9,7 @@ import { AddressDAO } from './database/AddressDAO'
 import { IdentityDAO } from './database/IdentityDAO'
 import { TransactionDAO } from './database/TransactionDAO'
 import { WalletService } from './services/WalletService'
+import { CoreTransactionService } from './services/CoreTransactionService'
 import { ApplicationService } from './services/ApplicationService'
 import {Preferences} from "./preferences";
 import { CreateWalletHandler } from './api/wallet/createWallet'
@@ -28,6 +29,7 @@ import {GetWalletBalance} from "./api/wallet/getWalletBalance";
 import {SetAddressLabel} from "./api/wallet/setAddressLabel";
 import {SelectWallet} from "./api/wallet/selectWallet";
 import {VerifyWalletPasswordHandler} from "./api/wallet/verifyWalletPassword";
+import {SendCoinsHandler} from "./api/wallet/sendCoins";
 import {SetLanguageHandler} from "./api/setLanguage";
 import {GetPreferencesHandler} from "./api/getPreferences";
 import {ResetPreferencesHandler} from "./api/resetPreferences";
@@ -44,13 +46,15 @@ import {BroadcastTransactionHandler} from './api/walletSync/broadcastTransaction
 
 export class WalletBackend {
   private walletService?: WalletService
+  private coreTransactionService?: CoreTransactionService
   private applicationService?: ApplicationService
   private walletSyncService?: WalletSyncService
 
+  private walletDAO?: WalletDAO
   private addressDAO?: AddressDAO
 
   private initHandlers(): void {
-    if (!this.walletService || !this.applicationService || !this.walletSyncService || !this.addressDAO) {
+    if (!this.walletService || !this.coreTransactionService || !this.applicationService || !this.walletSyncService || !this.walletDAO || !this.addressDAO) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
@@ -71,6 +75,7 @@ export class WalletBackend {
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
     ipcMain.handle('setAddressLabel', new SetAddressLabel(this.walletService).handle)
     ipcMain.handle('verifyWalletPassword', new VerifyWalletPasswordHandler(this.walletService).handle)
+    ipcMain.handle('sendCoins', new SendCoinsHandler(this.walletDAO, this.addressDAO, this.walletService, this.coreTransactionService).handle)
     ipcMain.handle('getPreferences', new GetPreferencesHandler(this.applicationService).handle)
     ipcMain.handle('setLanguage', new SetLanguageHandler(this.applicationService).handle)
     ipcMain.handle('setFiatCurrency', new SetFiatCurrencyHandler(this.applicationService).handle)
@@ -105,7 +110,9 @@ export class WalletBackend {
 
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.walletSyncService, this.applicationService, dashPlatformSDK, calibratedIterations)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, this.walletSyncService, dashPlatformSDK, calibratedIterations)
+    this.coreTransactionService = new CoreTransactionService(dashPlatformSDK)
+    this.walletDAO = walletDAO
     this.addressDAO = addressDAO
 
     this.initHandlers()

@@ -1,4 +1,4 @@
-import {createCipheriv, randomBytes} from 'crypto'
+import {randomBytes} from 'crypto'
 import {DashPlatformSDK} from 'dash-platform-sdk'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
@@ -19,53 +19,19 @@ import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
 import {Transaction} from "../types/Transaction";
-import {deriveKeyFromPassword} from "../utils";
-import {createDecipheriv} from "node:crypto";
+import {decryptMnemonic, encryptMnemonic} from "../utils";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
 const COIN_TYPE: Record<Network, number> = {mainnet: 5, testnet: 1}
-
-function encryptMnemonic(mnemonic: string, password: string, iterations: number): string {
-  const salt = randomBytes(32)
-  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
-
-  const iv = randomBytes(12)
-  const cipher = createCipheriv('aes-256-gcm', passwordKey, iv)
-  const ciphertext = Buffer.concat([cipher.update(mnemonic, 'utf8'), cipher.final()])
-  const tag = cipher.getAuthTag()
-
-  const iterBuf = Buffer.alloc(4)
-  iterBuf.writeUInt32BE(iterations)
-
-  return Buffer.concat([iv, salt, iterBuf, ciphertext, tag]).toString('hex')
-}
-
-function decryptMnemonic(encryptedHex: string, password: string): string {
-  const data = Buffer.from(encryptedHex, 'hex')
-
-  const iv = data.slice(0, 12)
-  const salt = data.slice(12, 44)
-  const iterations = data.readUInt32BE(44)
-  const tag = data.slice(data.length - 16)
-  const ciphertext = data.slice(48, data.length - 16)
-
-  const passwordKey = deriveKeyFromPassword(password, iterations, salt)
-
-  const decipher = createDecipheriv('aes-256-gcm', passwordKey, iv)
-  decipher.setAuthTag(tag)
-
-  const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
-  return decrypted.toString('utf8')
-}
 
 export class WalletService {
   private walletDAO: WalletDAO
   private addressDAO: AddressDAO
   private identityDAO: IdentityDAO
   private transactionDAO: TransactionDAO
-  private walletSyncService: WalletSyncService
   private applicationService: ApplicationService
+  private walletSyncService: WalletSyncService
   private sdk: DashPlatformSDK
   private pbkdf2Iterations: number
 
@@ -74,8 +40,8 @@ export class WalletService {
     addressDAO: AddressDAO,
     identityDAO: IdentityDAO,
     transactionDAO: TransactionDAO,
-    walletSyncService: WalletSyncService,
     applicationService: ApplicationService,
+    walletSyncService: WalletSyncService,
     sdk: DashPlatformSDK,
     pbkdf2Iterations: number,
   ) {
@@ -84,12 +50,16 @@ export class WalletService {
     this.addressDAO = addressDAO
     this.identityDAO = identityDAO
     this.transactionDAO = transactionDAO
-    this.walletSyncService = walletSyncService
     this.applicationService = applicationService
+    this.walletSyncService = walletSyncService
     this.sdk = sdk
   }
 
-  private getProvider(walletId: string, network: Network): WalletProvider {
+  // Picks the WalletProvider for a wallet at call time, honouring the user's
+  // connection-type preference. In p2p mode broadcast is routed through
+  // WalletSyncService (the p2p utility process); in rpc mode everything
+  // (including broadcast) goes through Insight.
+  getProvider(walletId: string, network: Network): WalletProvider {
     if (this.applicationService.preferences.general.connectionType === 'p2p') {
       return new P2PWalletProvider(this.transactionDAO, walletId, this.walletSyncService)
     }
@@ -301,7 +271,16 @@ export class WalletService {
     const provider = this.getProvider(wallet.walletId, wallet.network)
     const txArrays = await Promise.all(allAddresses.map(a => provider.getTransactions(a.address)))
 
-    return txArrays.flat().sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
+    // Dedup by txid: a tx touching N of our addresses (input, change, self-send
+    // recipient) comes back N times since provider.getTransactions runs per
+    // address. Each duplicate is bit-for-bit identical — processProviderTransactions
+    // aggregates against the full wallet address set, not the queried one — so
+    // keeping the first occurrence loses nothing.
+    const seen = new Set<string>()
+    return txArrays
+      .flat()
+      .filter(tx => (seen.has(tx.txid) ? false : (seen.add(tx.txid), true)))
+      .sort((a, b) => b?.date?.getTime() - a?.date?.getTime())
   }
 
   async getTransactionByHash(hash: string, network: Network): Promise<Transaction> {
@@ -433,3 +412,4 @@ export class WalletService {
     return this.sdk.identities.getIdentityNonce(identifier)
   }
 }
+
