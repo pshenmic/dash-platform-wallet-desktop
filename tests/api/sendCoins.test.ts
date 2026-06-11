@@ -21,11 +21,13 @@ describe('SendCoinsHandler', () => {
   let coreTransactionService: CoreTransactionService
   let provider: WalletProvider
 
-  let assertRecipientAddress: ReturnType<typeof vi.fn>
+  let classifyRecipientAddress: ReturnType<typeof vi.fn>
   let collectUtxos: ReturnType<typeof vi.fn>
   let selectUtxosGreedy: ReturnType<typeof vi.fn>
+  let estimateFee: ReturnType<typeof vi.fn>
   let buildTransfer: ReturnType<typeof vi.fn>
   let sign: ReturnType<typeof vi.fn>
+  let ensureReady: ReturnType<typeof vi.fn>
   let broadcastTx: ReturnType<typeof vi.fn>
 
   const receivingAddress: Address = {
@@ -59,14 +61,17 @@ describe('SendCoinsHandler', () => {
   }
 
   beforeEach(() => {
-    assertRecipientAddress = vi.fn()
+    classifyRecipientAddress = vi.fn().mockReturnValue('p2pkh')
     collectUtxos = vi.fn()
     selectUtxosGreedy = vi.fn()
+    estimateFee = vi.fn().mockReturnValue(0n)
     buildTransfer = vi.fn()
     sign = vi.fn()
+    ensureReady = vi.fn().mockResolvedValue(undefined)
     broadcastTx = vi.fn()
 
     provider = {
+      ensureReady,
       broadcastTx,
     } as unknown as WalletProvider
 
@@ -86,9 +91,10 @@ describe('SendCoinsHandler', () => {
     } as unknown as WalletService
 
     coreTransactionService = {
-      assertRecipientAddress,
+      classifyRecipientAddress,
       collectUtxos,
       selectUtxosGreedy,
+      estimateFee,
       buildTransfer,
       sign,
     } as unknown as CoreTransactionService
@@ -113,7 +119,7 @@ describe('SendCoinsHandler', () => {
   })
 
   it('validates recipient address against the wallet network', async () => {
-    assertRecipientAddress.mockImplementation(() => {
+    classifyRecipientAddress.mockImplementation(() => {
       throw new Error('Invalid recipient address')
     })
 
@@ -121,7 +127,7 @@ describe('SendCoinsHandler', () => {
       handler.handle(null as never, WALLET_ID, 'to-address', 1_000n, PASSWORD),
     ).rejects.toThrow('Invalid recipient address')
 
-    expect(assertRecipientAddress).toHaveBeenCalledWith('to-address', 'testnet')
+    expect(classifyRecipientAddress).toHaveBeenCalledWith('to-address', 'testnet')
     expect(addressDAO.getAddressesByWalletId).not.toHaveBeenCalled()
   })
 
@@ -151,18 +157,32 @@ describe('SendCoinsHandler', () => {
     ).rejects.toThrow('Insufficient funds')
   })
 
-  it('throws when selected UTXOs do not cover the requested amount', async () => {
+  it('blocks the send when the provider is not ready (sync incomplete)', async () => {
+    ensureReady.mockRejectedValue(
+      new Error('Wallet sync is not complete — wait for sync to finish before sending'),
+    )
+
+    await expect(
+      handler.handle(null as never, WALLET_ID, 'to-address', 1_000n, PASSWORD),
+    ).rejects.toThrow('Wallet sync is not complete')
+
+    expect(collectUtxos).not.toHaveBeenCalled()
+  })
+
+  it('throws when selected UTXOs do not cover the amount plus fee', async () => {
     const spendableUtxo: SpendableUtxo = {
-      utxo: {txId: 'txid', vOut: 0, satoshis: 500n, script: {} as never},
+      utxo: {txId: 'txid', vOut: 0, satoshis: 1_100n, script: {} as never},
       address: receivingAddress,
     }
 
     collectUtxos.mockResolvedValue([spendableUtxo])
-    selectUtxosGreedy.mockReturnValue({utxos: [spendableUtxo], totalIn: 500n})
+    selectUtxosGreedy.mockReturnValue({utxos: [spendableUtxo], totalIn: 1_100n})
+    // Inputs (1_100) cover the amount (1_000) but not amount + fee (200).
+    estimateFee.mockReturnValue(200n)
 
     await expect(
       handler.handle(null as never, WALLET_ID, 'to-address', 1_000n, PASSWORD),
-    ).rejects.toThrow('Insufficient funds')
+    ).rejects.toThrow('Insufficient funds to cover amount and network fee')
 
     expect(buildTransfer).not.toHaveBeenCalled()
   })
@@ -184,9 +204,10 @@ describe('SendCoinsHandler', () => {
 
     expect(result).toBe('broadcast-txid')
     expect(walletService.getProvider).toHaveBeenCalledWith(WALLET_ID, 'testnet')
+    expect(ensureReady).toHaveBeenCalledOnce()
     expect(collectUtxos).toHaveBeenCalledWith(provider, [receivingAddress, changeAddress])
     expect(selectUtxosGreedy).toHaveBeenCalledWith([spendableUtxo], 1_000n)
-    expect(buildTransfer).toHaveBeenCalledWith([spendableUtxo], 'to-address', 1_000n, [changeAddress], 2_000n)
+    expect(buildTransfer).toHaveBeenCalledWith([spendableUtxo], 'to-address', 'p2pkh', 1_000n, [changeAddress], 2_000n)
     expect(sign).toHaveBeenCalledWith(transaction, [spendableUtxo], MNEMONIC, 'testnet')
     expect(broadcastTx).toHaveBeenCalledWith(transaction)
   })

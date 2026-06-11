@@ -95,6 +95,10 @@ export class InsightWalletProvider implements WalletProvider {
     }))
   }
 
+  // Insight queries the chain live over HTTP, so there is no local sync to
+  // wait for — always ready.
+  async ensureReady(): Promise<void> {}
+
   async broadcastTx(tx: SDKTransaction): Promise<string> {
     const response = await this.sendRequest(`${this.baseUrl}/tx/send`, {
       method: 'POST',

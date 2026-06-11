@@ -29,7 +29,7 @@ export class SendCoinsHandler {
       throw new Error('Wallet not found')
     }
 
-    this.coreTransactionService.assertRecipientAddress(toAddress, wallet.network)
+    const recipientType = this.coreTransactionService.classifyRecipientAddress(toAddress, wallet.network)
 
     let mnemonic: string
     try {
@@ -45,19 +45,25 @@ export class SendCoinsHandler {
     }
 
     const provider = this.walletService.getProvider(wallet.walletId, wallet.network)
+    await provider.ensureReady()
+
     const spendableUtxos = await this.coreTransactionService.collectUtxos(provider, spendableAddresses)
     if (spendableUtxos.length === 0) {
       throw new Error('Insufficient funds')
     }
 
     const utxoSelection = this.coreTransactionService.selectUtxosGreedy(spendableUtxos, amountSatoshis)
-    if (utxoSelection.totalIn < amountSatoshis) {
-      throw new Error('Insufficient funds')
+    // Recipient output + change output. The fee must come out of the inputs on
+    // top of the amount — otherwise generateChange builds a near-zero-fee tx.
+    const estimatedFee = this.coreTransactionService.estimateFee(utxoSelection.utxos.length, 2)
+    if (utxoSelection.totalIn < amountSatoshis + estimatedFee) {
+      throw new Error('Insufficient funds to cover amount and network fee')
     }
 
     const transaction = this.coreTransactionService.buildTransfer(
       utxoSelection.utxos,
       toAddress,
+      recipientType,
       amountSatoshis,
       walletAddresses.change,
       utxoSelection.totalIn,
