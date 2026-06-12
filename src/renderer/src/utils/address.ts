@@ -46,8 +46,3 @@ export function dashAddressNetwork(address: string): AddressNetwork | null {
   }
   return null
 }
-
-export function shortenAddress(address: string, head = 8, tail = 6): string {
-  if (address.length <= head + tail + 1) return address
-  return `${address.slice(0, head)}…${address.slice(-tail)}`
-}
