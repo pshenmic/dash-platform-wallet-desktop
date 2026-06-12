@@ -1,4 +1,4 @@
-import { ConnectionType, PreferencesJSON, QueryStatus } from './types'
+import { ConnectionType, Contact, ExchangeRatesResult, Network, PreferencesJSON, QueryStatus } from './types'
 
 export class API {
   private static get api() {
@@ -11,6 +11,10 @@ export class API {
 
   static async setConnectionType(connectionType: ConnectionType): Promise<QueryStatus> {
     return this.api.setConnectionType(connectionType) as Promise<QueryStatus>
+  }
+
+  static async setFiatCurrency(currency: string): Promise<QueryStatus> {
+    return this.api.setFiatCurrency(currency) as Promise<QueryStatus>
   }
 
   static async startWalletSync(walletId: string): Promise<QueryStatus> {
@@ -71,5 +75,25 @@ export class API {
 
   static async verifyWalletPassword(walletId: string, password: string) {
     return this.api.verifyWalletPassword(walletId, password)
+  }
+
+  static async getExchangeRates(): Promise<ExchangeRatesResult> {
+    return this.api.getExchangeRates() as Promise<ExchangeRatesResult>
+  }
+
+  static async saveTextFile(defaultFileName: string, content: string): Promise<QueryStatus> {
+    return this.api.saveTextFile(defaultFileName, content) as Promise<QueryStatus>
+  }
+
+  static async getContacts(network?: Network): Promise<Contact[]> {
+    return this.api.getContacts(network) as Promise<Contact[]>
+  }
+
+  static async addContact(label: string, address: string, network: Network): Promise<QueryStatus> {
+    return this.api.addContact(label, address, network) as Promise<QueryStatus>
+  }
+
+  static async deleteContact(id: number): Promise<QueryStatus> {
+    return this.api.deleteContact(id) as Promise<QueryStatus>
   }
 }

@@ -81,3 +81,29 @@ export interface QueryStatus {
   success: boolean
   errorMessage: string | null
 }
+
+export type ExchangeRates = Record<string, number>
+
+export interface ExchangeRatesResult {
+  rates: ExchangeRates
+  updatedAt: number | null
+  stale: boolean
+}
+
+export interface AmountWithUsd {
+  amount: bigint | string
+  usdAmount: string
+}
+
+export interface WalletBalanceDto {
+  dash: AmountWithUsd
+  credits: AmountWithUsd
+}
+
+export interface Contact {
+  id: number
+  label: string
+  address: string
+  network: Network
+  createdAt: number
+}
