@@ -21,7 +21,7 @@ const logoStyles = cva(
   }
 )
 
-export default function Balance({variant, balance, isVisible, usdAmount}: {variant: 'dash' | 'credits', balance: string, isVisible: boolean, usdAmount?: string}): React.JSX.Element {
+export default function Balance({variant, balance, isVisible, fiat}: {variant: 'dash' | 'credits', balance: string, isVisible: boolean, fiat?: string}): React.JSX.Element {
   const { theme } = useTheme()
 
   return (
@@ -52,8 +52,8 @@ export default function Balance({variant, balance, isVisible, usdAmount}: {varia
           <BigNumber className={"gap-[.125rem]!"}>{balance}</BigNumber>
           {variant === 'dash' ? ' Dash' : ' Credits'}
         </Text>
-        { usdAmount &&
-          <Text size={10} weight="medium" color="blue-mint" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>~ ${usdAmount} USD</Text>
+        { fiat &&
+          <Text size={10} weight="medium" color="blue-mint" className={`${!isVisible ? 'blur-sm select-none pointer-events-none' : ''} leading-[120%]`}>~ {fiat}</Text>
         }
       </div>
     </div>
