@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { selectAssetData, TransferPageType } from "@renderer/constants";
 import { API } from "@renderer/api";
 import { useAuth } from "@renderer/contexts/AuthContext";
+import { useConnectionModeContext } from "@renderer/contexts/ConnectionModeContext";
 import { useFiat } from "@renderer/hooks/useFiat";
 import { davToDash, dashToDuffs } from "@renderer/utils/balance";
 import { isValidDashAddress } from "@renderer/utils/address";
@@ -21,6 +22,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
   const assetSelector = selectAssetData
 
   const { status } = useAuth()
+  const { fallbackActive: syncIncomplete } = useConnectionModeContext()
   const walletId = status?.selectedWalletId ?? null
   const network = status?.network ?? null
   const { format: formatFiat, rateReady } = useFiat()
@@ -96,6 +98,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
         amountDuffs={amountDuffs}
         amountFiat={amountFiat}
         canProceed={canProceed}
+        blocked={syncIncomplete}
         onSubmit={() => setConfirmOpen(true)}
       />
     </div>
