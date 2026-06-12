@@ -12,7 +12,7 @@ import NetworkSelect from './ui/NetworkSelect'
 import SyncProgressBar from './ui/SyncProgressBar'
 import SyncControlButton from './ui/SyncControlButton'
 import { useResolvedTheme, setThemePreference } from '@renderer/hooks/useThemeController'
-import { useConnectionMode } from '@renderer/hooks/useConnectionMode'
+import { useConnectionModeContext } from '@renderer/contexts/ConnectionModeContext'
 import type { ConnectionType, Network } from '@renderer/api/types'
 import {
   CONNECTION_LABELS,
@@ -93,7 +93,7 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
     switchWallet(target.walletId)
   }
 
-  const { desired, showSyncUI, fallbackActive, setDesired } = useConnectionMode()
+  const { desired, showSyncUI, fallbackActive, setDesired } = useConnectionModeContext()
 
   const connectionOptions = useMemo(() => [
     {
