@@ -11,6 +11,7 @@ import { transactionsToCsv, CsvTxRow } from '@renderer/utils/csv'
 import { WalletTxDto } from '@renderer/hooks/useWalletTransactions'
 import { useWallets, refreshWallets } from '@renderer/hooks/useWallets'
 import DeleteWallet from '@renderer/components/modal/DeleteWallet'
+import ExportMnemonic from '@renderer/components/modal/ExportMnemonic'
 
 interface SettingsRowProps {
   title: string
@@ -109,6 +110,7 @@ export default function Settings(): React.JSX.Element {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [walletToDelete, setWalletToDelete] = useState<string | null>(null)
+  const [isMnemonicOpen, setIsMnemonicOpen] = useState(false)
 
   const openDelete = (): void => {
     if (!walletId) return
@@ -242,6 +244,17 @@ export default function Settings(): React.JSX.Element {
           />
         </div>
 
+        <SectionLabel>Security</SectionLabel>
+        <div className="flex flex-col">
+          <SettingsRow
+            title="Recovery phrase"
+            description="Reveal this wallet's secret recovery phrase. Anyone with these words can access your funds."
+            actionLabel="Reveal phrase"
+            disabled={walletId === null}
+            onClick={() => setIsMnemonicOpen(true)}
+          />
+        </div>
+
         <SectionLabel>Appearance</SectionLabel>
         <div className="flex flex-col">
           <SettingsRow
@@ -328,6 +341,12 @@ export default function Settings(): React.JSX.Element {
         setWalletToDelete={setWalletToDelete}
         refreshWallets={refreshWallets}
         selectedWallet={walletId}
+      />
+
+      <ExportMnemonic
+        isOpen={isMnemonicOpen}
+        onClose={() => setIsMnemonicOpen(false)}
+        walletId={walletId}
       />
     </div>
   )
