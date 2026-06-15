@@ -2,6 +2,7 @@ import { useAssetSelector } from "@renderer/hooks/useAssetSelector";
 import { useMemo, useState } from "react";
 import { selectAssetData, TransferPageType } from "@renderer/constants";
 import { useAuth } from "@renderer/contexts/AuthContext";
+import { useConnectionModeContext } from "@renderer/contexts/ConnectionModeContext";
 import { useFiat } from "@renderer/hooks/useFiat";
 import { useWalletBalance, refreshBalance } from "@renderer/hooks/useWalletBalance";
 import { refreshTransactions } from "@renderer/hooks/useWalletTransactions";
@@ -21,6 +22,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
   const assetSelector = selectAssetData
 
   const { status } = useAuth()
+  const { fallbackActive: syncIncomplete } = useConnectionModeContext()
   const walletId = status?.selectedWalletId ?? null
   const network = status?.network ?? null
   const { format: formatFiat, rateReady } = useFiat()
@@ -76,6 +78,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
         amountDuffs={amountDuffs}
         amountFiat={amountFiat}
         canProceed={canProceed}
+        blocked={syncIncomplete}
         onSubmit={() => setConfirmOpen(true)}
       />
     </div>

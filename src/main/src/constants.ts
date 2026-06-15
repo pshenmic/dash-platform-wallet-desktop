@@ -25,3 +25,8 @@ export const SUPPORTED_CURRENCIES = [
 export const SUPPORTED_RATE_CURRENCIES = SUPPORTED_CURRENCIES
 
 export const SEQUENCE_FINAL = 0xffffffff
+
+export const ADDRESS_PREFIX: Record<'mainnet' | 'testnet', {p2pkh: number; p2sh: number}> = {
+  mainnet: {p2pkh: 76, p2sh: 16},
+  testnet: {p2pkh: 140, p2sh: 19},
+}

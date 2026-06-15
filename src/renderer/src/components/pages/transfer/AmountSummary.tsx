@@ -1,16 +1,18 @@
 import { Button, Text } from "@renderer/components/dash-ui-kit-enxtended";
 import { TransferPageType } from "@renderer/constants";
 import { davToDash } from "@renderer/utils/balance";
+import SyncGateNotice from "@renderer/components/ui/SyncGateNotice";
 
 interface AmountSummaryProps {
   data: TransferPageType['amountSummary']
   amountDuffs: bigint
   amountFiat?: string
   canProceed: boolean
+  blocked?: boolean
   onSubmit: () => void
 }
 
-export default function AmountSummary({data, amountDuffs, amountFiat, canProceed, onSubmit}: AmountSummaryProps): React.JSX.Element {
+export default function AmountSummary({data, amountDuffs, amountFiat, canProceed, blocked = false, onSubmit}: AmountSummaryProps): React.JSX.Element {
   return (
     <div className={"px-12"}>
     <div className={"flex flex-col gap-[.75rem]"}>
@@ -26,10 +28,11 @@ export default function AmountSummary({data, amountDuffs, amountFiat, canProceed
           </div>
         )}
       </div>
+      {blocked && <SyncGateNotice />}
       <Button
         className={"w-full rounded-[.9375rem]"}
         size={"md"}
-        disabled={!canProceed}
+        disabled={!canProceed || blocked}
         onClick={onSubmit}
       >
         {data.button}

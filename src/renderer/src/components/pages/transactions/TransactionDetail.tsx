@@ -235,7 +235,7 @@ export default function TransactionDetail({ transaction, onBack }: TransactionDe
               <div className={"flex items-center gap-2 flex-1 min-w-0"}>
                 {
                   output.address ? (
-                    <Identifier maxLines={1}>{output.address}</Identifier>
+                    <Identifier>{output.address}</Identifier>
                   ) : (
                     <Text size={14} weight={"medium"} color={"brand"} opacity={40} className={"shrink-0"}>
                       OP_RETURN

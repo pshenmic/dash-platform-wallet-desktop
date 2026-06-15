@@ -392,7 +392,7 @@ export class WalletService {
     }
     const network = wallet.network
 
-    this.coreTransactionService.assertRecipientAddress(toAddress, network)
+    const recipientType = this.coreTransactionService.classifyRecipientAddress(toAddress, network)
 
     let decryptedMnemonic: string
     try {
@@ -406,6 +406,7 @@ export class WalletService {
     const pathByAddress = new Map(allAddresses.map(a => [a.address, a.derivationPath]))
 
     const provider = this.getProvider(wallet.walletId, network)
+    await provider.ensureReady()
 
     const utxoLists = await Promise.all(
       allAddresses.map(async (a) => {
@@ -451,6 +452,7 @@ export class WalletService {
     const tx = await this.coreTransactionService.buildSignedTransfer({
       inputs: transferInputs,
       toAddress,
+      recipientType,
       amount: amountDuffs,
       changeAddress,
       inputTotal: selection.inputTotal,

@@ -6,7 +6,6 @@ import { useTheme } from 'dash-ui-kit/react'
 import { API } from '@renderer/api'
 import { Network, SendResult } from '@renderer/api/types'
 import { davToDash } from '@renderer/utils/balance'
-import { shortenAddress } from '@renderer/utils/address'
 import { transactionUrl, openExternal } from '@renderer/utils/explorer'
 import Spinner from '@renderer/components/ui/Spinner'
 
@@ -180,8 +179,8 @@ export default function SendConfirmModal({
                 </div>
               )}
               <div className={"flex justify-between items-center gap-4"}>
-                <Text size={12} weight={"medium"} color={"brand"} opacity={50}>To</Text>
-                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono"}>{shortenAddress(toAddress)}</Text>
+                <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>To</Text>
+                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{toAddress}</Text>
               </div>
             </div>
 
@@ -254,8 +253,8 @@ export default function SendConfirmModal({
 
             <div className={"mt-5 flex flex-col gap-[.75rem] p-[.875rem] rounded-[.9375rem] dash-block-3"}>
               <div className={"flex justify-between items-center gap-4"}>
-                <Text size={12} weight={"medium"} color={"brand"} opacity={50}>To</Text>
-                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono"}>{shortenAddress(toAddress)}</Text>
+                <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>To</Text>
+                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{toAddress}</Text>
               </div>
               <div className={"flex justify-between items-center gap-4"}>
                 <Text size={12} weight={"medium"} color={"brand"} opacity={50}>Network fee</Text>

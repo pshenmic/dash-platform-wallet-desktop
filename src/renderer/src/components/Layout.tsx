@@ -10,7 +10,7 @@ import ConnectionSelect from './ui/ConnectionSelect'
 import SyncProgressBar from './ui/SyncProgressBar'
 import SyncControlButton from './ui/SyncControlButton'
 import { useResolvedTheme, setThemePreference } from '@renderer/hooks/useThemeController'
-import { useConnectionMode } from '@renderer/hooks/useConnectionMode'
+import { useConnectionModeContext } from '@renderer/contexts/ConnectionModeContext'
 import type { ConnectionType } from '@renderer/api/types'
 import { CONNECTION_LABELS } from '@renderer/constants/connection'
 
@@ -68,7 +68,7 @@ export default function Layout({ children }: LayoutProps): React.JSX.Element {
     [wallets]
   )
 
-  const { desired, showSyncUI, setDesired } = useConnectionMode()
+  const { desired, showSyncUI, setDesired } = useConnectionModeContext()
 
   const handleWalletChange = (walletId: string): void => {
     if (!walletId || walletId === selectedWallet) return

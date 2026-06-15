@@ -4,7 +4,6 @@ import { sha256 } from '@noble/hashes/sha2.js'
 import {
   isValidDashAddress,
   dashAddressNetwork,
-  shortenAddress,
 } from '../../src/renderer/src/utils/address'
 
 const base58check = createBase58check(sha256)
@@ -81,18 +80,5 @@ describe('dashAddressNetwork', () => {
   it('returns null for invalid addresses', () => {
     expect(dashAddressNetwork('nope')).toBe(null)
     expect(dashAddressNetwork(makeAddress(99))).toBe(null)
-  })
-})
-
-describe('shortenAddress', () => {
-  it('shortens long addresses with an ellipsis', () => {
-    const result = shortenAddress(MAINNET_P2PKH)
-    expect(result).toContain('…')
-    expect(result.startsWith(MAINNET_P2PKH.slice(0, 8))).toBe(true)
-    expect(result.endsWith(MAINNET_P2PKH.slice(-6))).toBe(true)
-  })
-
-  it('leaves short strings untouched', () => {
-    expect(shortenAddress('abc')).toBe('abc')
   })
 })
