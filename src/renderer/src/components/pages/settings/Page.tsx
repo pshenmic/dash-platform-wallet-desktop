@@ -10,6 +10,7 @@ import { ThemePreference } from '@renderer/utils/theme'
 import { transactionsToCsv, CsvTxRow } from '@renderer/utils/csv'
 import { WalletTxDto } from '@renderer/hooks/useWalletTransactions'
 import { useWallets, refreshWallets } from '@renderer/hooks/useWallets'
+import DeleteWallet from '@renderer/components/modal/DeleteWallet'
 
 interface SettingsRowProps {
   title: string
@@ -105,6 +106,15 @@ export default function Settings(): React.JSX.Element {
 
   const [walletName, setWalletName] = useState('')
   const [renamePending, setRenamePending] = useState(false)
+
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [walletToDelete, setWalletToDelete] = useState<string | null>(null)
+
+  const openDelete = (): void => {
+    if (!walletId) return
+    setWalletToDelete(walletId)
+    setIsDeleteOpen(true)
+  }
 
   useEffect(() => {
     setWalletName(currentLabel ?? '')
@@ -297,7 +307,28 @@ export default function Settings(): React.JSX.Element {
             onClick={handleClear}
           />
         </div>
+
+        <SectionLabel>Danger zone</SectionLabel>
+        <div className="flex flex-col">
+          <SettingsRow
+            title="Delete wallet"
+            description="Permanently remove this wallet from this device. Make sure you have its recovery phrase backed up first."
+            actionLabel="Delete wallet"
+            disabled={walletId === null}
+            destructive
+            onClick={openDelete}
+          />
+        </div>
       </div>
+
+      <DeleteWallet
+        isDeleteOpen={isDeleteOpen}
+        setIsDeleteOpen={setIsDeleteOpen}
+        walletToDelete={walletToDelete}
+        setWalletToDelete={setWalletToDelete}
+        refreshWallets={refreshWallets}
+        selectedWallet={walletId}
+      />
     </div>
   )
 }
