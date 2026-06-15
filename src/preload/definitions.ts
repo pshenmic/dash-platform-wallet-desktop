@@ -2,6 +2,7 @@ export const apiDefinitions = (ipcRenderer) => ({
   createWallet: (seedphrase: string, network: string, password: string) => ipcRenderer.invoke('createWallet', seedphrase, network, password),
   deleteWallet: (walletId: string) => ipcRenderer.invoke('deleteWallet', walletId),
   verifyWalletPassword: (walletId: string, password: string) => ipcRenderer.invoke('verifyWalletPassword', walletId, password),
+  exportMnemonic: (walletId: string, password: string): Promise<string> => ipcRenderer.invoke('exportMnemonic', walletId, password),
   getAddresses: (walletId: string) => ipcRenderer.invoke('getAddresses', walletId),
   getReceiveAddress: (walletId: string) => ipcRenderer.invoke('getReceiveAddress', walletId),
   getStatus: () => ipcRenderer.invoke('getStatus'),
