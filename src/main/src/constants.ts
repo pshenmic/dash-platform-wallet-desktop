@@ -21,9 +21,7 @@ export const SUPPORTED_CURRENCIES = [
   "rub"
 ]
 
-export const SUPPORTED_RATE_CURRENCIES = [
-  "usd",
-  "eur",
-  "btc",
-  "rub"
-]
+// Currencies we request live DASH prices for — every selectable fiat needs a rate.
+export const SUPPORTED_RATE_CURRENCIES = SUPPORTED_CURRENCIES
+
+export const SEQUENCE_FINAL = 0xffffffff

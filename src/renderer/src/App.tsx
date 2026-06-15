@@ -1,4 +1,5 @@
 import { Route, Routes, useLocation } from "react-router-dom"
+import DashboardPage from "./pages/Dashboard"
 import TransactionsPage from "./pages/Transactions"
 import SendPage from "./pages/Send"
 import Sidebar from "./components/sidebar"
@@ -10,10 +11,13 @@ import IdentitiesPage from "./pages/Identities"
 import AddressesPage from "./pages/Addresses"
 import SettingsPage from "./pages/Settings"
 import { useAuth } from "./contexts/AuthContext"
+import { usePrefetchWalletData } from "./hooks/usePrefetchWalletData"
 
 function App(): React.JSX.Element {
   const { isAuthenticated } = useAuth()
   const location = useLocation()
+
+  usePrefetchWalletData()
 
   if (location.pathname === '/create-wallet') {
     return (
@@ -36,7 +40,8 @@ function App(): React.JSX.Element {
       <Sidebar />
       <Layout>
         <Routes>
-          <Route path={"/"} element={<TransactionsPage />} />
+          <Route path={"/"} element={<DashboardPage />} />
+          <Route path={"/transactions"} element={<TransactionsPage />} />
           <Route path={"/send"} element={<SendPage />} />
           <Route path={"/receive"} element={<ReceivePage />} />
           <Route path={"/addresses"} element={<AddressesPage />} />
