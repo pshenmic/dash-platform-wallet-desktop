@@ -228,7 +228,7 @@ export default function SendConfirmModal({
                 onClick={handleConfirm}
                 disabled={password.length === 0 || sending}
                 variant={"solid"}
-                colorScheme={"brand-mint"}
+                colorScheme={"lightBlue-mint"}
                 size={"md"}
                 className={"flex-1 rounded-[.9375rem] gap-2"}
               >
@@ -281,7 +281,7 @@ export default function SendConfirmModal({
                 type={"button"}
                 onClick={onClose}
                 variant={"solid"}
-                colorScheme={"brand-mint"}
+                colorScheme={"lightBlue-mint"}
                 size={"md"}
                 className={"flex-1 rounded-[.9375rem]"}
               >
