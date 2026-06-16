@@ -7,6 +7,7 @@ declare global {
     electronAPI: {
       createWallet: (seedphrase: string, network: string, password: string) => Promise<unknown>
       verifyWalletPassword: (walletId: string, password: string) => Promise<boolean>
+      exportMnemonic: (walletId: string, password: string) => Promise<string>
       getAddresses: (walletId: string) => Promise<unknown>
       getReceiveAddress: (walletId: string) => Promise<string | null>
       getStatus: () => Promise<unknown>
