@@ -2,7 +2,7 @@ import {calibratePBKDF2Iterations, ensureHomeFolder, getKnex, migrateKnex} from 
 import path from 'path'
 import os from 'os'
 import {HomeFolderName, PBKDF2_TARGET_MS, PreferencesFilename, StorageFilename} from './constants'
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import { SdkProvider } from './services/SdkProvider'
 import { ipcMain } from 'electron'
 import { WalletDAO } from './database/WalletDAO'
 import { AddressDAO } from './database/AddressDAO'
@@ -10,6 +10,8 @@ import { IdentityDAO } from './database/IdentityDAO'
 import { TransactionDAO } from './database/TransactionDAO'
 import { ContactDAO } from './database/ContactDAO'
 import { WalletService } from './services/WalletService'
+import { IdentityRegistrationService } from './services/IdentityRegistrationService'
+import { RegisterIdentityHandler } from './api/wallet/registerIdentity'
 import { ApplicationService } from './services/ApplicationService'
 import {Preferences} from "./preferences";
 import { CreateWalletHandler } from './api/wallet/createWallet'
@@ -58,11 +60,15 @@ export class WalletBackend {
   private walletSyncService?: WalletSyncService
   private ratesService?: RatesService
   private contactService?: ContactService
+  private identityRegistrationService?: IdentityRegistrationService
+  private sdkProvider?: SdkProvider
 
+  private walletDAO?: WalletDAO
   private addressDAO?: AddressDAO
+  private identityDAO?: IdentityDAO
 
   private initHandlers(): void {
-    if (!this.walletService || !this.applicationService || !this.walletSyncService || !this.ratesService || !this.contactService || !this.addressDAO) {
+    if (!this.walletService || !this.applicationService || !this.walletSyncService || !this.ratesService || !this.contactService || !this.addressDAO || !this.walletDAO || !this.identityDAO || !this.sdkProvider || !this.identityRegistrationService) {
       throw new Error('Services not initialized. Call start() first.')
     }
 
@@ -78,6 +84,7 @@ export class WalletBackend {
     ipcMain.handle('getBalance', new GetBalance(this.walletService).handle)
     ipcMain.handle("getTransactionByHash", new GetTransactionByHashHandler(this.walletService).handle)
     ipcMain.handle('getIdentities', new GetIdentitiesHandler(this.walletService).handle)
+    ipcMain.handle('registerIdentity', new RegisterIdentityHandler(this.walletDAO, this.addressDAO, this.identityDAO, this.walletService, this.sdkProvider, this.identityRegistrationService).handle)
     ipcMain.handle('getIdentityBalance', new GetIdentityBalance(this.walletService).handle)
     ipcMain.handle('getIdentityNonce', new GetIdentityNonce(this.walletService).handle)
     ipcMain.handle('getBlockByHash', new GetBlockByHash(this.walletService).handle)
@@ -120,15 +127,19 @@ export class WalletBackend {
     const identityDAO = new IdentityDAO(knex)
     const transactionDAO = new TransactionDAO(knex)
     const contactDAO = new ContactDAO(knex)
-    const dashPlatformSDK = new DashPlatformSDK({ network: 'testnet'})
+    const sdkProvider = new SdkProvider()
 
 
     this.applicationService = new ApplicationService(preferences)
     this.walletSyncService = new WalletSyncService(walletDAO, addressDAO, transactionDAO)
     this.ratesService = new RatesService()
     this.contactService = new ContactService(contactDAO)
-    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, this.walletSyncService, dashPlatformSDK, calibratedIterations)
+    this.walletService = new WalletService(walletDAO, addressDAO, identityDAO, transactionDAO, this.applicationService, this.walletSyncService, sdkProvider, calibratedIterations)
+    this.identityRegistrationService = new IdentityRegistrationService(sdkProvider)
+    this.sdkProvider = sdkProvider
+    this.walletDAO = walletDAO
     this.addressDAO = addressDAO
+    this.identityDAO = identityDAO
 
     this.initHandlers()
 
