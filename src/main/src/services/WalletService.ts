@@ -1,5 +1,5 @@
 import {randomBytes} from 'crypto'
-import {DashPlatformSDK} from 'dash-platform-sdk'
+import {SdkProvider} from './SdkProvider'
 import {WalletDAO} from '../database/WalletDAO'
 import {AddressDAO} from '../database/AddressDAO'
 import {IdentityDAO} from '../database/IdentityDAO'
@@ -36,7 +36,7 @@ export class WalletService {
   private transactionDAO: TransactionDAO
   private applicationService: ApplicationService
   private walletSyncService: WalletSyncService
-  private sdk: DashPlatformSDK
+  private sdkProvider: SdkProvider
   private pbkdf2Iterations: number
   private coreTransactionService: CoreTransactionService
 
@@ -47,7 +47,7 @@ export class WalletService {
     transactionDAO: TransactionDAO,
     applicationService: ApplicationService,
     walletSyncService: WalletSyncService,
-    sdk: DashPlatformSDK,
+    sdkProvider: SdkProvider,
     pbkdf2Iterations: number,
   ) {
     this.pbkdf2Iterations = pbkdf2Iterations
@@ -57,8 +57,8 @@ export class WalletService {
     this.transactionDAO = transactionDAO
     this.applicationService = applicationService
     this.walletSyncService = walletSyncService
-    this.sdk = sdk
-    this.coreTransactionService = new CoreTransactionService(sdk)
+    this.sdkProvider = sdkProvider
+    this.coreTransactionService = new CoreTransactionService(sdkProvider)
   }
 
   // Picks the WalletProvider for a wallet at call time, honouring the user's
@@ -87,17 +87,18 @@ export class WalletService {
 
     await this.walletDAO.saveWallet(encryptedMnemonic, walletId, network, null)
 
-    const seed = this.sdk.keyPair.mnemonicToSeed(seedphrase)
-    const hdKey = this.sdk.keyPair.seedToHdKey(seed, network)
+    const sdk = this.sdkProvider.getPlatformSDK(network)
+    const seed = sdk.keyPair.mnemonicToSeed(seedphrase)
+    const hdKey = sdk.keyPair.seedToHdKey(seed, network)
     const coinType = COIN_TYPE[network]
     const accountId = 0
 
     const addresses: Address[] = []
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
-      const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/0/${i}`)
+      const key = await sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/0/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
-      const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
+      const address = sdk.keyPair.p2pkhAddress(key.publicKey, network)
       addresses.push({
         walletId,
         accountId,
@@ -111,9 +112,9 @@ export class WalletService {
     }
 
     for (let i = 0; i < ADDRESS_LOOKAHEAD; i++) {
-      const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/1/${i}`)
+      const key = await sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/${accountId}'/1/${i}`)
       if (!key.publicKey) throw new Error(`Failed to derive public key at index ${i}`)
-      const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, network)
+      const address = sdk.keyPair.p2pkhAddress(key.publicKey, network)
       addresses.push({
         walletId,
         accountId,
@@ -131,7 +132,7 @@ export class WalletService {
     const identities: Identity[] = []
 
     for (let i = 0; i < IDENTITY_LOOKAHEAD; i++) {
-      const key = this.sdk.keyPair.deriveIdentityPrivateKey(hdKey, i, 0, network)
+      const key = sdk.keyPair.deriveIdentityPrivateKey(hdKey, i, 0, network)
       if (!key.publicKey) throw new Error(`Failed to derive identity public key at index ${i}`)
 
       const pkh = PrivateKeyWASM.fromBytes(key.privateKey as Uint8Array, network).getPublicKeyHash()
@@ -139,7 +140,7 @@ export class WalletService {
       let uniqueIdentity
 
       try {
-        uniqueIdentity = await this.sdk.identities.getIdentityByPublicKeyHash(pkh)
+        uniqueIdentity = await sdk.identities.getIdentityByPublicKeyHash(pkh)
       } catch {
         console.log(`Failed to fetch unique identity for publicKeyHash ${pkh}`)
       }
@@ -147,7 +148,7 @@ export class WalletService {
       let nonUniqueIdentity
 
       try {
-        nonUniqueIdentity = await this.sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
+        nonUniqueIdentity = await sdk.identities.getIdentityByNonUniquePublicKeyHash(pkh)
       } catch {
         console.log(`Failed to fetch non unique identity for publicKeyHash ${pkh}`)
       }
@@ -223,14 +224,15 @@ export class WalletService {
       return false
     }
 
-    const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
-    const hdKey = this.sdk.keyPair.seedToHdKey(seed, wallet.network)
+    const keyPair = this.sdkProvider.getPlatformSDK(wallet.network).keyPair
+    const seed = keyPair.mnemonicToSeed(decryptedMnemonic)
+    const hdKey = keyPair.seedToHdKey(seed, wallet.network)
     const coinType = COIN_TYPE[wallet.network]
 
-    const key = await this.sdk.keyPair.derivePath(hdKey, `m/44'/${coinType}'/0'/1/${referenceWalletAddress.index}`)
+    const key = await keyPair.derivePath(hdKey, `m/44'/${coinType}'/0'/1/${referenceWalletAddress.index}`)
     if (!key.publicKey) throw new Error(`Failed to derive public key at index ${referenceWalletAddress.index}`)
 
-    const address = this.sdk.keyPair.p2pkhAddress(key.publicKey, wallet.network)
+    const address = keyPair.p2pkhAddress(key.publicKey, wallet.network)
 
     return address === referenceWalletAddress.address;
   }
@@ -347,7 +349,8 @@ export class WalletService {
 
     const addressesBalance = await provider.getBalance(addresses.map(addr => addr.address))
 
-    const identitiesBalances = await Promise.allSettled(identities.map(async identity => this.getIdentityBalance(identity.identifier)))
+    const platformSDK = this.sdkProvider.getPlatformSDK(wallet.network)
+    const identitiesBalances = await Promise.allSettled(identities.map(async identity => platformSDK.identities.getIdentityBalance(identity.identifier)))
     const identitiesBalance = identitiesBalances.reduce((acc, result) => acc + (result.status === 'fulfilled' ? result.value : 0n), 0n)
 
     return {
@@ -494,15 +497,15 @@ export class WalletService {
       throw new Error('Wallet not found')
     }
 
-    this.sdk.setNetwork(wallet.network)
+    const sdk = this.sdkProvider.getPlatformSDK(wallet.network)
 
     const stored = await this.identityDAO.getIdentitiesByWalletId(walletId)
     const results: IdentityInfo[] = []
 
     for (const entry of stored) {
       try {
-        const identity = await this.sdk.identities.getIdentityByIdentifier(entry.identifier)
-        const [aliasDocument] = await this.sdk.names.searchByIdentity(entry.identifier)
+        const identity = await sdk.identities.getIdentityByIdentifier(entry.identifier)
+        const [aliasDocument] = await sdk.names.searchByIdentity(entry.identifier)
         const {label, parentDomainName} = aliasDocument?.properties ?? {}
 
         let alias: string | null = null
@@ -531,11 +534,19 @@ export class WalletService {
   }
 
   async getIdentityBalance(identifier: string): Promise<bigint> {
-    return this.sdk.identities.getIdentityBalance(identifier)
+    const wallet = await this.walletDAO.getSelectedWallet()
+    if (wallet == null) {
+      throw new Error('No selected wallet found')
+    }
+    return this.sdkProvider.getPlatformSDK(wallet.network).identities.getIdentityBalance(identifier)
   }
 
   async getIdentityNonce(identifier: string): Promise<bigint> {
-    return this.sdk.identities.getIdentityNonce(identifier)
+    const wallet = await this.walletDAO.getSelectedWallet()
+    if (wallet == null) {
+      throw new Error('No selected wallet found')
+    }
+    return this.sdkProvider.getPlatformSDK(wallet.network).identities.getIdentityNonce(identifier)
   }
 }
 
