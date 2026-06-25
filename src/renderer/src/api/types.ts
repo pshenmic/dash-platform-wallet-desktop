@@ -16,6 +16,13 @@ export type GetAddressesResponse = {
   change: WalletAddressDto[]
 }
 
+// getPlatformAddresses
+export interface PlatformAddressDto {
+  platformAddress: string
+  balanceCredits: string
+  nonce: number
+}
+
 // getStatus
 export type Network = 'mainnet' | 'testnet'
 

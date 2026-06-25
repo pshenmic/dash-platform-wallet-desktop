@@ -1,4 +1,4 @@
-import { ConnectionType, Contact, ExchangeRatesResult, Network, PreferencesJSON, QueryStatus, SendResult } from './types'
+import { ConnectionType, Contact, ExchangeRatesResult, Network, PlatformAddressDto, PreferencesJSON, QueryStatus, SendResult } from './types'
 
 export class API {
   private static get api() {
@@ -63,6 +63,10 @@ export class API {
 
   static async getIdentities(walletId: string) {
     return this.api.getIdentities(walletId)
+  }
+
+  static async getPlatformAddresses(walletId: string): Promise<PlatformAddressDto[]> {
+    return this.api.getPlatformAddresses(walletId) as Promise<PlatformAddressDto[]>
   }
 
   static async deleteWallet(walletId: string) {

@@ -24,6 +24,8 @@ import {selectCoins, SelectableUtxo} from "./coinSelection";
 import {dedupeTransactions} from "./dedupeTransactions";
 import {CoreTransactionService, TransferInput} from "./CoreTransactionService";
 import {decryptMnemonic, encryptMnemonic} from "../utils";
+import {coreAddressToPlatformAddress} from "./platformAddress";
+import {PlatformAddressEntry} from "../types/PlatformAddress";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -538,6 +540,58 @@ export class WalletService {
 
   async getIdentityNonce(identifier: string): Promise<bigint> {
     return this.sdk.identities.getIdentityNonce(identifier)
+  }
+
+  async getPlatformAddresses(walletId: string): Promise<PlatformAddressEntry[]> {
+    const wallet = await this.walletDAO.getWalletById(walletId)
+
+    if (wallet == null) {
+      throw new Error('Wallet not found')
+    }
+
+    this.sdk.setNetwork(wallet.network)
+
+    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
+    const allAddresses = [...grouped.receiving, ...grouped.change]
+
+    const platformAddresses = allAddresses.map(address => coreAddressToPlatformAddress(address.address, wallet.network))
+
+    const infoByPlatformAddress = await this.fetchPlatformAddressInfos(platformAddresses, wallet.network)
+
+    return platformAddresses.map(platformAddress => {
+      const info = infoByPlatformAddress.get(platformAddress)
+      return {
+        platformAddress,
+        balanceCredits: (info?.balance ?? 0n).toString(),
+        nonce: info?.nonce ?? 0,
+      }
+    })
+  }
+
+  private async fetchPlatformAddressInfos(platformAddresses: string[], network: Network): Promise<Map<string, { balance: bigint; nonce: number }>> {
+    const result = new Map<string, { balance: bigint; nonce: number }>()
+
+    if (platformAddresses.length === 0) {
+      return result
+    }
+
+    try {
+      const infos = await this.sdk.platformAddresses.getAddressesInfos(platformAddresses)
+      for (const info of infos) {
+        result.set(info.address.toBech32m(network), { balance: info.balance, nonce: info.nonce })
+      }
+      return result
+    } catch {
+      const settled = await Promise.allSettled(
+        platformAddresses.map(address => this.sdk.platformAddresses.getAddressInfo(address))
+      )
+      settled.forEach((outcome, i) => {
+        if (outcome.status === 'fulfilled') {
+          result.set(platformAddresses[i], { balance: outcome.value.balance, nonce: outcome.value.nonce })
+        }
+      })
+      return result
+    }
   }
 }
 

@@ -19,6 +19,7 @@ declare global {
       getIdentities: (walletId: string) => Promise<unknown>
       getIdentityBalance: (identifier: string) => Promise<bigint>
       getIdentityNonce: (identifier: string) => Promise<bigint>
+      getPlatformAddresses: (walletId: string) => Promise<unknown>
       deleteWallet: (walletId: string) => Promise<unknown>
       selectWallet: (walletId: string) => Promise<unknown>
       getWalletBalance: (walletId: string) => Promise<unknown>

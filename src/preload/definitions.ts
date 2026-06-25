@@ -16,6 +16,7 @@ export const apiDefinitions = (ipcRenderer) => ({
   getIdentities: (walletId: string) => ipcRenderer.invoke('getIdentities', walletId),
   getIdentityBalance: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityBalance', identifier),
   getIdentityNonce: (identifier: string): Promise<bigint> => ipcRenderer.invoke('getIdentityNonce', identifier),
+  getPlatformAddresses: (walletId: string) => ipcRenderer.invoke('getPlatformAddresses', walletId),
   setAddressLabel: (walletId: string, address: string, label: string) => ipcRenderer.invoke('setAddressLabel', walletId, address, label),
   setWalletLabel: (walletId: string, label: string | null) => ipcRenderer.invoke('setWalletLabel', walletId, label),
   sendTransaction: (walletId: string, toAddress: string, amountDuffs: string, password: string) => ipcRenderer.invoke('sendTransaction', walletId, toAddress, amountDuffs, password),
