@@ -12,10 +12,11 @@ export class SendPlatformTransferHandler {
   handle = async (
     _event: IpcMainInvokeEvent,
     walletId: string,
+    fromAddress: string,
     toAddress: string,
     amountCredits: string,
     password: string,
   ): Promise<PlatformSendResult> => {
-    return this.walletService.sendPlatformTransfer(walletId, toAddress, BigInt(amountCredits), password)
+    return this.walletService.sendPlatformTransfer(walletId, fromAddress, toAddress, BigInt(amountCredits), password)
   }
 }

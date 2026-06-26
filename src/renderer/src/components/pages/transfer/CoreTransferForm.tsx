@@ -42,8 +42,8 @@ export default function CoreTransferForm({pageData}: {pageData: TransferPageType
 
   return (
     <>
-      <div className={"flex w-full justify-center flex-1"}>
-        <div className={"flex flex-col w-115 mt-18.25 pb-18.25"}>
+      <div className={"flex w-full justify-center flex-1 min-h-0"}>
+        <div className={"flex flex-col w-115 py-6"}>
           <AmountInput
             value={amount}
             onChange={setAmount}

@@ -113,7 +113,7 @@ export class API {
     return this.api.sendTransaction(walletId, toAddress, amountDuffs, password) as Promise<SendResult>
   }
 
-  static async sendPlatformTransfer(walletId: string, toAddress: string, amountCredits: string, password: string): Promise<PlatformSendResult> {
-    return this.api.sendPlatformTransfer(walletId, toAddress, amountCredits, password) as Promise<PlatformSendResult>
+  static async sendPlatformTransfer(walletId: string, fromAddress: string, toAddress: string, amountCredits: string, password: string): Promise<PlatformSendResult> {
+    return this.api.sendPlatformTransfer(walletId, fromAddress, toAddress, amountCredits, password) as Promise<PlatformSendResult>
   }
 }

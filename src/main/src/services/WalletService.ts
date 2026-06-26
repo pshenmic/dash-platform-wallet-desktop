@@ -616,6 +616,7 @@ export class WalletService {
 
   async sendPlatformTransfer(
     walletId: string,
+    fromPlatformAddress: string,
     toPlatformAddress: string,
     amountCredits: bigint,
     password: string,
@@ -654,7 +655,7 @@ export class WalletService {
       }
     })
 
-    const source = selectPlatformSource(candidates, amountCredits)
+    const source = selectPlatformSource(candidates, amountCredits, fromPlatformAddress || undefined)
 
     const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
     const hdKey = this.sdk.keyPair.seedToHdKey(seed, network)

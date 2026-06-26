@@ -11,6 +11,7 @@ interface PlatformSendConfirmModalProps {
   isOpen: boolean
   onClose: () => void
   walletId: string | null
+  fromAddress: string
   toAddress: string
   amountCredits: string
   onSuccess: () => void
@@ -60,6 +61,7 @@ export default function PlatformSendConfirmModal({
   isOpen,
   onClose,
   walletId,
+  fromAddress,
   toAddress,
   amountCredits,
   onSuccess,
@@ -88,7 +90,7 @@ export default function PlatformSendConfirmModal({
     setPhase('sending')
     setError(null)
     try {
-      const res = await API.sendPlatformTransfer(walletId, toAddress, amountCredits, password)
+      const res = await API.sendPlatformTransfer(walletId, fromAddress, toAddress, amountCredits, password)
       setResult(res)
       setPhase('done')
       onSuccess()
@@ -109,7 +111,7 @@ export default function PlatformSendConfirmModal({
       onClick={requestClose}
     >
       <div
-        className={"w-full max-w-105 rounded-3xl bg-white dark:bg-white/12 p-6 dark:backdrop-blur-[2rem] modal-fade-in"}
+        className={"w-full max-w-140 rounded-3xl bg-white dark:bg-white/12 p-6 dark:backdrop-blur-[2rem] modal-fade-in"}
         onClick={(e) => e.stopPropagation()}
       >
         <div className={"flex items-center justify-between"}>
@@ -131,6 +133,10 @@ export default function PlatformSendConfirmModal({
               <div className={"flex justify-between items-center gap-4"}>
                 <Text size={12} weight={"medium"} color={"brand"} opacity={50}>Amount</Text>
                 <Text size={14} weight={"extrabold"} color={"brand"}>{amountCredits} credits</Text>
+              </div>
+              <div className={"flex justify-between items-center gap-4"}>
+                <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>From</Text>
+                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{fromAddress}</Text>
               </div>
               <div className={"flex justify-between items-center gap-4"}>
                 <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>To</Text>
@@ -207,8 +213,12 @@ export default function PlatformSendConfirmModal({
 
             <div className={"mt-5 flex flex-col gap-[.75rem] p-[.875rem] rounded-[.9375rem] dash-block-3"}>
               <div className={"flex justify-between items-center gap-4"}>
+                <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>From</Text>
+                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{result?.fromAddress}</Text>
+              </div>
+              <div className={"flex justify-between items-center gap-4"}>
                 <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"shrink-0"}>To</Text>
-                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{toAddress}</Text>
+                <Text size={12} weight={"medium"} color={"brand"} className={"font-mono min-w-0 break-all text-right"}>{result?.toAddress}</Text>
               </div>
               {result?.feeCredits && (
                 <div className={"flex justify-between items-center gap-4"}>

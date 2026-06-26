@@ -15,7 +15,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
   const isPlatform = selectedAsset.id === PLATFORM_CREDITS_ASSET_ID
 
   return (
-    <div className={"relative flex flex-col pb-12"}>
+    <div className={"relative flex flex-col h-full pb-8"}>
       <Header
         selectedAsset={selectedAsset}
         assets={assets}

@@ -41,4 +41,18 @@ describe('selectPlatformSource', () => {
   it('throws when the amount is below the minimum output', () => {
     expect(() => selectPlatformSource([candidate('a', REQUIRED)], MIN_OUTPUT_CREDITS - 1n)).toThrow(/Minimum/)
   })
+
+  it('uses the explicit source address when given', () => {
+    const candidates = [candidate('a', REQUIRED + 9_000_000n), candidate('b', REQUIRED)]
+    expect(selectPlatformSource(candidates, AMOUNT, 'b').platformAddress).toBe('b')
+  })
+
+  it('throws when the explicit source address is unknown', () => {
+    expect(() => selectPlatformSource([candidate('a', REQUIRED)], AMOUNT, 'zzz')).toThrow(/not found/)
+  })
+
+  it('throws when the explicit source address cannot cover amount + fee', () => {
+    const candidates = [candidate('a', REQUIRED + 9_000_000n), candidate('b', REQUIRED - 1n)]
+    expect(() => selectPlatformSource(candidates, AMOUNT, 'b')).toThrow(/insufficient/)
+  })
 })
