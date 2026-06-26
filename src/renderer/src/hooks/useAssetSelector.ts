@@ -10,6 +10,8 @@ export interface Asset {
   currency: string
 }
 
+export const PLATFORM_CREDITS_ASSET_ID = 'platform-credits'
+
 export const ASSETS: Asset[] = [
   {
     id: 'dash',
@@ -17,6 +19,13 @@ export const ASSETS: Asset[] = [
     symbol: 'DASH',
     initials: 'D',
     currency: 'DASH',
+  },
+  {
+    id: PLATFORM_CREDITS_ASSET_ID,
+    name: 'Platform Credits',
+    symbol: 'CREDITS',
+    initials: 'P',
+    currency: 'CREDITS',
   },
 ]
 

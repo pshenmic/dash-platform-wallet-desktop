@@ -124,3 +124,11 @@ export interface SendResult {
   changeAddress: string | null
   peersAcked: number
 }
+
+export interface PlatformSendResult {
+  stHash: string
+  amountCredits: string
+  feeCredits: string
+  fromAddress: string
+  toAddress: string
+}

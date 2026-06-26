@@ -14,7 +14,14 @@ import {Address} from '../types/Address'
 import {GroupedAddresses} from '../types/GroupedAddresses'
 import {Identity, IdentityInfo} from '../types/Identity'
 import {Wallet} from '../types/Wallet'
-import {PrivateKeyWASM} from 'pshenmic-dpp'
+import {
+  InputAddressWASM,
+  OutputAddressWASM,
+  AddressFundsFeeStrategyStepWASM,
+  AddressWitnessWASM,
+  AddressFundsTransferTransitionWASM,
+  PrivateKeyWASM,
+} from 'dash-platform-sdk/types.js'
 import {BlockJSON} from "dash-core-sdk/src/types";
 import {QueryStatus} from "../types/QueryStatus";
 import {WalletBalance} from "../types/WalletBalance";
@@ -26,6 +33,8 @@ import {CoreTransactionService, TransferInput} from "./CoreTransactionService";
 import {decryptMnemonic, encryptMnemonic} from "../utils";
 import {coreAddressToPlatformAddress} from "./platformAddress";
 import {PlatformAddressEntry} from "../types/PlatformAddress";
+import {PlatformSendResult} from "../types/PlatformSendResult";
+import {PlatformSourceCandidate, selectPlatformSource, TRANSFER_FEE_CREDITS} from "./platformTransfer";
 
 const ADDRESS_LOOKAHEAD = 20
 const IDENTITY_LOOKAHEAD = 10
@@ -551,14 +560,13 @@ export class WalletService {
 
     this.sdk.setNetwork(wallet.network)
 
-    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
-    const allAddresses = [...grouped.receiving, ...grouped.change]
+    const owned = await this.buildPlatformOwned(walletId, wallet.network)
+    const infoByPlatformAddress = await this.fetchPlatformAddressInfos(
+      owned.map(entry => entry.platformAddress),
+      wallet.network,
+    )
 
-    const platformAddresses = allAddresses.map(address => coreAddressToPlatformAddress(address.address, wallet.network))
-
-    const infoByPlatformAddress = await this.fetchPlatformAddressInfos(platformAddresses, wallet.network)
-
-    return platformAddresses.map(platformAddress => {
+    return owned.map(({platformAddress}) => {
       const info = infoByPlatformAddress.get(platformAddress)
       return {
         platformAddress,
@@ -566,6 +574,18 @@ export class WalletService {
         nonce: info?.nonce ?? 0,
       }
     })
+  }
+
+  private async buildPlatformOwned(
+    walletId: string,
+    network: Network,
+  ): Promise<Array<{platformAddress: string; coreAddress: string; derivationPath: string}>> {
+    const grouped = await this.addressDAO.getAddressesByWalletId(walletId)
+    return [...grouped.receiving, ...grouped.change].map(address => ({
+      platformAddress: coreAddressToPlatformAddress(address.address, network),
+      coreAddress: address.address,
+      derivationPath: address.derivationPath,
+    }))
   }
 
   private async fetchPlatformAddressInfos(platformAddresses: string[], network: Network): Promise<Map<string, { balance: bigint; nonce: number }>> {
@@ -591,6 +611,87 @@ export class WalletService {
         }
       })
       return result
+    }
+  }
+
+  async sendPlatformTransfer(
+    walletId: string,
+    toPlatformAddress: string,
+    amountCredits: bigint,
+    password: string,
+  ): Promise<PlatformSendResult> {
+    if (amountCredits <= 0n) {
+      throw new Error('Send amount must be greater than zero')
+    }
+
+    const wallet = await this.walletDAO.getWalletById(walletId)
+    if (wallet == null) {
+      throw new Error('Wallet not found')
+    }
+    const network = wallet.network
+
+    this.sdk.setNetwork(network)
+
+    let decryptedMnemonic: string
+    try {
+      decryptedMnemonic = decryptMnemonic(wallet.encryptedMnemonic, password)
+    } catch {
+      throw new Error('Invalid wallet password')
+    }
+
+    const owned = await this.buildPlatformOwned(walletId, network)
+    const infoByPlatformAddress = await this.fetchPlatformAddressInfos(
+      owned.map(entry => entry.platformAddress),
+      network,
+    )
+
+    const candidates: PlatformSourceCandidate[] = owned.map(entry => {
+      const info = infoByPlatformAddress.get(entry.platformAddress)
+      return {
+        ...entry,
+        balanceCredits: info?.balance ?? 0n,
+        nonce: info?.nonce ?? 0,
+      }
+    })
+
+    const source = selectPlatformSource(candidates, amountCredits)
+
+    const seed = this.sdk.keyPair.mnemonicToSeed(decryptedMnemonic)
+    const hdKey = this.sdk.keyPair.seedToHdKey(seed, network)
+    const derived = await this.sdk.keyPair.derivePath(hdKey, source.derivationPath)
+    if (!derived.privateKey) {
+      throw new Error(`Failed to derive private key for ${source.coreAddress}`)
+    }
+    const privateKey = PrivateKeyWASM.fromBytes(derived.privateKey as Uint8Array, network)
+
+    const inputs = [new InputAddressWASM(source.platformAddress, source.nonce + 1, amountCredits)]
+    const outputs = [new OutputAddressWASM(toPlatformAddress, amountCredits)]
+    const feeStrategy = [AddressFundsFeeStrategyStepWASM.DeductFromInput(0)]
+
+    const unsignedSt = this.sdk.platformAddresses.createStateTransition('addressFundsTransfer', {
+      inputs,
+      feeStrategy,
+      userFeeIncrease: 0,
+      inputWitness: [],
+      outputs,
+    })
+
+    const signable = unsignedSt.getSignableBytes()
+    const signature = privateKey.sign(signable)
+
+    const transition = AddressFundsTransferTransitionWASM.fromStateTransition(unsignedSt)
+    transition.inputWitness = [AddressWitnessWASM.P2PKH(signature)]
+    const signedSt = transition.toStateTransition()
+
+    await this.sdk.stateTransitions.broadcast(signedSt)
+    await this.sdk.stateTransitions.waitForStateTransitionResult(signedSt)
+
+    return {
+      stHash: signedSt.hash(false),
+      amountCredits: amountCredits.toString(),
+      feeCredits: TRANSFER_FEE_CREDITS.toString(),
+      fromAddress: source.platformAddress,
+      toAddress: toPlatformAddress,
     }
   }
 }

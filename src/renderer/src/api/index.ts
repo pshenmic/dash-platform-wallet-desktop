@@ -1,4 +1,4 @@
-import { ConnectionType, Contact, ExchangeRatesResult, Network, PlatformAddressDto, PreferencesJSON, QueryStatus, SendResult } from './types'
+import { ConnectionType, Contact, ExchangeRatesResult, Network, PlatformAddressDto, PlatformSendResult, PreferencesJSON, QueryStatus, SendResult } from './types'
 
 export class API {
   private static get api() {
@@ -111,5 +111,9 @@ export class API {
 
   static async sendTransaction(walletId: string, toAddress: string, amountDuffs: string, password: string): Promise<SendResult> {
     return this.api.sendTransaction(walletId, toAddress, amountDuffs, password) as Promise<SendResult>
+  }
+
+  static async sendPlatformTransfer(walletId: string, toAddress: string, amountCredits: string, password: string): Promise<PlatformSendResult> {
+    return this.api.sendPlatformTransfer(walletId, toAddress, amountCredits, password) as Promise<PlatformSendResult>
   }
 }

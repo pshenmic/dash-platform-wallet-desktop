@@ -26,6 +26,7 @@ declare global {
       setAddressLabel: (walletId: string, address: string, label: string) => Promise<unknown>
       setWalletLabel: (walletId: string, label: string | null) => Promise<{ success: boolean; errorMessage: string | null }>
       sendTransaction: (walletId: string, toAddress: string, amountDuffs: string, password: string) => Promise<unknown>
+      sendPlatformTransfer: (walletId: string, toAddress: string, amountCredits: string, password: string) => Promise<unknown>
       broadcastTransaction: (txHex: string) => Promise<unknown>
       getPreferences: () => Promise<unknown>
       setLanguage: (language: string) => Promise<unknown>
