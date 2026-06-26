@@ -6,7 +6,7 @@ import PlatformTransferForm from "./PlatformTransferForm";
 
 const PLATFORM_HEADER: TransferPageType['header'] = {
   title: 'Send',
-  description: 'Send Platform (L2) credits from one of your addresses to another.',
+  description: '',
   balance: 'Balance',
 }
 
@@ -24,7 +24,7 @@ export default function TransferPage({pageData}: {pageData: TransferPageType}): 
       />
       {isPlatform
         ? <PlatformTransferForm pageData={{...pageData, header: PLATFORM_HEADER}} />
-        : <CoreTransferForm pageData={pageData} />}
+        : <CoreTransferForm pageData={{...pageData, header: {...pageData.header, description: ''}}} />}
     </div>
   )
 }

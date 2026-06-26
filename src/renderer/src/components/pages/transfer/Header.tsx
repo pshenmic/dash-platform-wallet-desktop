@@ -80,7 +80,9 @@ export default function Header({selectedAsset, assets, onSelectAsset, data}: Hea
             )}
           </div>
         </div>
-        <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"leading-[120%] max-w-152.5"}>{data.description}</Text>
+        {data.description && (
+          <Text size={12} weight={"medium"} color={"brand"} opacity={50} className={"leading-[120%] max-w-152.5"}>{data.description}</Text>
+        )}
       </div>
     </div>
   )

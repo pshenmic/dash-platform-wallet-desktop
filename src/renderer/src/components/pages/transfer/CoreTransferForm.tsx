@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { DashLogo } from "dash-ui-kit/react";
+import { Text } from "@renderer/components/dash-ui-kit-enxtended";
 import { TransferPageType } from "@renderer/constants";
 import { useAuth } from "@renderer/contexts/AuthContext";
 import { useConnectionModeContext } from "@renderer/contexts/ConnectionModeContext";
@@ -8,7 +10,7 @@ import { refreshTransactions } from "@renderer/hooks/useWalletTransactions";
 import { davToDash, dashToDuffs } from "@renderer/utils/balance";
 import { isValidDashAddress } from "@renderer/utils/address";
 import SendConfirmModal from "@renderer/components/modal/SendConfirmModal";
-import AmountInput from "./AmountInput";
+import AmountField from "./AmountField";
 import RecipientInput from "./RecipientInput";
 import AmountSummary from "./AmountSummary";
 
@@ -28,6 +30,14 @@ export default function CoreTransferForm({pageData}: {pageData: TransferPageType
 
   const amountDuffs = useMemo(() => dashToDuffs(amount), [amount])
 
+  const handleAmount = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const val = e.target.value.replace(/[^0-9.]/g, '')
+    const parts = val.split('.')
+    if (parts.length > 2) return
+    if (parts[1] && parts[1].length > 8) return
+    setAmount(val)
+  }
+
   const handleMax = (): void => {
     setAmount(davToDash(balanceDuffs))
   }
@@ -43,25 +53,31 @@ export default function CoreTransferForm({pageData}: {pageData: TransferPageType
   return (
     <>
       <div className={"flex w-full justify-center flex-1 min-h-0"}>
-        <div className={"flex flex-col w-115 py-6"}>
-          <AmountInput
-            value={amount}
-            onChange={setAmount}
-            onMax={handleMax}
-            balanceLabel={`${pageData.header.balance}: ${davToDash(balanceDuffs)} Dash`}
-            fiatPreview={amountFiat}
-            overBalance={amountPositive && !amountWithinBalance}
-          />
-          <RecipientInput
-            value={recipient}
-            onChange={setRecipient}
-            data={pageData.recipient}
-          />
-          {!recipientValid && (
-            <span className={"mt-2 text-[.75rem] text-dash-red"}>
-              Enter a valid Dash {network ?? ''} address.
-            </span>
-          )}
+        <div className={"flex flex-col w-115 gap-4 py-2"}>
+          <div>
+            <AmountField value={amount} onChange={handleAmount} onMax={handleMax} unit={<DashLogo size={20} />} />
+            <div className={"mt-2 px-1 flex items-center justify-between gap-3"}>
+              <Text size={12} weight={"medium"} color={amountPositive && !amountWithinBalance ? "red" : "brand"} opacity={amountPositive && !amountWithinBalance ? 100 : 50}>
+                {amountPositive && !amountWithinBalance
+                  ? 'Amount exceeds balance'
+                  : `${pageData.header.balance}: ${davToDash(balanceDuffs)} Dash`}
+              </Text>
+              {amountFiat && <Text size={12} weight={"medium"} color={"blue-mint"}>≈ {amountFiat}</Text>}
+            </div>
+          </div>
+
+          <div>
+            <RecipientInput
+              value={recipient}
+              onChange={setRecipient}
+              data={pageData.recipient}
+            />
+            {!recipientValid && (
+              <span className={"mt-2 block text-[.75rem] text-dash-red"}>
+                Enter a valid Dash {network ?? ''} address.
+              </span>
+            )}
+          </div>
         </div>
       </div>
       <AmountSummary
