@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button, Text, CreditsIcon } from "@renderer/components/dash-ui-kit-enxtended";
 import { BigNumber, ChevronIcon } from "dash-ui-kit/react";
 import { TransferPageType } from "@renderer/constants";
 import { PlatformAddressDto } from "@renderer/api/types";
 import { useAuth } from "@renderer/contexts/AuthContext";
 import { usePlatformAddresses, prefetchPlatformAddresses } from "@renderer/hooks/usePlatformAddresses";
+import { useClickOutside } from "@renderer/hooks/useClickOutside";
 import { isValidPlatformAddress } from "@renderer/utils/platformAddress";
+import { formatCredits } from "@renderer/utils/balance";
 import AmountField from "./AmountField";
 import PlatformSendConfirmModal from "@renderer/components/modal/PlatformSendConfirmModal";
 
 const MIN_OUTPUT_CREDITS = 500_000n
 const TRANSFER_FEE_CREDITS = 6_500_000n
-
-const formatCredits = (credits: bigint): string => credits.toLocaleString('en-US')
 
 const fieldBox = "dash-block rounded-[.875rem] px-4 py-3.5"
 
@@ -46,15 +46,7 @@ export default function PlatformTransferForm({pageData}: {pageData: TransferPage
   const selectedSource = fundedAddresses.find(a => a.platformAddress === sourceAddress) ?? defaultSource
   const availableCredits = selectedSource ? BigInt(selectedSource.balanceCredits) : 0n
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
-      if (sourceRef.current && !sourceRef.current.contains(e.target as Node)) {
-        setSourceOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  useClickOutside(sourceRef, () => setSourceOpen(false))
 
   const amountCredits = amount.length > 0 ? BigInt(amount) : 0n
   const amountAboveMin = amountCredits >= MIN_OUTPUT_CREDITS

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Text } from "@renderer/components/dash-ui-kit-enxtended";
 import { Asset } from "@renderer/hooks/useAssetSelector";
+import { useClickOutside } from "@renderer/hooks/useClickOutside";
 import { ChevronIcon } from "dash-ui-kit/react";
 import { TransferPageType } from "@renderer/constants";
 
@@ -32,15 +33,7 @@ export default function Header({selectedAsset, assets, onSelectAsset, data}: Hea
   const containerRef = useRef<HTMLDivElement>(null)
   const interactive = assets != null && onSelectAsset != null
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent): void => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  useClickOutside(containerRef, () => setOpen(false))
 
   return (
     <div className={"flex items-end justify-between px-12"}>
